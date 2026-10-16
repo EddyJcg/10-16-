@@ -1,5 +1,5 @@
 -- Supabase Dashboard > SQL Editor에서 실행하세요.
--- 로그인 없이 모든 방문자가 같은 재고를 조회·등록·수정·삭제합니다.
+-- 활성 로그인 사용자만 같은 재고를 조회·등록·수정·삭제합니다.
 begin;
 create table if not exists public.inventory_items (
   id uuid primary key default gen_random_uuid(),
@@ -14,11 +14,30 @@ create table if not exists public.inventory_items (
 alter table public.inventory_items add column if not exists version bigint not null default 1;
 alter table public.inventory_items enable row level security;
 grant usage on schema public to anon, authenticated;
-grant select, insert, update, delete on public.inventory_items to anon, authenticated;
+revoke all on public.inventory_items from anon;
+grant select, insert, update, delete on public.inventory_items to authenticated;
 drop policy if exists shared_inventory_authenticated on public.inventory_items;
 drop policy if exists shared_inventory_public on public.inventory_items;
-create policy shared_inventory_public on public.inventory_items
-  for all to anon, authenticated using (true) with check (true);
+-- 사용자가 지정한 최초 관리자에게 재고 접근 권한을 부여합니다.
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"inventory_access":true}'::jsonb
+where id = '1a5b77e2-e8b2-4f7f-980d-e1974834be5c'::uuid;
+-- ban은 기존 액세스 토큰의 만료를 기다리지 않고 DB 접근에도 즉시 적용합니다.
+create or replace function public.inventory_access_allowed()
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from auth.users
+    where id = (select auth.uid())
+      and deleted_at is null
+      and (banned_until is null or banned_until <= now())
+      and raw_app_meta_data @> '{"inventory_access":true}'::jsonb
+  );
+$$;
+revoke all on function public.inventory_access_allowed() from public, anon;
+grant execute on function public.inventory_access_allowed() to authenticated;
+create policy shared_inventory_authenticated on public.inventory_items
+  for all to authenticated using ((select public.inventory_access_allowed()))
+  with check ((select public.inventory_access_allowed()));
 
 -- 수정마다 버전을 부여하여 오래된 화면의 저장이 최신 값을 덮어쓰지 않게 합니다.
 create or replace function public.bump_inventory_version()
@@ -45,7 +64,7 @@ begin
 end;
 $$;
 revoke all on function public.adjust_inventory_quantity(uuid, integer) from public, anon;
-grant execute on function public.adjust_inventory_quantity(uuid, integer) to anon, authenticated;
+grant execute on function public.adjust_inventory_quantity(uuid, integer) to authenticated;
 
 -- 이미 활성화된 프로젝트에서도 중복 등록 없이 다시 실행할 수 있습니다.
 do $$

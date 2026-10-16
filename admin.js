@@ -78,13 +78,12 @@ async function onSession(session) {
     page = 1;
     if (await loadUsers()) { $('admin-panel').hidden = false; $('login-panel').hidden = true; notify('관리자 권한을 확인했습니다.'); }
   } catch (error) {
-    await client.auth.signOut({scope:'local'});
     notify(error.message,true);
   }
 }
 async function startAdmin() {
   if (!window.supabase) { notify('로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true); return; }
-  client = window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:true,detectSessionInUrl:false}});
+  client = window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,storage:window.sessionStorage,storageKey:'inventory-note-admin-session',autoRefreshToken:true,detectSessionInUrl:false}});
   client.auth.onAuthStateChange((event,session) => {
     if (['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event)) setTimeout(() => onSession(session),0);
   });

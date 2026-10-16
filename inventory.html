@@ -20,7 +20,8 @@
   <main>
     <div id="message" class="message" role="status" aria-live="polite"></div>
     <div class="intro"><div><h1>재고 현황</h1><p>물품을 등록하고 입출고 수량을 간편하게 관리하세요.</p></div><div class="date" id="today"></div></div>
-    <section id="login-panel" class="panel" style="max-width:420px;margin:0 auto 28px"><h2>공유 재고 로그인</h2><p class="sub">관리자가 등록한 계정으로 로그인하세요.</p><form id="login-form"><div class="field"><label for="email">이메일</label><input id="email" type="email" required autocomplete="username"></div><div class="field"><label for="password">비밀번호</label><input id="password" type="password" required autocomplete="current-password"></div><button id="login-button" class="primary">로그인</button></form></section><div id="session-panel" class="hidden" style="margin-bottom:20px"><span id="user-email"></span> <button id="refresh" class="secondary">새로고침</button> <button id="logout" class="secondary">로그아웃</button></div><fieldset id="inventory-panel" disabled style="border:0;padding:0;margin:0;min-width:0" class="hidden"><section class="stats" aria-label="재고 요약">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px"><span id="sync-status" class="date" style="display:block">○ 연결 중</span><button id="refresh" class="secondary">새로고침</button></div>
+    <fieldset id="inventory-panel" disabled style="border:0;padding:0;margin:0;min-width:0"><section class="stats" aria-label="재고 요약">
       <div class="stat"><span>등록 품목</span><strong id="total-items">0</strong></div>
       <div class="stat"><span>총 재고 수량</span><strong id="total-qty">0</strong></div>
       <div class="stat warn"><span>재고 부족 품목</span><strong id="low-items">0</strong></div>
@@ -43,7 +44,7 @@
         <div class="toolbar"><h2>품목 목록 <span id="list-count" style="color:#819489;font-weight:400"></span></h2><button class="secondary" id="export" type="button">↓ CSV 내보내기</button></div>
         <div class="filters"><input id="search" type="search" aria-label="품목명 검색" placeholder="품목명으로 검색"><select id="filter" aria-label="재고 상태 필터"><option value="all">전체 상태</option><option value="low">재고 부족</option><option value="ok">재고 충분</option></select></div>
         <div class="table-wrap"><table><thead><tr><th scope="col">품목 / 분류</th><th scope="col">현재 수량</th><th scope="col">단가</th><th scope="col">상태</th><th scope="col">관리</th></tr></thead><tbody id="items"></tbody></table></div>
-        <p class="foot">로그인한 모든 사용자가 같은 재고를 관리합니다. 새로고침으로 최신 재고를 확인하세요.</p>
+        <p class="foot">누구나 같은 재고를 조회·편집합니다. 다른 사용자의 변경 사항은 자동으로 반영됩니다.</p>
       </section>
     </div>
     </fieldset>

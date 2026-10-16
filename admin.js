@@ -23,7 +23,7 @@ async function api(method = 'GET',body) {
   });
   let result;
   try { result = await response.json(); } catch { throw new Error('관리자 API에 연결하지 못했습니다. Vercel 배포 상태를 확인하세요.'); }
-  if (!response.ok) throw new Error(result.error || '요청을 처리하지 못했습니다.');
+  if (!response.ok) { const error = new Error(result.error || '요청을 처리하지 못했습니다.'); error.status = response.status; throw error; }
   return result;
 }
 function renderUsers() {
@@ -71,19 +71,23 @@ async function runMutation(action,message) {
 }
 async function onSession(session) {
   sessionGeneration++; users = []; $('users').replaceChildren(); resetEditor();
-  $('admin-panel').hidden = true; $('login-panel').hidden = false;
+  const generation = sessionGeneration;
+  $('admin-panel').hidden = true; $('login-panel').hidden = !!session;
   if (!session) return;
   $('admin-email').textContent = session.user.email;
   try {
     page = 1;
     if (await loadUsers()) { $('admin-panel').hidden = false; $('login-panel').hidden = true; notify('관리자 권한을 확인했습니다.'); }
   } catch (error) {
+    if (generation !== sessionGeneration) return;
+    if (error.status === 403) { window.location.replace('/'); return; }
+    if (error.status === 401) { await client.auth.signOut({scope:'local'}); }
     notify(error.message,true);
   }
 }
 async function startAdmin() {
   if (!window.supabase) { notify('로그인 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true); return; }
-  client = window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,storage:window.sessionStorage,storageKey:'inventory-note-admin-session',autoRefreshToken:true,detectSessionInUrl:false}});
+  client = window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,storage:window.sessionStorage,storageKey:'inventory-note-stock-session',autoRefreshToken:true,detectSessionInUrl:false}});
   client.auth.onAuthStateChange((event,session) => {
     if (['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event)) setTimeout(() => onSession(session),0);
   });

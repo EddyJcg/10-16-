@@ -7,7 +7,7 @@ const {createClient}=require('@supabase/supabase-js');
 async function boot(file){
   const values=new Map(),elements=new Map();let options;
   const storage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
-  const element=id=>{if(!elements.has(id))elements.set(id,{value:'',textContent:'',hidden:false,disabled:false,handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},querySelectorAll(){return[];},reset(){},classList:{toggle(){}}});return elements.get(id);};
+  const element=id=>{if(!elements.has(id))elements.set(id,{value:'',textContent:'',hidden:false,disabled:false,handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},querySelectorAll(){return[];},replaceChildren(){},reset(){},classList:{toggle(){}}});return elements.get(id);};
   const context=vm.createContext({
     SUPABASE_URL:'https://example.supabase.co',SUPABASE_PUBLISHABLE_KEY:'test-key',
     document:{getElementById:element,querySelectorAll(){return[];},addEventListener(){}},
@@ -41,4 +41,29 @@ test('stock refresh updates data without clearing the current login',async()=>{
   await app.element('refresh').handlers.click();
   assert.equal(vm.runInContext('currentUser.id',app.context),'signed-in');
   assert.equal(vm.runInContext('items[0].product_code',app.context),'UPDATED');
+});
+
+test('inventory and admin use the same tab session without another sign-in',async()=>{
+  const inventory=await boot('inventory-app.js'),admin=await boot('admin.js');
+  assert.equal(admin.options.auth.storageKey,inventory.options.auth.storageKey);
+  assert.equal(inventory.options.auth.storageKey,'inventory-note-stock-session');
+});
+
+test('admin link stays hidden unless the server verifies the current user as admin',async()=>{
+  const app=await boot('inventory-app.js');
+  app.context.fetch=async()=>({ok:true,json:async()=>({is_admin:true})});
+  vm.runInContext('currentUser={id:"admin"};client.auth.getSession=async()=>({data:{session:{access_token:"verified-token"}}});',app.context);
+  await vm.runInContext('refreshAdminAccess()',app.context);assert.equal(app.element('admin-link').hidden,false);
+  app.context.fetch=async()=>({ok:true,json:async()=>({is_admin:false})});
+  await vm.runInContext('refreshAdminAccess()',app.context);assert.equal(app.element('admin-link').hidden,true);
+  app.context.fetch=async()=>{throw new Error('offline');};
+  await vm.runInContext('refreshAdminAccess()',app.context);assert.equal(app.element('admin-link').hidden,true);
+});
+
+test('direct admin visit by an ordinary user hides panels and returns to inventory',async()=>{
+  const admin=await boot('admin.js');let destination;
+  admin.context.window.location={replace:path=>{destination=path;}};
+  vm.runInContext('loadUsers=async()=>{const error=new Error("관리자만 사용할 수 있습니다.");error.status=403;throw error;}',admin.context);
+  await vm.runInContext('onSession({user:{email:"ordinary@example.test"}})',admin.context);
+  assert.equal(admin.element('admin-panel').hidden,true);assert.equal(admin.element('login-panel').hidden,true);assert.equal(destination,'/');
 });

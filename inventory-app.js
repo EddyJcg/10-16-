@@ -75,17 +75,33 @@ function subscribeToChanges() {
       if (status==='SUBSCRIBED') scheduleSync();
     });
 }
+async function refreshAdminAccess() {
+  const generation = authGeneration;
+  $('admin-link').hidden = true;
+  if (!currentUser) return;
+  try {
+    const {data,error} = await client.auth.getSession();
+    if (error || !data.session || generation !== authGeneration) return;
+    const response = await fetch('/api/admin-users?action=permissions',{
+      headers:{Authorization:'Bearer '+data.session.access_token},cache:'no-store'
+    });
+    if (!response.ok) return;
+    const result = await response.json();
+    if (generation === authGeneration && currentUser) $('admin-link').hidden = result.is_admin !== true;
+  } catch { /* 권한 조회에 실패하면 관리자 링크를 숨긴 상태로 유지합니다. */ }
+}
 async function updateSession(session) {
   const next = session?.user || null;
   if (currentUser && next?.id===currentUser.id || !currentUser && !next && authGeneration>0) return;
   authGeneration++; currentUser = next; client.removeAllChannels(); clearTimeout(syncTimer); lotsGeneration++;
+  $('admin-link').hidden = true;
   items = []; movements = []; totalMovements = 0; render();
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
     $('movement-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
-  try { await loadStock(); if (currentUser) {subscribeToChanges();notify('재고 현황을 불러왔습니다.');} }
+  try { await loadStock(); if (currentUser) {subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
   catch (error) { notify(errorText(error),true); }
 }
 function activeProduct() {

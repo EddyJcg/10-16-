@@ -4,7 +4,7 @@ const ADMIN = '1a5b77e2-e8b2-4f7f-980d-e1974834be5c';
 const USER = '00000000-0000-4000-8000-000000000001';
 const env = {SUPABASE_URL:'https://example.supabase.co',SUPABASE_SECRET_KEY:'test-server-secret',ADMIN_USER_IDS:ADMIN};
 
-async function invoke({method='GET',body,actor=ADMIN,headers={authorization:'Bearer test-token'},config=env,authError=false,banned=false} = {}) {
+async function invoke({method='GET',body,actor=ADMIN,headers={authorization:'Bearer test-token'},config=env,authError=false,banned=false,query={}} = {}) {
   const {createAdminHandler} = await import('../server/user-admin.mjs');
   const calls = [];
   const client = {auth:{
@@ -18,7 +18,7 @@ async function invoke({method='GET',body,actor=ADMIN,headers={authorization:'Bea
   }};
   const handler = createAdminHandler({createClient:() => client,env:config});
   const response = {headers:{},setHeader(key,value){this.headers[key] = value;},status(value){this.code = value;return this;},json(value){this.body = value;return this;}};
-  await handler({method,body,headers,query:{}},response);
+  await handler({method,body,headers,query},response);
   return {response,calls};
 }
 
@@ -67,4 +67,19 @@ test('admin accounts cannot be disabled',async () => {
 });
 test('missing server configuration fails closed',async () => {
   assert.equal((await invoke({config:{}})).response.code,503);
+});
+
+test('permission check reports verified admin status without listing users',async()=>{
+  for(const [actor,expected] of [[ADMIN,true],[USER,false]]){
+    const {response,calls}=await invoke({actor,query:{action:'permissions'}});
+    assert.equal(response.code,200);assert.deepEqual(response.body,{is_admin:expected});assert.equal(calls.length,0);
+  }
+  assert.equal((await invoke({banned:true,query:{action:'permissions'}})).response.code,403);
+  assert.equal((await invoke({authError:true,query:{action:'permissions'}})).response.code,401);
+});
+test('ordinary users cannot list or edit users through direct API access',async()=>{
+  for(const method of ['GET','PATCH']){
+    const {response,calls}=await invoke({method,actor:USER,body:{id:USER,email:'changed@example.test'}});
+    assert.equal(response.code,403);assert.equal(calls.length,0);
+  }
 });

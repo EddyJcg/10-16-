@@ -23,9 +23,14 @@ export function createAdminHandler({createClient,env = process.env}) {
       // 클라이언트의 UUID나 metadata를 믿지 않고 서버에서 액세스 토큰을 검증합니다.
       const {data:auth,error:authError} = await client.auth.getUser(match[1]);
       if (authError || !auth?.user) return reply(401,'로그인 세션이 만료되었습니다.');
-      if (!admins.has(auth.user.id)) return reply(403,'관리자만 사용할 수 있습니다.');
+      const permissionsOnly = req.method === 'GET' && req.query?.action === 'permissions';
+      if (!admins.has(auth.user.id)) {
+        if (permissionsOnly) return res.status(200).json({is_admin:false});
+        return reply(403,'관리자만 사용할 수 있습니다.');
+      }
       const {data:actor,error:actorError} = await client.auth.admin.getUserById(auth.user.id);
       if (actorError || !actor?.user || banned(actor.user)) return reply(403,'사용할 수 없는 관리자 계정입니다.');
+      if (permissionsOnly) return res.status(200).json({is_admin:true});
       const publicUser = user => ({id:user.id,email:user.email || '',created_at:user.created_at,last_sign_in_at:user.last_sign_in_at || null,disabled:!!banned(user) || (!admins.has(user.id) && user.app_metadata?.inventory_access !== true),is_admin:admins.has(user.id)});
       if (req.method === 'GET') {
         const page = Number(req.query?.page || 1);

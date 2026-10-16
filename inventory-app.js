@@ -83,7 +83,7 @@ async function updateSession(session) {
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
-    $('movement-dialog').close(); $('detail-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try { await loadStock(); if (currentUser) {subscribeToChanges();notify('재고 현황을 불러왔습니다.');} }
   catch (error) { notify(errorText(error),true); }
@@ -133,6 +133,13 @@ function openMovement(kind) {
   $('product-codes').replaceChildren();
   items.forEach(item=>{const option=document.createElement('option');option.value=item.product_code;option.label=item.product_name;$('product-codes').append(option);});
   updateAmounts(); $('movement-dialog').showModal();
+}
+async function showCurrentStock() {
+  if (!currentUser || busy) return;
+  const generation=authGeneration;
+  renderCurrentStock();$('current-stock-status').textContent='최신 재고를 불러오는 중…';$('current-stock-dialog').showModal();
+  try {await loadStock();if(generation===authGeneration)$('current-stock-status').textContent='';}
+  catch(error){if(generation===authGeneration)$('current-stock-status').textContent='최신 조회에 실패했습니다. 표시된 재고는 마지막 조회 결과입니다. '+errorText(error);}
 }
 function closeMovement() { if (!busy) {lotsGeneration++; $('movement-dialog').close();} }
 async function saveMovement(event) {
@@ -200,6 +207,8 @@ async function startApp(){
   $('product_code').addEventListener('input',populateProduct);
   ['movement_quantity','movement_cost','movement_date'].forEach(id=>$(id).addEventListener('input',updateAmounts));
   $('close-detail').addEventListener('click',()=>$('detail-dialog').close());
+  $('current-stock-button').addEventListener('click',showCurrentStock);
+  $('close-current-stock').addEventListener('click',()=>$('current-stock-dialog').close());
   $('search').addEventListener('input',render);$('filter').addEventListener('change',render);$('export').addEventListener('click',exportExcel);
   $('refresh').addEventListener('click',async()=>{
     if(busy || !currentUser || $('refresh').disabled)return;

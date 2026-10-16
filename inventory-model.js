@@ -8,6 +8,8 @@ const STOCK_FIELDS = [
   ['storage_location','저장위치'],['supplier','납품업체']
 ].map(([key,label]) => ({key,label,numeric:/_(quantity|unit_cost|amount)$/.test(key)}));
 const PRODUCT_FIELDS = ['product_category','product_code','product_name','specification','material','storage_location','supplier'];
+const CURRENT_STOCK_FIELDS = STOCK_FIELDS.filter(field=>! /^(opening|receipt|issue)_/.test(field.key));
+function currentStockRows(rows) { return rows.filter(row=>Number(row.stock_quantity)>0); }
 function todayDate() {
   const parts = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
   const get = type => parts.find(part => part.type === type).value;
@@ -32,4 +34,4 @@ function planFifo(lots,quantity,date) {
   const amount = Number(amountCents)/100;
   return {allocations,shortage:Math.max(left,0),amount,unitCost:quantity>0 ? amount/quantity : 0};
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,PRODUCT_FIELDS,todayDate,validDate,planFifo};
+if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,PRODUCT_FIELDS,CURRENT_STOCK_FIELDS,currentStockRows,todayDate,validDate,planFifo};

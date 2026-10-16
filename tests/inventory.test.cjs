@@ -3,6 +3,16 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const {STOCK_FIELDS,planFifo,validDate}=require('../inventory-model.js');
+const {CURRENT_STOCK_FIELDS,currentStockRows}=require('../inventory-model.js');
+
+test('current stock keeps all workbook fields except opening, receipt and issue totals',()=>{
+  assert.deepEqual(CURRENT_STOCK_FIELDS.map(field=>field.label),['품목분류','품번','품명','규격','재질','재고수량','재고단가','재고금액','저장위치','납품업체']);
+});
+test('current stock includes every positive balance and excludes exhausted products',()=>{
+  const rows=[{id:1,stock_quantity:2},{id:2,stock_quantity:0},{id:3,stock_quantity:'3'},{id:4,stock_quantity:null},{id:5,stock_quantity:-1}];
+  assert.deepEqual(currentStockRows(rows).map(row=>row.id),[1,3]);
+  assert.equal(rows.length,5);
+});
 
 test('display fields exactly match the attached workbook headings',async()=>{
   const ExcelJS=require('exceljs');

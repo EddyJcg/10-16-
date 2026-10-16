@@ -54,8 +54,10 @@ test('admin link stays hidden unless the server verifies the current user as adm
   app.context.fetch=async()=>({ok:true,json:async()=>({is_admin:true})});
   vm.runInContext('currentUser={id:"admin"};client.auth.getSession=async()=>({data:{session:{access_token:"verified-token"}}});',app.context);
   await vm.runInContext('refreshAdminAccess()',app.context);assert.equal(app.element('admin-link').hidden,false);
+  assert.equal(app.element('admin-folder').hidden,false);
   app.context.fetch=async()=>({ok:true,json:async()=>({is_admin:false})});
   await vm.runInContext('refreshAdminAccess()',app.context);assert.equal(app.element('admin-link').hidden,true);
+  assert.equal(app.element('admin-folder').hidden,true);
   app.context.fetch=async()=>{throw new Error('offline');};
   await vm.runInContext('refreshAdminAccess()',app.context);assert.equal(app.element('admin-link').hidden,true);
 });

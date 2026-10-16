@@ -78,6 +78,7 @@ function subscribeToChanges() {
 async function refreshAdminAccess() {
   const generation = authGeneration;
   $('admin-link').hidden = true;
+  $('admin-folder').hidden = true;
   if (!currentUser) return;
   try {
     const {data,error} = await client.auth.getSession();
@@ -87,7 +88,10 @@ async function refreshAdminAccess() {
     });
     if (!response.ok) return;
     const result = await response.json();
-    if (generation === authGeneration && currentUser) $('admin-link').hidden = result.is_admin !== true;
+    if (generation === authGeneration && currentUser) {
+      $('admin-link').hidden = result.is_admin !== true;
+      $('admin-folder').hidden = result.is_admin !== true;
+    }
   } catch { /* 권한 조회에 실패하면 관리자 링크를 숨긴 상태로 유지합니다. */ }
 }
 async function updateSession(session) {
@@ -95,6 +99,9 @@ async function updateSession(session) {
   if (currentUser && next?.id===currentUser.id || !currentUser && !next && authGeneration>0) return;
   authGeneration++; currentUser = next; client.removeAllChannels(); clearTimeout(syncTimer); lotsGeneration++;
   $('admin-link').hidden = true;
+  $('admin-folder').hidden = true;
+  $('sidebar-toggle').hidden = !currentUser;
+  $('app-layout').classList.toggle('signed-in',!!currentUser);
   items = []; movements = []; totalMovements = 0; render();
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';

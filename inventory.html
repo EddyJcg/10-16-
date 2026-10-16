@@ -48,7 +48,7 @@
         <p class="note">현재 수량이 최소 수량 이하면 재고 부족으로 표시됩니다. 수량의 − / + 버튼으로 1개씩 출고·입고할 수 있습니다.</p>
       </section>
       <section class="panel">
-        <div class="toolbar"><h2>품목 목록 <span id="list-count" style="color:#819489;font-weight:400"></span></h2><button class="secondary" id="export" type="button">↓ CSV 내보내기</button></div>
+        <div class="toolbar"><h2>품목 목록 <span id="list-count" style="color:#819489;font-weight:400"></span></h2><button class="secondary" id="export" type="button">↓ Excel 다운로드</button></div>
         <div class="filters"><input id="search" type="search" aria-label="품목명 검색" placeholder="품목명으로 검색"><select id="filter" aria-label="재고 상태 필터"><option value="all">전체 상태</option><option value="low">재고 부족</option><option value="ok">재고 충분</option></select></div>
         <div class="table-wrap"><table><thead><tr><th scope="col">품목 / 분류</th><th scope="col">입고일자</th><th scope="col">현재 수량</th><th scope="col">단가</th><th scope="col">상태</th><th scope="col">관리</th></tr></thead><tbody id="items"></tbody></table></div>
         <p class="foot">로그인한 사용자끼리 재고를 공유합니다. 다른 사용자의 변경 사항은 자동으로 반영됩니다.</p>
@@ -58,6 +58,8 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
   <script src="supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="inventory-excel.js"></script>
   <script src="inventory-app.js"></script>
   <script src="inventory-render.js"></script>
   <script>startApp();</script>

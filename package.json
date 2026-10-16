@@ -1,7 +1,16 @@
 {
   "name": "inventory-note",
   "private": true,
-  "engines": { "node": "22.x" },
-  "scripts": { "test": "node --test tests/*.cjs" },
-  "dependencies": { "@supabase/supabase-js": "2.100.0" }
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "test": "node --test tests/*.cjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.100.0"
+  },
+  "devDependencies": {
+    "exceljs": "4.4.0"
+  }
 }

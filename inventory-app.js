@@ -161,12 +161,20 @@ async function startApp() {
   });
   $('cancel-edit').addEventListener('click',resetForm);
   $('search').addEventListener('input',render); $('filter').addEventListener('change',render);
-  $('export').addEventListener('click',() => {
+  $('export').addEventListener('click',async () => {
     if (!items.length) { notify('내보낼 재고가 없습니다.'); return; }
-    const cell = value => '"' + String(value).replace(/^[=+@\-\t\r]/,"'$&").replaceAll('"','""') + '"';
-    const rows = [['품목명','분류','입고일자','현재 수량','최소 수량','단가(원)'],...items.map(item => [item.name,item.category,item.received_date || '',item.quantity,item.minimum,item.price])];
-    const url = URL.createObjectURL(new Blob(['\uFEFF' + rows.map(row => row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));
-    const link = document.createElement('a'); link.href = url; link.download = '공유재고.csv'; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url),1000);
+    if (!window.ExcelJS) { notify('Excel 내보내기 도구를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.',true); return; }
+    const button = $('export'), generation = authGeneration;
+    button.disabled = true; button.textContent = 'Excel 파일 생성 중…';
+    try {
+      const workbook = createInventoryWorkbook(window.ExcelJS,items.map(item => ({...item})));
+      const buffer = await workbook.xlsx.writeBuffer();
+      if (!currentUser || generation !== authGeneration) return;
+      const url = URL.createObjectURL(new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+      const link = document.createElement('a'); link.href = url; link.download = '공유재고-' + todayDate() + '.xlsx'; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url),1000);
+      notify('전체 재고를 Excel 파일로 내보냈습니다.');
+    } catch { notify('Excel 파일을 만들지 못했습니다. 다시 시도해 주세요.',true); }
+    finally { button.disabled = !currentUser; button.textContent = '↓ Excel 다운로드'; }
   });
   // 연결이 끊기거나 Realtime이 지연되어도 다른 사용자의 변경을 반영합니다.
   const pollTimer = setInterval(scheduleSync,5000);

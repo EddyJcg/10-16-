@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/", "destination": "/inventory.html" },
+    { "source": "/index.html", "destination": "/inventory.html" },
+    { "source": "/favicon.ico", "destination": "/favicon.svg" }
+  ]
+}

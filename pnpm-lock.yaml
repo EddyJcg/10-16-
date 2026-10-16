@@ -12,11 +12,17 @@ importers:
         specifier: 2.100.0
         version: 2.100.0
     devDependencies:
+      '@electric-sql/pglite':
+        specifier: 0.5.10
+        version: 0.5.10
       exceljs:
         specifier: 4.4.0
         version: 4.4.0
 
 packages:
+
+  '@electric-sql/pglite@0.5.10':
+    resolution: {integrity: sha512-tXc/25U3ulOkiRQuTFdwIv+JhBqtMdAF7Gvo6CfZZWtSB4+hgC4Wr2vwK5ngvvN5PJfAAEGIsfyCVy1JhCOBYw==}
 
   '@fast-csv/format@4.3.5':
     resolution: {integrity: sha512-8iRn6QF3I8Ak78lNAa+Gdl5MJJBM5vRHivFtMRUWINdevNo00K7OXxS2PshawLKTejVwieIlPmK5YlLu6w4u8A==}
@@ -725,6 +731,8 @@ packages:
     engines: {node: '>= 10'}
 
 snapshots:
+
+  '@electric-sql/pglite@0.5.10': {}
 
   '@fast-csv/format@4.3.5':
     dependencies:

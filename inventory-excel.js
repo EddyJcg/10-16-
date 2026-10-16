@@ -3,25 +3,28 @@
 function createInventoryWorkbook(ExcelJS, rows) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = '재고노트';
-  const sheet = workbook.addWorksheet('재고목록',{views:[{state:'frozen',ySplit:1}]});
-  sheet.columns = [
-    {header:'품목명',width:32}, {header:'분류',width:16}, {header:'입고일자',width:16},
-    {header:'현재 수량',width:15}, {header:'최소 수량',width:15}, {header:'단가(원)',width:18}
-  ];
+  const fields = typeof STOCK_FIELDS !== 'undefined' ? STOCK_FIELDS : require('./inventory-model.js').STOCK_FIELDS;
+  const sheet = workbook.addWorksheet('재고현황',{views:[{state:'frozen',xSplit:3,ySplit:1}]});
+  sheet.columns = fields.map(field=>({header:field.label,width:field.numeric?17:field.key==='product_name'||field.key==='specification'?26:20}));
   rows.forEach(item => {
-    const date = item.received_date ? new Date(item.received_date + 'T00:00:00Z') : null;
-    if (date && !Number.isFinite(date.getTime())) throw new Error('입고일자를 확인해 주세요.');
     // 문자열을 수식 객체로 변환하지 않아 =, + 등으로 시작하는 품목명도 그대로 보존합니다.
-    sheet.addRow([String(item.name),String(item.category),date,item.quantity,item.minimum,item.price]);
+    const row=sheet.addRow(fields.map(field=>field.numeric?Number(item[field.key]||0):String(item[field.key]||'')));
+    const r=row.number;
+    for(const [column,formula,key] of [
+      ['G',`IF(F${r}=0,0,H${r}/F${r})`,'opening_unit_cost'],
+      ['J',`IF(I${r}=0,0,K${r}/I${r})`,'receipt_unit_cost'],
+      ['M',`IF(L${r}=0,0,N${r}/L${r})`,'issue_unit_cost'],
+      ['O',`F${r}+I${r}-L${r}`,'stock_quantity'],
+      ['P',`IF(O${r}=0,0,Q${r}/O${r})`,'stock_unit_cost']
+    ])row.getCell(column).value={formula,result:Number(item[key]||0)};
   });
   sheet.eachRow(row => { row.font = {name:'Arial',size:11}; row.height = 22; });
   const header = sheet.getRow(1);
   header.font = {name:'Arial',size:11,bold:true,color:{argb:'FFFFFFFF'}};
   header.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FF163E32'}};
   header.height = 28;
-  sheet.getColumn(3).numFmt = 'yyyy-mm-dd';
-  [4,5,6].forEach(column => sheet.getColumn(column).numFmt = '#,##0');
-  sheet.autoFilter = {from:'A1',to:'F' + sheet.rowCount};
+  fields.forEach((field,index)=>{if(field.numeric)sheet.getColumn(index+1).numFmt=field.key.endsWith('_quantity')?'#,##0':'#,##0.00';});
+  sheet.autoFilter = {from:'A1',to:'S' + sheet.rowCount};
   return workbook;
 }
 

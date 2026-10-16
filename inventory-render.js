@@ -1,33 +1,19 @@
-    function render() {
-      $('total-items').textContent = number(items.length);
-      $('total-qty').textContent = number(items.reduce((sum,item) => sum + item.quantity, 0));
-      $('low-items').textContent = number(items.filter(item => item.quantity <= item.minimum).length);
-      $('total-value').textContent = number(items.reduce((sum,item) => sum + item.quantity * item.price, 0)) + '원';
-      const query = $('search').value.trim().toLocaleLowerCase('ko-KR');
-      const shown = items.filter(item => item.name.toLocaleLowerCase('ko-KR').includes(query) && ($('filter').value === 'all' || (item.quantity <= item.minimum) === ($('filter').value === 'low')));
-      $('list-count').textContent = shown.length + '개';
-      $('items').replaceChildren();
-      if (!shown.length) {
-        const row = document.createElement('tr'); const cell = document.createElement('td');
-        cell.colSpan = 6; cell.className = 'empty'; cell.textContent = items.length ? '검색 조건에 맞는 품목이 없습니다.' : '아직 등록된 품목이 없습니다. 첫 품목을 등록해 보세요.';
-        row.append(cell); $('items').append(row);
-      }
-      shown.forEach(item => {
-        const row = document.createElement('tr');
-        // 사용자 입력은 textContent로 넣어 HTML 실행을 방지합니다.
-        const info = document.createElement('td'); const title = document.createElement('strong'); const category = document.createElement('small');
-        title.textContent = item.name; category.textContent = item.category; info.append(title,category);
-        const receivedDate = document.createElement('td'); receivedDate.textContent = item.received_date || '미등록';
-        const qtyCell = document.createElement('td'); const qty = document.createElement('div'); qty.className = 'qty';
-        function control(label, text, handler, disabled = false) { const button = document.createElement('button'); button.type = 'button'; button.textContent = text; button.setAttribute('aria-label', item.name + ' ' + label); button.disabled = disabled; button.addEventListener('click', handler); return button; }
-        const count = document.createElement('span'); count.textContent = number(item.quantity);
-        qty.append(control('1개 출고','−',() => changeQuantity(item.id,-1),item.quantity === 0),count,control('1개 입고','+',() => changeQuantity(item.id,1),item.quantity === 1000000)); qtyCell.append(qty);
-        const price = document.createElement('td'); price.textContent = number(item.price) + '원';
-        const state = document.createElement('td'); const badge = document.createElement('span'); const low = item.quantity <= item.minimum;
-        badge.className = 'badge' + (low ? ' low' : ''); badge.textContent = low ? '재고 부족' : '충분'; state.append(badge);
-        const actions = document.createElement('td'); const buttons = document.createElement('div'); buttons.className = 'actions';
-        const edit = control('수정','수정',() => editItem(item.id)); edit.className = 'text-button';
-        const remove = control('삭제','삭제',() => { if (confirm('“' + item.name + '” 품목을 삭제할까요?')) removeItem(item.id); }); remove.className = 'text-button danger';
-        buttons.append(edit,remove); actions.append(buttons); row.append(info,receivedDate,qtyCell,price,state,actions); $('items').append(row);
-      });
-    }
+'use strict';
+function makeCell(text,numeric=false){const cell=document.createElement('td');cell.textContent=text;cell.className=numeric?'numeric':'';return cell;}
+function emptyRow(body,columns,text){const row=document.createElement('tr'),cell=makeCell(text);cell.colSpan=columns;cell.className='empty';row.append(cell);body.append(row);}
+function renderHeaders(){
+  $('stock-head').replaceChildren();
+  STOCK_FIELDS.forEach(field=>{const cell=document.createElement('th');cell.scope='col';cell.textContent=field.label;cell.className=(field.numeric?'numeric ':'')+(field.numeric?'group-'+field.key.split('_')[0]:'');$('stock-head').append(cell);});
+}
+function render(){
+  $('total-items').textContent=number(items.length);$('total-qty').textContent=number(items.reduce((sum,item)=>sum+Number(item.stock_quantity||0),0));$('total-value').textContent=money(items.reduce((sum,item)=>sum+Number(item.stock_amount||0),0))+'원';$('total-movements').textContent=number(totalMovements);
+  const query=$('search').value.trim().toLowerCase(),filter=$('filter').value;
+  const shown=items.filter(item=>PRODUCT_FIELDS.some(key=>String(item[key]||'').toLowerCase().includes(query))&&(filter==='all'||(Number(item.stock_quantity)>0)===(filter==='available')));
+  $('list-count').textContent=shown.length+'개';$('items').replaceChildren();
+  if(!shown.length)emptyRow($('items'),STOCK_FIELDS.length,items.length?'검색 조건에 맞는 품목이 없습니다.':'기초재고 또는 입고관리 박스를 눌러 첫 품목을 등록하세요.');
+  shown.forEach(item=>{const row=document.createElement('tr');STOCK_FIELDS.forEach(field=>{const cell=makeCell(field.numeric?number(item[field.key]):item[field.key]||'',field.numeric);if(field.key==='product_code'){const button=document.createElement('button');button.className='code-button';button.textContent=item.product_code;button.setAttribute('aria-label',item.product_code+' 입고별 잔량 보기');button.addEventListener('click',()=>showLots(item));cell.replaceChildren(button);}row.append(cell);});$('items').append(row);});
+  $('history').replaceChildren();if(!movements.length)emptyRow($('history'),7,'아직 기록된 입출고가 없습니다.');
+  movements.forEach(movement=>{const item=items.find(item=>item.id===movement.product_id),row=document.createElement('tr'),kind=makeCell(''),badge=document.createElement('span');badge.className='badge '+movement.kind;badge.textContent=MODE_LABELS[movement.kind]?.[1]||movement.kind;kind.append(badge);row.append(makeCell(movement.movement_date),kind,makeCell(item?.product_code||''),makeCell(item?.product_name||''),makeCell(number(movement.quantity),true),makeCell(money(movement.unit_cost),true));const amount=makeCell(money(movement.amount),true);if(movement.kind==='issue'){const button=document.createElement('button');button.className='code-button';button.textContent=money(movement.amount);button.setAttribute('aria-label',(item?.product_code||'')+' '+movement.movement_date+' 출고 차감 내역');button.addEventListener('click',()=>showAllocations(movement));amount.replaceChildren(button);}row.append(amount);$('history').append(row);});
+}
+function renderFifoPreview(allocations){$('fifo-preview').replaceChildren();if(!allocations.length)emptyRow($('fifo-preview'),5,'품번과 출고수량을 입력하면 차감 순서를 표시합니다.');allocations.forEach(lot=>{const row=document.createElement('tr');row.append(makeCell(lot.received_date),makeCell(number(lot.remaining_quantity),true),makeCell(number(lot.take),true),makeCell(money(lot.unit_cost),true),makeCell(money(lot.amount),true));$('fifo-preview').append(row);});}
+function renderDetailTable(headers,rows){const wrap=document.createElement('div'),table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody'),heading=document.createElement('tr');wrap.className='table-wrap';headers.forEach(label=>{const cell=document.createElement('th');cell.textContent=label;heading.append(cell);});head.append(heading);if(!rows.length)emptyRow(body,headers.length,'내역이 없습니다.');rows.forEach(values=>{const row=document.createElement('tr');values.forEach(value=>row.append(makeCell(value)));body.append(row);});table.append(head,body);wrap.append(table);$('detail-content').replaceChildren(wrap);}

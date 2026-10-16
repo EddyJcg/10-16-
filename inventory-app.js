@@ -1,187 +1,207 @@
 'use strict';
 const $ = id => document.getElementById(id);
-const number = value => value.toLocaleString('ko-KR');
-let items = [], editing = null, editingVersion = null, client, busy = false;
-let loadPromise = null, reloadQueued = false, syncTimer = null;
-let currentUser = null, authGeneration = 0;
-const categories = ['사무용품','전자기기','생활용품','식품','기타'];
-function notify(text, error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
-function todayDate() {
-  const parts = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
-  const part = type => parts.find(entry => entry.type === type).value;
-  return `${part('year')}-${part('month')}-${part('day')}`;
+const number = value => Number(value || 0).toLocaleString('ko-KR',{maximumFractionDigits:2});
+const money = number;
+const MODE_LABELS = {opening:['기초재고','기초','기초일자'],receipt:['입고관리','입고','입고일자'],issue:['출고관리','출고','출고일자']};
+let client,currentUser = null,items = [],movements = [],totalMovements = 0,authGeneration = 0;
+let loadPromise = null,reloadQueued = false,syncTimer = null,busy = false,exporting = false;
+let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0;
+function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
+function errorText(error) {
+  const message = error?.message || '';
+  const errors = {
+    ACCOUNT_DISABLED:'사용이 중지되었거나 만료된 계정입니다. 관리자에게 문의하세요.',
+    INSUFFICIENT_STOCK:'출고일자 기준으로 재고가 부족합니다. 최신 잔량과 출고수량을 확인하세요.',
+    BACKDATE_CONFLICT:'이미 확정된 거래보다 앞선 날짜입니다. 과거 출고 원가를 바꾸지 않도록 거래를 날짜 순서대로 입력하세요.',
+    OPENING_ALREADY_STARTED:'이 품목은 이미 거래가 시작되었습니다. 기초재고는 처음 한 번만 등록할 수 있습니다.',
+    PRODUCT_DETAILS_CONFLICT:'같은 품번의 품목 정보가 다릅니다. 기존 품목을 선택하거나 다른 품번을 사용하세요.',
+    PRODUCT_NOT_FOUND:'출고할 품번을 목록에서 선택하세요.',
+    REQUEST_CONFLICT:'같은 요청번호에 다른 내용이 들어 있습니다. 창을 다시 열어 확인하세요.',
+    INVALID_INPUT:'날짜, 수량과 단가를 확인하세요. 미래 일자와 소수 수량은 사용할 수 없습니다.',
+    INVALID_PRODUCT_DETAILS:'품목분류·품명 등 품목 정보를 확인하세요.',
+    INVALID_PRODUCT_CODE:'품번을 입력하세요.'
+  };
+  for (const [key,text] of Object.entries(errors)) if (message.includes(key)) return text;
+  if (['PGRST205','PGRST202','42P01','42703','42501'].includes(error?.code)) return '재고 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql을 실행하세요. 로그인·권한 설정은 기존 schema.sql을 사용합니다.';
+  return '요청을 완료하지 못했습니다. 네트워크와 로그인 상태를 확인하세요. 저장 응답이 끊겼다면 내역을 확인하거나 같은 내용으로 다시 저장하세요.';
 }
-function validDate(value) {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith('0000')) return false;
-  const date = new Date(value + 'T00:00:00Z');
-  return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value;
+async function readAll(table,order = 'id',productId = null) {
+  const result = [];
+  for (let offset=0;;offset+=500) {
+    let query = client.from(table).select('*').order(order).range(offset,offset+499);
+    if (productId) query = query.eq('product_id',productId);
+    const {data,error} = await query;
+    if (error) throw error;
+    result.push(...data.map(row=>({...row,...(row.received_date?{received_date:String(row.received_date).slice(0,10)}:{})}))); if (data.length<500) return result;
+  }
 }
-function validItem(item) {
-  return item.name && item.name.length <= 80 && categories.includes(item.category) && validDate(item.received_date) &&
-    ['quantity','minimum','price'].every(key => Number.isSafeInteger(item[key]) && item[key] >= 0 && item[key] <= (key === 'price' ? 1000000000 : 1000000));
-}
-function resetForm() {
-  editing = null; editingVersion = null; $('item-form').reset(); $('form-title').textContent = '새 품목 등록';
-  $('received_date').value = todayDate();
-  $('save-button').textContent = '＋ 품목 등록'; $('cancel-edit').classList.add('hidden');
-}
-function explain(error) {
-  if (['PGRST204','42703'].includes(error.code) && /received_date/.test(error.message || '')) return '입고일자 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/received-date.sql을 실행해 주세요.';
-  if (['PGRST205','42P01','42703','PGRST204','PGRST202','42501'].includes(error.code)) return '로그인 권한 설정이 필요합니다. Supabase SQL Editor에서 최신 supabase/schema.sql을 실행해 주세요.';
-  if (error.code === 'ACCOUNT_DISABLED') return '사용이 중지되었거나 만료된 계정입니다. 관리자에게 문의하세요.';
-  if (error.code === 'CONFLICT') return '다른 사용자가 이 품목을 변경하거나 삭제했습니다. 입력 내용은 유지했습니다. 최신 목록을 확인하고 수정 취소 후 다시 수정해 주세요.';
-  if (error.code === '23514') return '수량 범위를 벗어났습니다. 최신 재고를 새로고침해 주세요.';
-  return '요청을 완료하지 못했습니다. 네트워크 또는 Supabase 설정을 확인해 주세요.';
-}
-function loadItems() {
+function loadStock() {
   if (loadPromise) { reloadQueued = true; return loadPromise; }
   loadPromise = (async () => {
-    do { reloadQueued = false; await fetchItems(); } while (reloadQueued);
-  })().finally(() => { loadPromise = null; });
+    do {
+      reloadQueued = false;
+      if (!currentUser) return;
+      const generation = authGeneration;
+      const access = await client.rpc('inventory_access_allowed');
+      if (access.error) throw access.error;
+      if (!access.data) {
+        await updateSession(null); client.auth.signOut({scope:'local'}).catch(()=>{});
+        throw {message:'ACCOUNT_DISABLED'};
+      }
+      const [summary,history] = await Promise.all([
+        readAll('stock_summary'),
+        client.from('stock_movements').select('*',{count:'exact'}).order('sequence_id',{ascending:false}).limit(100)
+      ]);
+      if (history.error) throw history.error;
+      if (generation!==authGeneration || !currentUser) return;
+      items = summary; movements = history.data.map(row=>({...row,movement_date:String(row.movement_date).slice(0,10)})); totalMovements = history.count || 0; render();
+      if ($('movement-dialog').open && mode==='issue') loadSelectedLots();
+    } while (reloadQueued);
+  })().finally(()=>{loadPromise=null;});
   return loadPromise;
 }
-async function fetchItems() {
-  if (!currentUser) return;
-  const generation = authGeneration;
-  const access = await client.rpc('inventory_access_allowed');
-  if (access.error) throw access.error;
-  if (!access.data) {
-    await updateSession(null);
-    client.auth.signOut({scope:'local'}).catch(() => {});
-    throw {code:'ACCOUNT_DISABLED'};
-  }
-  // Supabase의 기본 행 제한에 잘리지 않도록 페이지별로 조회합니다.
-  const result = [];
-  for (let offset = 0;; offset += 500) {
-    const {data,error} = await client.from('inventory_items').select('*').order('created_at').order('id').range(offset,offset + 499);
-    if (error) throw error;
-    result.push(...data); if (data.length < 500) break;
-  }
-  if (generation !== authGeneration || !currentUser) return;
-  items = result; render();
-}
-async function operation(action, message, clearForm = false) {
-  if (busy || !client || !currentUser) return;
-  busy = true; $('inventory-panel').disabled = true;
-  try {
-    const {error} = await action(); if (error) throw error;
-    if (clearForm) resetForm();
-    try { await loadItems(); notify(message); }
-    catch (error) { notify('변경은 저장되었지만 목록을 다시 읽지 못했습니다. 새로고침해 주세요.',true); }
-  } catch (error) {
-    if (error.code === 'CONFLICT') { try { await loadItems(); } catch {} }
-    notify(explain(error),true);
-  }
-  finally { busy = false; $('inventory-panel').disabled = !currentUser; }
-}
-function changeQuantity(id,delta) {
-  return operation(() => client.rpc('adjust_inventory_quantity',{item_id:id,delta}),delta > 0 ? '1개를 입고했습니다.' : '1개를 출고했습니다.');
-}
-function removeItem(id) {
-  const item = items.find(entry => entry.id === id); if (!item) return;
-  return operation(() => client.from('inventory_items').delete().eq('id',id).eq('version',item.version).select().then(result => {
-    if (!result.error && !result.data.length) return {error:{code:'CONFLICT'}};
-    if (!result.error && editing === id) resetForm();
-    return result;
-  }),'품목을 삭제했습니다.');
-}
-function editItem(id) {
-  const item = items.find(entry => entry.id === id); if (!item) return;
-  editing = id; editingVersion = item.version; ['name','category','quantity','minimum','price','received_date'].forEach(key => $(key).value = item[key] ?? '');
-  $('form-title').textContent = '품목 수정'; $('save-button').textContent = '변경 사항 저장'; $('cancel-edit').classList.remove('hidden'); $('name').focus();
-}
 function scheduleSync() {
-  clearTimeout(syncTimer);
-  syncTimer = setTimeout(async () => {
-    if (busy || !currentUser) return;
-    try { await loadItems(); } catch (error) { notify(explain(error),true); }
-  },200);
+  clearTimeout(syncTimer); syncTimer = setTimeout(async()=>{
+    if (!currentUser || busy) return;
+    try { await loadStock(); } catch (error) { notify(errorText(error),true); }
+  },250);
 }
 function subscribeToChanges() {
-  return client.channel('public-inventory')
-    .on('postgres_changes',{event:'*',schema:'public',table:'inventory_items'},scheduleSync)
-    .subscribe(status => {
-      $('sync-status').textContent = status === 'SUBSCRIBED' ? '● 실시간 연결됨' : '○ 자동 동기화 · 5초 간격';
-      if (status === 'SUBSCRIBED') scheduleSync();
+  client.channel('stock-ledger').on('postgres_changes',{event:'*',schema:'public',table:'stock_movements'},scheduleSync)
+    .on('postgres_changes',{event:'*',schema:'public',table:'stock_lots'},scheduleSync)
+    .subscribe(status=>{
+      if (!currentUser) return;
+      $('sync-status').textContent = status==='SUBSCRIBED' ? '● 실시간 연결됨' : '○ 자동 동기화 · 5초 간격';
+      if (status==='SUBSCRIBED') scheduleSync();
     });
 }
 async function updateSession(session) {
-  const nextUser = session?.user || null;
-  if (currentUser && nextUser?.id === currentUser.id) return;
-  if (!currentUser && !nextUser && authGeneration > 0) return;
-  authGeneration++; currentUser = nextUser;
-  clearTimeout(syncTimer); client.removeAllChannels();
-  items = []; resetForm(); render();
-  $('login-panel').classList.toggle('hidden',!!currentUser);
-  $('session-panel').classList.toggle('hidden',!currentUser);
-  $('inventory-panel').classList.toggle('hidden',!currentUser);
-  $('inventory-panel').disabled = busy || !currentUser;
-  $('refresh').disabled = !currentUser;
+  const next = session?.user || null;
+  if (currentUser && next?.id===currentUser.id || !currentUser && !next && authGeneration>0) return;
+  authGeneration++; currentUser = next; client.removeAllChannels(); clearTimeout(syncTimer); lotsGeneration++;
+  items = []; movements = []; totalMovements = 0; render();
+  $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
-  $('sync-status').textContent = currentUser ? '○ 연결 중' : '로그인 대기';
-  if (!currentUser) { notify('등록된 계정으로 로그인해 주세요.'); return; }
-  try { await loadItems(); if (currentUser) { subscribeToChanges(); notify('공유 재고를 불러왔습니다.'); } }
-  catch (error) { notify(explain(error),true); }
+  if (!currentUser) {
+    $('movement-dialog').close(); $('detail-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+  }
+  try { await loadStock(); if (currentUser) {subscribeToChanges();notify('재고 현황을 불러왔습니다.');} }
+  catch (error) { notify(errorText(error),true); }
 }
-async function saveItem(item,id,version) {
-  const query = id ? client.from('inventory_items').update(item).eq('id',id).eq('version',version) : client.from('inventory_items').insert(item);
-  const result = await query.select();
-  return !result.error && !result.data.length ? {error:{code:'CONFLICT'}} : result;
+function activeProduct() {
+  const code = $('product_code').value.trim().toUpperCase();
+  return items.find(item=>item.product_code===code);
 }
-async function startApp() {
-  $('today').textContent = new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
-  render();
-  if (!window.supabase) { notify('Supabase 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.',true); return; }
-  client = window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:true,detectSessionInUrl:false}});
-  client.auth.onAuthStateChange((event,session) => {
-    if (['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event)) setTimeout(() => updateSession(session),0);
+function populateProduct() {
+  const item = activeProduct();
+  const previous = selectedCode; selectedCode = item?.product_code || '';
+  PRODUCT_FIELDS.filter(key=>key!=='product_code').forEach(key=>{
+    $(key).readOnly = !!item || mode==='issue';
+    if (item) $(key).value = item[key] || '';
+    else if (previous) $(key).value = '';
   });
-  $('login-form').addEventListener('submit',async event => {
-    event.preventDefault(); $('login-button').disabled = true;
-    try {
-      const {error} = await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
-      if (error) notify('로그인하지 못했습니다. 아이디, 비밀번호와 계정 상태를 확인하세요.',true);
-    } catch { notify('로그인 서버에 연결하지 못했습니다.',true); }
-    finally { $('password').value = ''; $('login-button').disabled = false; }
-  });
-  $('logout').addEventListener('click',async () => {
-    const {error} = await client.auth.signOut({scope:'local'});
-    if (error) notify('로그아웃하지 못했습니다. 다시 시도해 주세요.',true);
-  });
-  $('refresh').addEventListener('click',async () => {
-    if (busy || !currentUser) return;
-    try { await loadItems(); notify('최신 재고를 불러왔습니다.'); } catch (error) { notify(explain(error),true); }
-  });
-  $('item-form').addEventListener('submit',event => {
-    event.preventDefault();
-    const item = {name:$('name').value.trim(),category:$('category').value,quantity:Number($('quantity').value),minimum:Number($('minimum').value),price:Number($('price').value),received_date:$('received_date').value};
-    if (!validItem(item)) { notify('품목명, 입고일자, 수량과 단가를 확인해 주세요.',true); return; }
-    const id = editing, version = editingVersion;
-    operation(() => saveItem(item,id,version),id ? '품목을 수정했습니다.' : '품목을 등록했습니다.',true);
-  });
-  $('cancel-edit').addEventListener('click',resetForm);
-  $('search').addEventListener('input',render); $('filter').addEventListener('change',render);
-  $('export').addEventListener('click',async () => {
-    if (!items.length) { notify('내보낼 재고가 없습니다.'); return; }
-    if (!window.ExcelJS) { notify('Excel 내보내기 도구를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.',true); return; }
-    const button = $('export'), generation = authGeneration;
-    button.disabled = true; button.textContent = 'Excel 파일 생성 중…';
-    try {
-      const workbook = createInventoryWorkbook(window.ExcelJS,items.map(item => ({...item})));
-      const buffer = await workbook.xlsx.writeBuffer();
-      if (!currentUser || generation !== authGeneration) return;
-      const url = URL.createObjectURL(new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
-      const link = document.createElement('a'); link.href = url; link.download = '공유재고-' + todayDate() + '.xlsx'; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url),1000);
-      notify('전체 재고를 Excel 파일로 내보냈습니다.');
-    } catch { notify('Excel 파일을 만들지 못했습니다. 다시 시도해 주세요.',true); }
-    finally { button.disabled = !currentUser; button.textContent = '↓ Excel 다운로드'; }
-  });
-  // 연결이 끊기거나 Realtime이 지연되어도 다른 사용자의 변경을 반영합니다.
-  const pollTimer = setInterval(scheduleSync,5000);
-  document.addEventListener('visibilitychange',() => { if (!document.hidden) scheduleSync(); });
-  window.addEventListener('online',scheduleSync);
-  window.addEventListener('pagehide',event => {
-    if (event.persisted) return;
-    clearInterval(pollTimer); clearTimeout(syncTimer); client.removeAllChannels();
-  });
+  if (mode==='issue') { productLots=[]; updateAmounts(); loadSelectedLots(); }
+}
+async function loadSelectedLots() {
+  const item = activeProduct(), generation = ++lotsGeneration;
+  if (!item) { productLots=[]; updateAmounts(); return; }
+  try {
+    const lots = await readAll('stock_lots','id',item.id);
+    if (generation!==lotsGeneration || !$('movement-dialog').open || mode!=='issue') return;
+    productLots = lots; updateAmounts();
+  } catch (error) { if (generation===lotsGeneration) $('form-message').textContent=errorText(error); }
+}
+function updateAmounts() {
+  const quantity = Number($('movement_quantity').value), cost = Number($('movement_cost').value);
+  if (mode!=='issue') { $('movement_amount').value=money(quantity*cost); return; }
+  const plan = planFifo(productLots,Number.isSafeInteger(quantity) && quantity>0 ? quantity : 0,$('movement_date').value);
+  $('movement_cost').value = plan.shortage>0 ? '' : plan.unitCost.toFixed(2); $('movement_amount').value = plan.shortage>0 ? '재고 부족' : money(plan.amount);
+  renderFifoPreview(plan.allocations);
+  $('form-message').textContent = !activeProduct() ? '출고할 기존 품번을 선택하세요.' : plan.shortage>0 ? `선택한 날짜 기준 재고가 ${number(plan.shortage)}개 부족합니다.` : '';
+}
+function openMovement(kind) {
+  if (!currentUser || busy) return;
+  mode = kind; const [title,prefix,dateLabel] = MODE_LABELS[mode];
+  $('movement-form').reset(); selectedCode=''; productLots=[]; lotsGeneration++; requestId=crypto.randomUUID();
+  $('dialog-title').textContent = title;
+  $('dialog-description').textContent = mode==='issue' ? '먼저 들어온 입고 건부터 자동 차감합니다.' : '기존 품번을 선택하거나 새 품목을 입력하세요.';
+  $('date-label').textContent=dateLabel; $('quantity-label').textContent=prefix+'수량'; $('cost-label').textContent=prefix+'단가'; $('amount-label').textContent=prefix+'금액';
+  $('movement_date').value=todayDate(); $('movement_date').max=todayDate();
+  $('movement_cost').readOnly=mode==='issue'; $('movement_cost').required=mode!=='issue'; $('movement_cost').value='0';
+  $('fifo-section').hidden=mode!=='issue'; $('form-message').textContent=''; $('movement-editor').disabled=false;
+  PRODUCT_FIELDS.forEach(key=>{$(key).readOnly=mode==='issue' && key!=='product_code';});
+  $('product-codes').replaceChildren();
+  items.forEach(item=>{const option=document.createElement('option');option.value=item.product_code;option.label=item.product_name;$('product-codes').append(option);});
+  updateAmounts(); $('movement-dialog').showModal();
+}
+function closeMovement() { if (!busy) {lotsGeneration++; $('movement-dialog').close();} }
+async function saveMovement(event) {
+  event.preventDefault(); if (busy || !currentUser) return;
+  const quantity=Number($('movement_quantity').value), unitCost=mode==='issue' ? 0 : Number($('movement_cost').value), date=$('movement_date').value;
+  if (!Number.isSafeInteger(quantity) || quantity<1 || quantity>1000000 || !validDate(date) || !Number.isFinite(unitCost) || unitCost<0 || unitCost>1000000000 || Math.abs(unitCost*100-Math.round(unitCost*100))>0.0001) {
+    $('form-message').textContent='날짜와 수량, 단가를 확인하세요. 수량은 양의 정수, 단가는 소수 둘째 자리까지 입력합니다.';return;
+  }
+  if (mode==='issue' && !activeProduct()) {$('form-message').textContent='출고할 기존 품번을 선택하세요.';return;}
+  const details=Object.fromEntries(PRODUCT_FIELDS.map(key=>[key,$(key).value.trim()])); details.product_code=details.product_code.toUpperCase();
+  const generation=authGeneration; busy=true; $('movement-editor').disabled=true; $('close-dialog').disabled=true; $('form-message').textContent='저장 중…';
+  try {
+    const {data,error}=await client.rpc('post_stock_movement',{p_request_id:requestId,p_kind:mode,p_date:date,p_details:details,p_quantity:quantity,p_unit_cost:unitCost});
+    if (error) throw error;
+    if (generation!==authGeneration) return;
+    $('movement-dialog').close(); requestId=null;
+    const text=MODE_LABELS[mode][0]+' 저장 완료 · '+number(data.quantity)+'개 / '+money(data.amount)+'원';
+    try {await loadStock();notify(text);} catch {notify(text+' · 목록 새로고침은 다시 시도해 주세요.',true);}
+  } catch (error) {if (generation===authGeneration) $('form-message').textContent=errorText(error);}
+  finally {busy=false;$('movement-editor').disabled=false;$('close-dialog').disabled=false;}
+}
+async function showLots(item) {
+  $('detail-title').textContent=item.product_code+' · 입고 건별 잔량'; $('detail-content').textContent='불러오는 중…'; $('detail-dialog').showModal();
+  const generation=authGeneration;
+  try {
+    const lots=await readAll('stock_lots','id',item.id);
+    if (generation!==authGeneration || !$('detail-dialog').open) return;
+    renderDetailTable(['기초·입고일자','입고수량','잔량','단가','잔여금액'],lots.sort((a,b)=>a.received_date.localeCompare(b.received_date)||Number(a.id)-Number(b.id)).map(lot=>[lot.received_date,number(lot.quantity),number(lot.remaining_quantity),money(lot.unit_cost),money(lot.remaining_quantity*lot.unit_cost)]));
+  } catch(error) {$('detail-content').textContent=errorText(error);}
+}
+async function showAllocations(movement) {
+  $('detail-title').textContent='선입선출 차감 내역'; $('detail-content').textContent='불러오는 중…'; $('detail-dialog').showModal();
+  const generation=authGeneration;
+  try {
+    const {data,error}=await client.from('stock_allocations').select('quantity,unit_cost,amount,stock_lots(received_date)').eq('issue_id',movement.id).order('id');
+    if(error) throw error;
+    if(generation!==authGeneration || !$('detail-dialog').open) return;
+    renderDetailTable(['기초·입고일자','차감수량','단가','금액'],data.map(row=>[row.stock_lots?.received_date || '',number(row.quantity),money(row.unit_cost),money(row.amount)]));
+  } catch(error) {$('detail-content').textContent=errorText(error);}
+}
+async function exportExcel() {
+  if(exporting || !currentUser) return;
+  if(!items.length){notify('내보낼 품목이 없습니다.');return;}
+  if(!window.ExcelJS){notify('Excel 도구를 불러오지 못했습니다. 새로고침해 주세요.',true);return;}
+  exporting=true;$('export').disabled=true;const generation=authGeneration;
+  try {
+    const workbook=createInventoryWorkbook(window.ExcelJS,items.map(item=>({...item})));
+    const buffer=await workbook.xlsx.writeBuffer();
+    if(generation!==authGeneration)return;
+    const url=URL.createObjectURL(new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    const link=document.createElement('a');link.href=url;link.download='재고현황-'+todayDate()+'.xlsx';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('19개 필드의 재고현황을 Excel로 내보냈습니다.');
+  }catch{notify('Excel 파일을 만들지 못했습니다.',true);}finally{exporting=false;$('export').disabled=false;}
+}
+async function startApp(){
+  $('today').textContent=new Date().toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'long',day:'numeric',weekday:'long'});renderHeaders();render();
+  if(!window.supabase){notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}
+  client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:true,detectSessionInUrl:false}});
+  client.auth.onAuthStateChange((event,session)=>{if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event))setTimeout(()=>updateSession(session),0);});
+  $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
+  $('logout').addEventListener('click',async()=>{if(busy)return;const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);});
+  document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>openMovement(button.dataset.mode)));
+  $('close-dialog').addEventListener('click',closeMovement);$('cancel-dialog').addEventListener('click',closeMovement);$('movement-dialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();});
+  $('movement-form').addEventListener('submit',saveMovement);
+  $('movement-form').addEventListener('input',()=>{requestId=crypto.randomUUID();if(mode!=='issue')$('form-message').textContent='';});
+  $('product_code').addEventListener('input',populateProduct);
+  ['movement_quantity','movement_cost','movement_date'].forEach(id=>$(id).addEventListener('input',updateAmounts));
+  $('close-detail').addEventListener('click',()=>$('detail-dialog').close());
+  $('search').addEventListener('input',render);$('filter').addEventListener('change',render);$('export').addEventListener('click',exportExcel);
+  $('refresh').addEventListener('click',async()=>{if(busy)return;try{await loadStock();notify('최신 재고를 불러왔습니다.');}catch(error){notify(errorText(error),true);}});
+  const timer=setInterval(scheduleSync,5000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleSync();});window.addEventListener('online',scheduleSync);
+  window.addEventListener('pagehide',event=>{if(!event.persisted){clearInterval(timer);clearTimeout(syncTimer);client.removeAllChannels();}});
 }

@@ -1,116 +1,45 @@
-const {test} = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const {STOCK_FIELDS,planFifo,validDate}=require('../inventory-model.js');
 
-function context() {
-  const elements = new Map();
-  const document = {getElementById(id) {
-    if (!elements.has(id)) elements.set(id,{textContent:'',value:'',disabled:false,classList:{toggle(){},add(){}},reset(){}});
-    return elements.get(id);
-  }};
-  const ctx = vm.createContext({document,console,clearTimeout,render(){}});
+test('display fields exactly match the attached workbook headings',async()=>{
+  const ExcelJS=require('exceljs');
+  const workbook=new ExcelJS.Workbook();
+  // 첨부 원본은 Git에 포함하지 않으며, 파일이 있는 로컬에서 정확한 일치도 확인합니다.
+  const expected=['품목분류','품번','품명','규격','재질','기초수량','기초단가','기초금액','입고수량','입고단가','입고금액','출고수량','출고단가','출고금액','재고수량','재고단가','재고금액','저장위치','납품업체'];
+  assert.deepEqual(STOCK_FIELDS.map(field=>field.label),expected);
+  if(fs.existsSync('재고관리.xlsx')){await workbook.xlsx.readFile('재고관리.xlsx');assert.deepEqual(STOCK_FIELDS.map(field=>field.label),workbook.worksheets[0].getRow(1).values.slice(1));}
+});
+test('FIFO preview spans lots by date then registration order',()=>{
+  const lots=[{id:3,received_date:'2020-01-02',remaining_quantity:5,unit_cost:200},{id:2,received_date:'2020-01-01',remaining_quantity:1,unit_cost:150},{id:1,received_date:'2020-01-01',remaining_quantity:2,unit_cost:100}];
+  const plan=planFifo(lots,5,'2020-01-03');
+  assert.deepEqual(plan.allocations.map(lot=>[lot.id,lot.take]),[[1,2],[2,1],[3,2]]);
+  assert.equal(plan.amount,750);assert.equal(plan.shortage,0);
+  assert.equal(lots[0].remaining_quantity,5);
+});
+test('FIFO preview excludes receipts later than issue date and shows shortage',()=>{
+  const plan=planFifo([{id:1,received_date:'2020-01-02',remaining_quantity:10,unit_cost:100}],5,'2020-01-01');
+  assert.equal(plan.shortage,5);assert.equal(plan.amount,0);
+});
+test('date input accepts historical real dates and rejects impossible dates',()=>{
+  assert.equal(validDate('2020-02-29'),true);assert.equal(validDate('2021-02-29'),false);assert.equal(validDate('9999-01-01'),false);assert.equal(validDate('1899-12-31'),false);
+});
+test('missing migration and stock errors have actionable messages',()=>{
+  const ctx=vm.createContext({});vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),ctx);
+  assert.match(vm.runInContext('errorText({code:"PGRST205"})',ctx),/fifo.sql/);
+  assert.match(vm.runInContext('errorText({message:"INSUFFICIENT_STOCK"})',ctx),/재고가 부족/);
+  assert.match(vm.runInContext('errorText({message:"BACKDATE_CONFLICT"})',ctx),/날짜 순서/);
+});
+test('insufficient FIFO preview does not present a misleading unit price',()=>{
+  const fields={product_code:{value:'SKU'},movement_quantity:{value:'2'},movement_date:{value:'2020-01-02'},movement_cost:{value:'0'},movement_amount:{value:''},'form-message':{textContent:''}};
+  const ctx=vm.createContext({document:{getElementById:id=>fields[id]},planFifo,renderFifoPreview(){}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),ctx);
-  vm.runInContext('currentUser = {id:"test-user"}',ctx);
-  return {ctx,elements,run:code => vm.runInContext(code,ctx)};
-}
-
-test('authenticated stock adjustment uses the atomic database RPC',async () => {
-  const {ctx,run} = context(); const calls = [];
-  ctx.record = (...args) => calls.push(args);
-  run('client = {rpc:async (...args) => {record(...args); return {error:null}}}; loadItems = async () => {}');
-  await run('changeQuantity("item-1",-1)');
-  assert.equal(calls[0][0],'adjust_inventory_quantity');
-  assert.equal(calls[0][1].item_id,'item-1');
-  assert.equal(calls[0][1].delta,-1);
-  assert.equal(run('busy'),false);
+  vm.runInContext('mode="issue";items=[{product_code:"SKU"}];productLots=[{id:1,received_date:"2020-01-01",remaining_quantity:1,unit_cost:30000}];updateAmounts()',ctx);
+  assert.equal(fields.movement_cost.value,'');assert.equal(fields.movement_amount.value,'재고 부족');assert.match(fields['form-message'].textContent,/1개 부족/);
 });
-
-test('failed mutation retains the editing form and reports an error',async () => {
-  const {run,elements} = context();
-  run('client = {}; editing = "item-1"');
-  await run('operation(async () => ({error:{code:"23514"}}),"saved")');
-  assert.equal(run('editing'),'item-1');
-  assert.match(elements.get('message').textContent,/수량 범위/);
-  assert.equal(elements.get('inventory-panel').disabled,false);
-});
-
-test('inventory loads beyond one API page',async () => {
-  const {ctx,run} = context(); const offsets = [];
-  ctx.page = offset => { offsets.push(offset); return {error:null,data:Array.from({length:offset === 0 ? 500 : 3},(_,i) => ({id:String(offset+i)}))}; };
-  run('client = {rpc:async()=>({data:true,error:null}),from(){return {select(){return this},order(){return this},range:async offset => page(offset)}}}');
-  await run('loadItems()');
-  assert.equal(run('items.length'),503);
-  assert.deepEqual(offsets,[0,500]);
-});
-
-test('stale item updates are rejected and the draft is preserved',async () => {
-  const {ctx,run,elements} = context(); const filters = [];
-  ctx.record = (...args) => filters.push(args);
-  run('editing = "item-1"; editingVersion = 2; client = {from(){return {update(){return this},eq(...args){record(...args);return this},select:async () => ({error:null,data:[]})}}}; loadItems = async () => {}');
-  await run('operation(() => saveItem({name:"draft"},editing,editingVersion),"saved",true)');
-  assert.deepEqual(filters,[['id','item-1'],['version',2]]);
-  assert.equal(run('editing'),'item-1');
-  assert.match(elements.get('message').textContent,/다른 사용자가/);
-});
-
-test('automatic inventory reload retains the editing draft and original version',async () => {
-  const {ctx,run} = context();
-  ctx.page = () => ({error:null,data:[{id:'item-1',version:4}]});
-  run('editing = "item-1"; editingVersion = 2; client = {rpc:async()=>({data:true,error:null}),from(){return {select(){return this},order(){return this},range:async () => page()}}}');
-  await run('loadItems()');
-  assert.equal(run('items[0].version'),4);
-  assert.equal(run('editingVersion'),2);
-  assert.equal(run('editing'),'item-1');
-});
-
-test('realtime listens to inserts, updates and deletes on the shared table',() => {
-  const {ctx,run,elements} = context(); const calls = [];
-  ctx.record = (...args) => calls.push(args);
-  run('client = {channel(){return {on(event,filter,callback){record(event,filter,callback);return this},subscribe(callback){callback("CHANNEL_ERROR");return this}}}}');
-  run('subscribeToChanges()');
-  assert.equal(calls[0][0],'postgres_changes');
-  assert.equal(calls[0][1].event,'*');
-  assert.equal(calls[0][1].table,'inventory_items');
-  assert.match(elements.get('sync-status').textContent,/5초/);
-});
-
-test('signed-out users cannot mutate inventory',async () => {
-  const {ctx,run} = context(); let called = false;
-  ctx.mutate = async () => { called = true; return {error:null}; };
-  run('currentUser = null; client = {}');
-  await run('operation(mutate,"saved")');
-  assert.equal(called,false);
-});
-
-test('logout clears inventory and disables access',async () => {
-  const {run,elements} = context();
-  run('client = {removeAllChannels(){}}; items = [{name:"private"}]');
-  await run('updateSession(null)');
-  assert.equal(run('items.length'),0);
-  assert.equal(elements.get('inventory-panel').disabled,true);
-  assert.equal(elements.get('refresh').disabled,true);
-});
-
-test('received date validates real calendar dates including leap years',() => {
-  const {run} = context();
-  assert.equal(run('validDate("2024-02-29")'),true);
-  for (const value of ['2026-02-29','2026-04-31','','2026-13-01','0000-01-01']) {
-    assert.equal(run(`validDate(${JSON.stringify(value)})`),false);
-  }
-});
-
-test('new item date defaults to the Korean calendar day',() => {
-  const {ctx,run,elements} = context();
-  ctx.Date = class extends Date { constructor(...args) { super(...(args.length ? args : ['2026-10-15T16:00:00Z'])); } };
-  run('resetForm()');
-  assert.equal(elements.get('received_date').value,'2026-10-16');
-});
-
-test('received date is included in the saved item without timezone conversion',async () => {
-  const {ctx,run} = context(); let saved;
-  ctx.capture = item => { saved = item; };
-  run('client = {from(){return {insert(item){capture(item);return this},select:async()=>({data:[{id:"new"}],error:null})}}}');
-  await run('saveItem({name:"paper",received_date:"2026-10-01"},null,null)');
-  assert.equal(saved.received_date,'2026-10-01');
+test('FIFO preview adds decimal currency at cent precision',()=>{
+  const plan=planFifo([{id:1,received_date:'2020-01-01',remaining_quantity:1,unit_cost:0.1},{id:2,received_date:'2020-01-01',remaining_quantity:1,unit_cost:0.2}],2,'2020-01-02');
+  assert.equal(plan.amount,0.3);
 });

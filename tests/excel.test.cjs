@@ -1,31 +1,18 @@
-const {test} = require('node:test');
-const assert = require('node:assert/strict');
-const ExcelJS = require('exceljs');
-const {createInventoryWorkbook} = require('../inventory-excel.js');
-
-test('export produces a real XLSX workbook with Korean headings and typed values',async () => {
-  const workbook = createInventoryWorkbook(ExcelJS,[{name:'복사용지',category:'사무용품',received_date:'2026-10-16',quantity:12,minimum:5,price:4500}]);
-  const bytes = await workbook.xlsx.writeBuffer();
-  assert.equal(bytes[0],0x50); assert.equal(bytes[1],0x4b);
-  const loaded = new ExcelJS.Workbook(); await loaded.xlsx.load(bytes);
-  const sheet = loaded.getWorksheet('재고목록');
-  assert.deepEqual(sheet.getRow(1).values.slice(1),['품목명','분류','입고일자','현재 수량','최소 수량','단가(원)']);
-  assert.equal(sheet.getCell('A2').value,'복사용지');
-  assert.equal(sheet.getCell('C2').value.toISOString(),'2026-10-16T00:00:00.000Z');
-  assert.equal(sheet.getCell('C2').numFmt,'yyyy-mm-dd');
-  assert.equal(sheet.getCell('D2').value,12);
-  assert.equal(sheet.getCell('F2').value,4500);
-  assert.equal(sheet.views[0].ySplit,1);
-  assert.ok(sheet.autoFilter);
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const ExcelJS=require('exceljs');
+const {createInventoryWorkbook}=require('../inventory-excel.js');
+const {STOCK_FIELDS}=require('../inventory-model.js');
+test('Excel export retains all 19 fields, numeric values and FIFO costs',async()=>{
+  const item={product_category:'BAG',product_code:'ET005-00-1120',product_name:'Eco Bag',specification:'450*300 자연색',material:'니나리찌',opening_quantity:1,opening_unit_cost:28000,opening_amount:28000,receipt_quantity:1,receipt_unit_cost:30000,receipt_amount:30000,issue_quantity:1,issue_unit_cost:28000,issue_amount:28000,stock_quantity:1,stock_unit_cost:30000,stock_amount:30000,storage_location:'A-1-3-1',supplier:'종로가방'};
+  const bytes=await createInventoryWorkbook(ExcelJS,[item]).xlsx.writeBuffer();
+  assert.equal(bytes[0],0x50);assert.equal(bytes[1],0x4b);
+  const loaded=new ExcelJS.Workbook();await loaded.xlsx.load(bytes);const sheet=loaded.getWorksheet('재고현황');
+  assert.deepEqual(sheet.getRow(1).values.slice(1),STOCK_FIELDS.map(field=>field.label));
+  assert.equal(sheet.getCell('N2').value,28000);assert.equal(sheet.getCell('O2').value.result,1);assert.equal(sheet.getCell('P2').value.result,30000);assert.equal(sheet.getCell('Q2').value,30000);assert.equal(sheet.getCell('S2').value,'종로가방');
+  assert.equal(sheet.views[0].xSplit,3);assert.equal(sheet.views[0].ySplit,1);
 });
-
-test('missing received dates stay blank, zeros stay numeric and formula-like names stay text',async () => {
-  const workbook = createInventoryWorkbook(ExcelJS,[{name:'=1+1',category:'기타',received_date:null,quantity:0,minimum:0,price:0}]);
-  const loaded = new ExcelJS.Workbook(); await loaded.xlsx.load(await workbook.xlsx.writeBuffer());
-  const sheet = loaded.getWorksheet('재고목록');
-  assert.equal(sheet.getCell('A2').value,'=1+1');
-  assert.equal(sheet.getCell('A2').type,ExcelJS.ValueType.String);
-  assert.equal(sheet.getCell('C2').value,null);
-  assert.equal(sheet.getCell('D2').value,0);
-  assert.equal(sheet.getCell('F2').value,0);
+test('formula-like product names remain text and zero-stock unit cost is safe',async()=>{
+  const loaded=new ExcelJS.Workbook();await loaded.xlsx.load(await createInventoryWorkbook(ExcelJS,[{product_name:'=1+1',stock_quantity:0,stock_amount:0}]).xlsx.writeBuffer());
+  const sheet=loaded.getWorksheet('재고현황');assert.equal(sheet.getCell('C2').value,'=1+1');assert.equal(sheet.getCell('C2').type,ExcelJS.ValueType.String);assert.equal(sheet.getCell('P2').result,0);
 });

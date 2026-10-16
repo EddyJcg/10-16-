@@ -1,0 +1,35 @@
+'use strict';
+const STOCK_FIELDS = [
+  ['product_category','품목분류'],['product_code','품번'],['product_name','품명'],['specification','규격'],['material','재질'],
+  ['opening_quantity','기초수량'],['opening_unit_cost','기초단가'],['opening_amount','기초금액'],
+  ['receipt_quantity','입고수량'],['receipt_unit_cost','입고단가'],['receipt_amount','입고금액'],
+  ['issue_quantity','출고수량'],['issue_unit_cost','출고단가'],['issue_amount','출고금액'],
+  ['stock_quantity','재고수량'],['stock_unit_cost','재고단가'],['stock_amount','재고금액'],
+  ['storage_location','저장위치'],['supplier','납품업체']
+].map(([key,label]) => ({key,label,numeric:/_(quantity|unit_cost|amount)$/.test(key)}));
+const PRODUCT_FIELDS = ['product_category','product_code','product_name','specification','material','storage_location','supplier'];
+function todayDate() {
+  const parts = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const get = type => parts.find(part => part.type === type).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+function validDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(value + 'T00:00:00Z');
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value && value >= '1900-01-01' && value <= todayDate();
+}
+function planFifo(lots,quantity,date) {
+  const ordered = lots.filter(lot => Number(lot.remaining_quantity)>0 && lot.received_date<=date)
+    .slice().sort((a,b) => a.received_date.localeCompare(b.received_date) || (BigInt(a.id)<BigInt(b.id) ? -1 : BigInt(a.id)>BigInt(b.id) ? 1 : 0));
+  let left = quantity, amountCents = 0n;
+  const allocations = [];
+  for (const lot of ordered) {
+    if (left<=0) break;
+    const take = Math.min(left,Number(lot.remaining_quantity));
+    const cents = BigInt(Math.round(Number(lot.unit_cost)*100))*BigInt(take);
+    allocations.push({...lot,take,amount:Number(cents)/100}); amountCents += cents; left -= take;
+  }
+  const amount = Number(amountCents)/100;
+  return {allocations,shortage:Math.max(left,0),amount,unitCost:quantity>0 ? amount/quantity : 0};
+}
+if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,PRODUCT_FIELDS,todayDate,validDate,planFifo};

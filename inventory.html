@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>재고노트 · 재고관리</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#20342e;background:#f4f7f5;line-height:1.5;color-scheme:light}
+    *{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #83cbb3;outline-offset:3px}
+    header{background:#163e32;color:white;padding:25px max(24px,calc((100% - 1160px)/2));display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{font-weight:800;font-size:23px;letter-spacing:-1px}.brand span{color:#a9c9bb;font-size:13px;font-weight:400;margin-left:14px;letter-spacing:0}.local{font-size:12px;border:1px solid #537366;border-radius:20px;padding:6px 12px;color:#d7e9e0}
+    main{max-width:1208px;margin:auto;padding:38px 24px 60px}.intro{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:26px}h1{font-size:30px;letter-spacing:-1px;margin:0 0 6px}p{margin:0;color:#6b7c73}.date{font-size:13px;color:#6b7c73}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px}.stat,.panel{background:white;border:1px solid #dfe7e1;border-radius:14px}.stat{padding:21px 23px}.stat span{font-size:13px;color:#687c70}.stat strong{display:block;font-size:30px;margin-top:7px;letter-spacing:-1px}.stat small{font-size:14px;font-weight:400;margin-left:5px}.stat.warn strong{color:#b56724}
+    .layout{display:grid;grid-template-columns:290px minmax(0,1fr);gap:22px;align-items:start}.panel{padding:23px}h2{font-size:17px;margin:0 0 19px}.sub{font-size:12px;margin-top:-12px;margin-bottom:20px}.field{margin-bottom:15px}label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}input,select{width:100%;border:1px solid #d5dfd8;border-radius:7px;padding:10px 11px;background:#fff;color:#20342e;min-width:0}input::placeholder{color:#9aa79f}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}.primary{background:#23654e;color:#fff;border:0;border-radius:8px;padding:11px 16px;font-weight:600;width:100%}.primary:hover{background:#184e3b}.secondary{background:#fff;border:1px solid #d5dfd8;border-radius:7px;padding:8px 12px;color:#496356;font-size:13px}.secondary:hover{background:#f0f5f1}.cancel{width:100%;margin-top:8px}.hidden{display:none!important}.note{font-size:12px;line-height:1.7;margin-top:18px;color:#7a897f}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:19px}.toolbar h2{margin:0}.filters{display:grid;grid-template-columns:minmax(120px,1fr) 135px;gap:10px;margin-bottom:20px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap;font-size:13px}th{font-size:12px;color:#7a897f;background:#f7f9f7;font-weight:500}td,th{padding:14px 10px;border-bottom:1px solid #edf1ed}td:first-child{white-space:normal;min-width:135px;overflow-wrap:anywhere}td strong{display:block;font-size:14px}td small{color:#87958c;font-size:11px}.badge{display:inline-block;font-size:11px;border-radius:20px;padding:4px 9px;background:#eaf5ef;color:#337451}.badge.low{background:#fff1e2;color:#a8621d}.qty{display:flex;align-items:center;gap:9px}.qty button{border:1px solid #dce5dd;background:white;border-radius:5px;width:25px;height:27px;color:#456552}.qty button:disabled{opacity:.35;cursor:default}.actions{display:flex;gap:9px}.text-button{border:0;background:none;padding:4px 0;color:#44705c;font-size:12px}.text-button.danger{color:#ad6255}.empty{text-align:center;padding:45px 15px;color:#7a897f}.foot{font-size:12px;color:#89958e;margin-top:18px}.message{min-height:24px;margin:0 0 14px;font-size:13px;color:#23654e}.message.error{color:#b34532}
+    @media(max-width:1000px){.layout{grid-template-columns:250px minmax(0,1fr)}.panel{padding:18px}.stats{gap:10px}.stat{padding:16px}.stat strong{font-size:25px}}
+    @media(max-width:760px){header{padding:20px}.brand span{display:none}main{padding:26px 16px}.intro{align-items:start}.date{display:none}.stats{grid-template-columns:1fr 1fr}.layout{grid-template-columns:1fr}.filters{grid-template-columns:1fr 115px}h1{font-size:26px}.panel{padding:20px}.stat strong{font-size:27px}}
+  </style>
+</head>
+<body>
+  <header><div class="brand">▦ 재고노트<span>작은 재고도, 한눈에.</span></div><div class="local">● Supabase 공유 재고</div></header>
+  <main>
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+    <div class="intro"><div><h1>재고 현황</h1><p>물품을 등록하고 입출고 수량을 간편하게 관리하세요.</p></div><div class="date" id="today"></div></div>
+    <section id="login-panel" class="panel" style="max-width:420px;margin:0 auto 28px"><h2>공유 재고 로그인</h2><p class="sub">관리자가 등록한 계정으로 로그인하세요.</p><form id="login-form"><div class="field"><label for="email">이메일</label><input id="email" type="email" required autocomplete="username"></div><div class="field"><label for="password">비밀번호</label><input id="password" type="password" required autocomplete="current-password"></div><button id="login-button" class="primary">로그인</button></form></section><div id="session-panel" class="hidden" style="margin-bottom:20px"><span id="user-email"></span> <button id="refresh" class="secondary">새로고침</button> <button id="logout" class="secondary">로그아웃</button></div><fieldset id="inventory-panel" disabled style="border:0;padding:0;margin:0;min-width:0" class="hidden"><section class="stats" aria-label="재고 요약">
+      <div class="stat"><span>등록 품목</span><strong id="total-items">0</strong></div>
+      <div class="stat"><span>총 재고 수량</span><strong id="total-qty">0</strong></div>
+      <div class="stat warn"><span>재고 부족 품목</span><strong id="low-items">0</strong></div>
+      <div class="stat"><span>총 재고 금액</span><strong id="total-value">0</strong></div>
+    </section>
+    <div class="layout">
+      <section class="panel">
+        <h2 id="form-title">새 품목 등록</h2><p class="sub">필요한 정보만 입력하면 준비 끝.</p>
+        <form id="item-form">
+          <div class="field"><label for="name">품목명</label><input id="name" required maxlength="80" placeholder="예: A4 복사용지" autocomplete="off"></div>
+          <div class="field"><label for="category">분류</label><select id="category"><option>사무용품</option><option>전자기기</option><option>생활용품</option><option>식품</option><option>기타</option></select></div>
+          <div class="pair"><div class="field"><label for="quantity">현재 수량</label><input id="quantity" type="number" required min="0" max="1000000" step="1" value="0"></div><div class="field"><label for="minimum">최소 수량</label><input id="minimum" type="number" required min="0" max="1000000" step="1" value="5"></div></div>
+          <div class="field"><label for="price">단가 (원)</label><input id="price" type="number" required min="0" max="1000000000" step="1" value="0"></div>
+          <button class="primary" id="save-button" type="submit">＋ 품목 등록</button>
+          <button class="secondary cancel hidden" id="cancel-edit" type="button">수정 취소</button>
+        </form>
+        <p class="note">현재 수량이 최소 수량 이하면 재고 부족으로 표시됩니다. 수량의 − / + 버튼으로 1개씩 출고·입고할 수 있습니다.</p>
+      </section>
+      <section class="panel">
+        <div class="toolbar"><h2>품목 목록 <span id="list-count" style="color:#819489;font-weight:400"></span></h2><button class="secondary" id="export" type="button">↓ CSV 내보내기</button></div>
+        <div class="filters"><input id="search" type="search" aria-label="품목명 검색" placeholder="품목명으로 검색"><select id="filter" aria-label="재고 상태 필터"><option value="all">전체 상태</option><option value="low">재고 부족</option><option value="ok">재고 충분</option></select></div>
+        <div class="table-wrap"><table><thead><tr><th scope="col">품목 / 분류</th><th scope="col">현재 수량</th><th scope="col">단가</th><th scope="col">상태</th><th scope="col">관리</th></tr></thead><tbody id="items"></tbody></table></div>
+        <p class="foot">로그인한 모든 사용자가 같은 재고를 관리합니다. 새로고침으로 최신 재고를 확인하세요.</p>
+      </section>
+    </div>
+    </fieldset>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="inventory-app.js"></script>
+  <script src="inventory-render.js"></script>
+  <script>startApp();</script>
+</body>
+</html>

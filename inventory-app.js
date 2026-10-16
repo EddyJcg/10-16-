@@ -6,15 +6,27 @@ let loadPromise = null, reloadQueued = false, syncTimer = null;
 let currentUser = null, authGeneration = 0;
 const categories = ['사무용품','전자기기','생활용품','식품','기타'];
 function notify(text, error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
+function todayDate() {
+  const parts = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const part = type => parts.find(entry => entry.type === type).value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+function validDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith('0000')) return false;
+  const date = new Date(value + 'T00:00:00Z');
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value;
+}
 function validItem(item) {
-  return item.name && item.name.length <= 80 && categories.includes(item.category) &&
+  return item.name && item.name.length <= 80 && categories.includes(item.category) && validDate(item.received_date) &&
     ['quantity','minimum','price'].every(key => Number.isSafeInteger(item[key]) && item[key] >= 0 && item[key] <= (key === 'price' ? 1000000000 : 1000000));
 }
 function resetForm() {
   editing = null; editingVersion = null; $('item-form').reset(); $('form-title').textContent = '새 품목 등록';
+  $('received_date').value = todayDate();
   $('save-button').textContent = '＋ 품목 등록'; $('cancel-edit').classList.add('hidden');
 }
 function explain(error) {
+  if (['PGRST204','42703'].includes(error.code) && /received_date/.test(error.message || '')) return '입고일자 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/received-date.sql을 실행해 주세요.';
   if (['PGRST205','42P01','42703','PGRST204','PGRST202','42501'].includes(error.code)) return '로그인 권한 설정이 필요합니다. Supabase SQL Editor에서 최신 supabase/schema.sql을 실행해 주세요.';
   if (error.code === 'ACCOUNT_DISABLED') return '사용이 중지되었거나 만료된 계정입니다. 관리자에게 문의하세요.';
   if (error.code === 'CONFLICT') return '다른 사용자가 이 품목을 변경하거나 삭제했습니다. 입력 내용은 유지했습니다. 최신 목록을 확인하고 수정 취소 후 다시 수정해 주세요.';
@@ -41,7 +53,7 @@ async function fetchItems() {
   // Supabase의 기본 행 제한에 잘리지 않도록 페이지별로 조회합니다.
   const result = [];
   for (let offset = 0;; offset += 500) {
-    const {data,error} = await client.from('inventory_items').select('id,name,category,quantity,minimum,price,created_at,version').order('created_at').order('id').range(offset,offset + 499);
+    const {data,error} = await client.from('inventory_items').select('*').order('created_at').order('id').range(offset,offset + 499);
     if (error) throw error;
     result.push(...data); if (data.length < 500) break;
   }
@@ -75,7 +87,7 @@ function removeItem(id) {
 }
 function editItem(id) {
   const item = items.find(entry => entry.id === id); if (!item) return;
-  editing = id; editingVersion = item.version; ['name','category','quantity','minimum','price'].forEach(key => $(key).value = item[key]);
+  editing = id; editingVersion = item.version; ['name','category','quantity','minimum','price','received_date'].forEach(key => $(key).value = item[key] ?? '');
   $('form-title').textContent = '품목 수정'; $('save-button').textContent = '변경 사항 저장'; $('cancel-edit').classList.remove('hidden'); $('name').focus();
 }
 function scheduleSync() {
@@ -142,8 +154,8 @@ async function startApp() {
   });
   $('item-form').addEventListener('submit',event => {
     event.preventDefault();
-    const item = {name:$('name').value.trim(),category:$('category').value,quantity:Number($('quantity').value),minimum:Number($('minimum').value),price:Number($('price').value)};
-    if (!validItem(item)) { notify('품목명, 수량과 단가를 확인해 주세요.',true); return; }
+    const item = {name:$('name').value.trim(),category:$('category').value,quantity:Number($('quantity').value),minimum:Number($('minimum').value),price:Number($('price').value),received_date:$('received_date').value};
+    if (!validItem(item)) { notify('품목명, 입고일자, 수량과 단가를 확인해 주세요.',true); return; }
     const id = editing, version = editingVersion;
     operation(() => saveItem(item,id,version),id ? '품목을 수정했습니다.' : '품목을 등록했습니다.',true);
   });
@@ -152,7 +164,7 @@ async function startApp() {
   $('export').addEventListener('click',() => {
     if (!items.length) { notify('내보낼 재고가 없습니다.'); return; }
     const cell = value => '"' + String(value).replace(/^[=+@\-\t\r]/,"'$&").replaceAll('"','""') + '"';
-    const rows = [['품목명','분류','현재 수량','최소 수량','단가(원)'],...items.map(item => [item.name,item.category,item.quantity,item.minimum,item.price])];
+    const rows = [['품목명','분류','입고일자','현재 수량','최소 수량','단가(원)'],...items.map(item => [item.name,item.category,item.received_date || '',item.quantity,item.minimum,item.price])];
     const url = URL.createObjectURL(new Blob(['\uFEFF' + rows.map(row => row.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));
     const link = document.createElement('a'); link.href = url; link.download = '공유재고.csv'; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url),1000);
   });

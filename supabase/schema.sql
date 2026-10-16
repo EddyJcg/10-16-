@@ -8,10 +8,12 @@ create table if not exists public.inventory_items (
   quantity integer not null default 0 check (quantity between 0 and 1000000),
   minimum integer not null default 5 check (minimum between 0 and 1000000),
   price bigint not null default 0 check (price between 0 and 1000000000),
+  received_date date,
   created_at timestamptz not null default now(),
   version bigint not null default 1
 );
 alter table public.inventory_items add column if not exists version bigint not null default 1;
+alter table public.inventory_items add column if not exists received_date date;
 alter table public.inventory_items enable row level security;
 grant usage on schema public to anon, authenticated;
 revoke all on public.inventory_items from anon;

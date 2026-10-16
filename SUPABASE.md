@@ -8,6 +8,10 @@ SQL은 공개 재고 권한을 제거하고, 관리자가 허용한 활성 계�
 
 최초 관리자 UUID는 `1a5b77e2-e8b2-4f7f-980d-e1974834be5c`로 지정되어 있습니다. Supabase Authentication의 해당 계정이 실제로 존재하고 이메일과 비밀번호가 설정되어 있어야 합니다. SQL은 해당 계정에 재고 접근용 `app_metadata.inventory_access`를 부여합니다. 비밀번호는 SQL에 적지 않습니다.
 
+## 입고일자 추가
+
+입고일자 기능만 기존 DB에 추가하려면 SQL Editor에서 `supabase/received-date.sql`을 실행합니다. 기존 재고의 입고일자는 빈 값으로 보존되며, 품목을 수정할 때 날짜를 입력할 수 있습니다. 전체 초기 설정 SQL에도 동일한 열이 포함되어 있습니다.
+
 ## Vercel 환경변수
 
 Vercel 프로젝트 → **Settings → Environment Variables**에 다음 값을 등록하고 **Redeploy**합니다. 실제 사용할 Production / Preview 환경을 선택하세요.

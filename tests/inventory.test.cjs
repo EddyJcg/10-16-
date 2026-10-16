@@ -91,3 +91,26 @@ test('logout clears inventory and disables access',async () => {
   assert.equal(elements.get('inventory-panel').disabled,true);
   assert.equal(elements.get('refresh').disabled,true);
 });
+
+test('received date validates real calendar dates including leap years',() => {
+  const {run} = context();
+  assert.equal(run('validDate("2024-02-29")'),true);
+  for (const value of ['2026-02-29','2026-04-31','','2026-13-01','0000-01-01']) {
+    assert.equal(run(`validDate(${JSON.stringify(value)})`),false);
+  }
+});
+
+test('new item date defaults to the Korean calendar day',() => {
+  const {ctx,run,elements} = context();
+  ctx.Date = class extends Date { constructor(...args) { super(...(args.length ? args : ['2026-10-15T16:00:00Z'])); } };
+  run('resetForm()');
+  assert.equal(elements.get('received_date').value,'2026-10-16');
+});
+
+test('received date is included in the saved item without timezone conversion',async () => {
+  const {ctx,run} = context(); let saved;
+  ctx.capture = item => { saved = item; };
+  run('client = {from(){return {insert(item){capture(item);return this},select:async()=>({data:[{id:"new"}],error:null})}}}');
+  await run('saveItem({name:"paper",received_date:"2026-10-01"},null,null)');
+  assert.equal(saved.received_date,'2026-10-01');
+});

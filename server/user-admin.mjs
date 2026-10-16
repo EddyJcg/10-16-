@@ -14,7 +14,8 @@ export function createAdminHandler({createClient,env = process.env}) {
     const url = env.SUPABASE_URL;
     const secret = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
     const admins = new Set((env.ADMIN_USER_IDS || '').split(',').map(id => id.trim()).filter(id => UUID.test(id)));
-    if (!url || !secret || !admins.size) return reply(503,'Vercel 관리자 환경변수 설정이 필요합니다. 설정 안내를 확인하세요.');
+    const missing = [!url && 'SUPABASE_URL',!secret && 'SUPABASE_SECRET_KEY',!admins.size && 'ADMIN_USER_IDS (유효한 사용자 UUID)'].filter(Boolean);
+    if (missing.length) return reply(503,'Vercel 환경변수 설정이 필요합니다: ' + missing.join(', ') + '. Production 환경에 저장하고 Redeploy해 주세요.');
     const match = /^Bearer ([^\s]{1,8192})$/.exec(req.headers.authorization || '');
     if (!match) return reply(401,'로그인이 필요합니다.');
     try {

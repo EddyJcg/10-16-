@@ -26,6 +26,16 @@ test('sidebar width restores safely, clamps limits and supports keyboard resizin
   assert.equal(resizer.attributes['aria-valuenow'],'200');
   assert.equal(boot({'inventory-sidebar-width':'invalid'}).elements.get('sidebar-resizer').attributes['aria-valuenow'],'250');
 });
+test('existing menu folders stay under the new inventory parent folder',()=>{
+  const html=fs.readFileSync('inventory.html','utf8'),nav=html.match(/<nav aria-label="재고관리 메뉴">([\s\S]*?)<\/nav>/)[1];
+  const parentStart=nav.indexOf('<details id="inventory-folder"');
+  const parentEnd=nav.lastIndexOf('</details>');
+  assert.ok(parentStart>=0);
+  assert.match(nav.slice(parentStart,parentEnd),/<summary>재고관리<\/summary>/);
+  for(const folder of ['opening-folder','receipt-folder','issue-folder','stock-folder','admin-folder'])
+    assert.ok(nav.indexOf(`id="${folder}"`)>parentStart,`${folder} should be nested under 재고관리`);
+  assert.match(nav,/id="inventory-folder"[^>]*data-sidebar-folder open/);
+});
 test('pointer resize persists width and folders remember their open state',()=>{
   const app=boot(),resizer=app.elements.get('sidebar-resizer');
   resizer.handlers.pointerdown({button:0,pointerId:1,preventDefault(){}});

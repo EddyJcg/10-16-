@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,planFifo,validDate,filterInventoryItems}=require('../inventory-model.js');
+const {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,planFifo,validDate,filterInventoryItems,stockRiskItems}=require('../inventory-model.js');
 const {CURRENT_STOCK_FIELDS,currentStockRows}=require('../inventory-model.js');
 
 test('current stock keeps all workbook fields except opening, receipt and issue totals',()=>{
@@ -18,6 +18,7 @@ test('all inventory input forms use the selected master unit before quantity',()
   assert.deepEqual(optionValues('unit'),PRODUCT_UNITS);
   assert.ok(transaction.indexOf('for="unit"')<transaction.indexOf('for="movement_quantity"'));
   assert.match(html,/<label for="info_unit">단위<\/label><select id="info_unit" required>/);
+  assert.match(html,/<label for="info_standard_stock_quantity">적정재고 수량<\/label><input id="info_standard_stock_quantity" type="number" required min="1" max="1000000" step="1"/);
   assert.ok(STOCK_DISPLAY_FIELDS.findIndex(field=>field.key==='unit')<STOCK_DISPLAY_FIELDS.findIndex(field=>field.key==='opening_quantity'));
   assert.ok(CURRENT_STOCK_FIELDS.findIndex(field=>field.key==='unit')<CURRENT_STOCK_FIELDS.findIndex(field=>field.key==='stock_quantity'));
 });
@@ -58,11 +59,12 @@ test('movement product selectors offer SKU and specification lookups',()=>{
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:''});return nodes.get(id);}}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
-  vm.runInContext('items=[{product_code:"SKU",product_category:"RAW",product_name:"Material",specification:"10 x 20",material:"Steel",color:"Silver",unit:"Kg"}]',context);
+  vm.runInContext('items=[{product_code:"SKU",product_category:"RAW",product_name:"Material",specification:"10 x 20",material:"Steel",color:"Silver",unit:"Kg",standard_stock_quantity:50}]',context);
   vm.runInContext('$("info_product_code").value="SKU";populateProductInfo("info_product_code")',context);
   assert.equal(nodes.get('info_product_name').value,'Material');
   assert.equal(nodes.get('info_specification').value,'10 x 20');
   assert.equal(nodes.get('info_unit').value,'Kg');
+  assert.equal(nodes.get('info_standard_stock_quantity').value,50);
   vm.runInContext('$("info_specification").value="10 X 20";populateProductInfo("info_specification")',context);
   assert.equal(nodes.get('info_product_code').value,'SKU');
   assert.equal(nodes.get('info_material').value,'Steel');
@@ -76,6 +78,16 @@ test('current stock includes every positive balance and excludes exhausted produ
   const rows=[{id:1,stock_quantity:2},{id:2,stock_quantity:0},{id:3,stock_quantity:'3'},{id:4,stock_quantity:null},{id:5,stock_quantity:-1}];
   assert.deepEqual(currentStockRows(rows).map(row=>row.id),[1,3]);
   assert.equal(rows.length,5);
+});
+test('stock risk includes only products below twenty percent of their standard quantity',()=>{
+  const rows=[
+    {product_code:'LOW',standard_stock_quantity:100,stock_quantity:19},
+    {product_code:'AT-THRESHOLD',standard_stock_quantity:100,stock_quantity:20},
+    {product_code:'ZERO',standard_stock_quantity:100,stock_quantity:0},
+    {product_code:'UNSET',standard_stock_quantity:0,stock_quantity:0},
+    {product_code:'OK',standard_stock_quantity:100,stock_quantity:21}
+  ];
+  assert.deepEqual(stockRiskItems(rows).map(item=>item.product_code),['ZERO','LOW']);
 });
 test('movement history displays the database-generated serial number',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),renderer=fs.readFileSync('inventory-render.js','utf8');

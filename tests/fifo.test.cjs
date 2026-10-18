@@ -13,7 +13,7 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       create function public.inventory_access_allowed() returns boolean language sql as $$ select current_setting('test.active',true) is distinct from 'false' $$;`);
     const migration = readFileSync('supabase/fifo.sql','utf8');
     await db.exec(migration); await db.exec(migration);
-    const details = (code,color='자연색',unit='EA(개)') => ({product_category:'BAG',product_code:code,product_name:'Eco Bag',specification:'450*300 자연색',material:'니나리찌',color,unit,storage_location:'A-1-3-1',supplier:'종로가방'});
+    const details = (code,color='자연색',unit='EA(개)') => ({product_category:'BAG',product_code:code,product_name:'Eco Bag',specification:'450*300 자연색',material:'니나리찌',color,unit,standard_stock_quantity:10,storage_location:'A-1-3-1',supplier:'종로가방'});
     const register = async productDetails => (await db.query('select public.register_stock_product($1) as result',[productDetails])).rows[0].result;
     const ensureProduct = async productDetails => {
       const existing=await db.query('select exists(select 1 from public.stock_products where product_code=upper(trim($1))) as found',[productDetails.product_code]);
@@ -32,13 +32,17 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       const saved=await register(product);
       assert.equal(saved.product_code,'UNREGISTERED');
       assert.equal(saved.unit,'EA(개)');
+      assert.equal(saved.standard_stock_quantity,10);
       assert.equal(Number((await summary('UNREGISTERED')).stock_quantity),0);
+      assert.equal(Number((await summary('UNREGISTERED')).standard_stock_quantity),10);
       await assert.rejects(register(product),/PRODUCT_CODE_ALREADY_EXISTS/);
       await assert.rejects(register({...product,product_code:'unregistered'}),/PRODUCT_CODE_ALREADY_EXISTS/);
       assert.equal(Number((await db.query("select count(*) as count from public.stock_products where product_code='UNREGISTERED'")).rows[0].count),1);
       await assert.rejects(register({...product,color:'빨강'}),/PRODUCT_CODE_ALREADY_EXISTS/);
       await assert.rejects(register({...product,unit:'Kg'}),/PRODUCT_CODE_ALREADY_EXISTS/);
       await assert.rejects(register({...product,unit:'invalid'}),/INVALID_PRODUCT_DETAILS/);
+      await assert.rejects(register({...product,product_code:'NO-STANDARD',standard_stock_quantity:0}),/INVALID_PRODUCT_DETAILS/);
+      await assert.rejects(register({...product,product_code:'DECIMAL-STANDARD',standard_stock_quantity:1.5}),/INVALID_PRODUCT_DETAILS/);
       await post('UNREGISTERED','receipt',1,100,'2020-01-01');
       assert.equal(Number((await summary('UNREGISTERED')).stock_quantity),1);
     });

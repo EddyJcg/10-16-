@@ -37,6 +37,13 @@ function errorText(error) {
   if (['PGRST205','PGRST202','42P01','42703','42501'].includes(error?.code)) return '재고 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql을 실행하세요. 로그인·권한 설정은 기존 schema.sql을 사용합니다.';
   return '요청을 완료하지 못했습니다. 네트워크와 로그인 상태를 확인하세요. 저장 응답이 끊겼다면 내역을 확인하거나 같은 내용으로 다시 저장하세요.';
 }
+async function showStockRisk() {
+  if(!currentUser||busy)return;
+  const generation=authGeneration;
+  $('stock-risk-status').textContent='최신 재고를 불러오는 중…';renderStockRisk();$('stock-risk-dialog').showModal();
+  try {await loadStock();if(generation===authGeneration)$('stock-risk-status').textContent='';}
+  catch(error){if(generation===authGeneration)$('stock-risk-status').textContent='최신 조회에 실패했습니다. 표시된 목록은 마지막 조회 결과입니다. '+errorText(error);}
+}
 async function readAll(table,order = 'id',productId = null) {
   const result = [];
   for (let offset=0;;offset+=500) {
@@ -176,7 +183,7 @@ async function updateSession(session) {
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
-    $('movement-dialog').close(); $('product-info-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('product-info-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try { await loadStock(); if (currentUser) {subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
   catch (error) { notify(errorText(error),true); }
@@ -201,8 +208,8 @@ function populateProductInfo(source) {
   selectedProductInfoCode=item?.product_code||'';
   if(item)$('info_product_code').value=item.product_code;
   else if(source==='info_specification')$('info_product_code').value='';
-  ['product_category','product_code','product_name','specification','material','color','unit'].forEach(key=>{
-    if(item)$('info_'+key).value=item[key]||(key==='unit'?'EA(개)':'');
+  ['product_category','product_code','product_name','specification','material','color','unit','standard_stock_quantity'].forEach(key=>{
+    if(item)$('info_'+key).value=item[key]??(key==='unit'?'EA(개)':'');
     else if(previous&&source!=='info_'+key)$('info_'+key).value=key==='unit'?'EA(개)':'';
   });
 }
@@ -281,10 +288,11 @@ function openMovement(kind) {
 function renderProductInfoItems() {
   const body=$('product-info-items');body.replaceChildren();
   $('product-info-codes').replaceChildren();$('product-info-specifications').replaceChildren();
-  if(!items.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=7;cell.className='empty';cell.textContent='등록된 품목정보가 없습니다.';row.append(cell);body.append(row);return;}
+  if(!items.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=8;cell.className='empty';cell.textContent='등록된 품목정보가 없습니다.';row.append(cell);body.append(row);return;}
   items.forEach(item=>{
     const row=document.createElement('tr');
     ['product_category','product_code','product_name','specification','material','color','unit'].forEach(key=>row.append(makeCell(item[key]||'')));
+    row.append(makeCell(number(item.standard_stock_quantity)+' '+(item.unit||'EA(개)')));
     body.append(row);
     const codeOption=document.createElement('option');codeOption.value=item.product_code;codeOption.label=item.product_name;$('product-info-codes').append(codeOption);
     if(item.specification){const specOption=document.createElement('option');specOption.value=item.specification;specOption.label=item.product_code+' · '+item.product_name;$('product-info-specifications').append(specOption);}
@@ -299,9 +307,14 @@ function showProductInfo() {
 async function saveProductInfo(event) {
   event.preventDefault();
   if(!currentUser||busy)return;
-  const fields=['product_category','product_code','product_name','specification','material','color','unit'];
+  const fields=['product_category','product_code','product_name','specification','material','color','unit','standard_stock_quantity'];
   const details=Object.fromEntries(fields.map(key=>[key,$('info_'+key).value.trim()]));
   details.product_code=details.product_code.toUpperCase();
+  details.standard_stock_quantity=Number(details.standard_stock_quantity);
+  if(!Number.isSafeInteger(details.standard_stock_quantity)||details.standard_stock_quantity<1||details.standard_stock_quantity>1000000){
+    $('product-info-status').textContent='적정재고 수량은 1~1,000,000 사이의 정수로 입력하세요.';
+    return;
+  }
   if(selectedProductInfoCode&&details.product_code===selectedProductInfoCode){
     $('product-info-status').textContent='이미 등록된 품번입니다. 기존 품목정보를 확인하거나 다른 품번을 입력하세요.';
     return;
@@ -519,7 +532,7 @@ function openPrintSettings(target) {
   $('print-settings-dialog').showModal();
 }
 function printInventoryList(target) {
-  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','movement-list':'movement-list-dialog'};
+  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','movement-list':'movement-list-dialog'};
   if(target in targetDialogs&&!$(targetDialogs[target]).open)return;
   activePrintTarget=target;
   applyProductListPrintSettings();
@@ -541,6 +554,7 @@ function applyProductListPrintSettings() {
   const tables={
     'product-list':'#product-list-dialog .product-list-table table',
     'current-stock':'#current-stock-dialog table',
+    'stock-risk':'#stock-risk-dialog table',
     'movement-history':'#movement-history table',
     'movement-list':'#movement-list-dialog .product-list-table table'
   };
@@ -668,6 +682,8 @@ async function startApp(){
   $('close-detail').addEventListener('click',()=>$('detail-dialog').close());
   $('current-stock-button').addEventListener('click',showCurrentStock);
   $('close-current-stock').addEventListener('click',()=>$('current-stock-dialog').close());
+  $('stock-risk-button').addEventListener('click',showStockRisk);
+  $('close-stock-risk').addEventListener('click',()=>$('stock-risk-dialog').close());
   $('product-list-button').addEventListener('click',showProductList);
   $('close-product-list').addEventListener('click',()=>$('product-list-dialog').close());
   $('search-product-list').addEventListener('click',searchProductList);

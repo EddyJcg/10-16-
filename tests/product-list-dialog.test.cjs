@@ -65,6 +65,25 @@ test('current stock and movement history expose printing with shared adjustable 
   assert.match(style,/body\[data-print-target="movement-history"\] #movement-history/);
 });
 
+test('stock risk card opens a printable list and its threshold uses standard stock',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const script=readFileSync('inventory-app.js','utf8');
+  const renderer=readFileSync('inventory-render.js','utf8');
+  const style=readFileSync('inventory.css','utf8');
+  const model=readFileSync('inventory-model.js','utf8');
+  assert.match(html,/<button id="stock-risk-button" class="stat stat-action" type="button" aria-haspopup="dialog">/);
+  assert.doesNotMatch(html,/<span>재고수량<\/span><strong id="total-qty">/);
+  assert.match(html,/<input id="info_standard_stock_quantity" type="number" required min="1" max="1000000" step="1"/);
+  assert.match(html,/<dialog id="stock-risk-dialog" aria-labelledby="stock-risk-title">/);
+  assert.match(html,/data-print-settings="stock-risk"/);
+  assert.match(html,/data-print="stock-risk"/);
+  assert.match(script,/stock-risk':'#stock-risk-dialog table'/);
+  assert.match(script,/function showStockRisk\(\)/);
+  assert.match(renderer,/stockRiskItems\(items\)/);
+  assert.match(model,/stock\*5<standard/);
+  assert.match(style,/body\[data-print-target="stock-risk"\] #stock-risk-dialog/);
+});
+
 test('movement history opens a searchable full-history dialog and preserves FIFO details and printing',()=>{
   const html=readFileSync('inventory.html','utf8');
   const script=readFileSync('inventory-app.js','utf8');

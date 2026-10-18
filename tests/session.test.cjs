@@ -61,6 +61,12 @@ test('issue quantity and date changes validate stock availability',async()=>{
     assert.equal(typeof app.element(id).handlers.change,'function',id+' should validate available stock');
 });
 
+test('dashboard stock risk button opens the risk list dialog',async()=>{
+  const app=await boot('inventory-app.js');
+  assert.equal(typeof app.element('stock-risk-button').handlers.click,'function');
+  assert.equal(typeof app.element('close-stock-risk').handlers.click,'function');
+});
+
 test('inventory and admin use the same tab session without another sign-in',async()=>{
   const inventory=await boot('inventory-app.js'),admin=await boot('admin.js');
   assert.equal(admin.options.auth.storageKey,inventory.options.auth.storageKey);

@@ -27,6 +27,9 @@
 .sidebar-dragging{cursor:col-resize;user-select:none}
 #sidebar-toggle{border:1px solid #6d9481;background:#285442;color:#fff;border-radius:7px;padding:8px 12px;font-size:12px;white-space:nowrap}
 #product-list,#sales-balance{scroll-margin-top:20px}
+#workspace{display:flex;flex-direction:column;gap:16px}
+#workspace>.session,#workspace>.stats,#workspace>.panel{margin:0}
+#workspace>.stats{gap:16px}
 #current-stock-dialog{width:min(1400px,calc(100% - 32px))}
 #product-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}
 #movement-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}

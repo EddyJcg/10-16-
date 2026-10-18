@@ -61,3 +61,19 @@ test('current stock and movement history expose printing with shared adjustable 
   assert.match(style,/body\[data-print-target="current-stock"\] #current-stock-dialog/);
   assert.match(style,/body\[data-print-target="movement-history"\] #movement-history/);
 });
+
+test('movement history opens a searchable full-history dialog and preserves FIFO details and printing',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const script=readFileSync('inventory-app.js','utf8');
+  const style=readFileSync('inventory.css','utf8');
+  assert.match(html,/<button type="button" class="sidebar-action" id="movement-list-button" aria-haspopup="dialog">입출고 내역<\/button>/);
+  assert.match(html,/<dialog id="movement-list-dialog" aria-labelledby="movement-list-title">/);
+  for(const id of ['movement-list-start-date','movement-list-end-date','movement-list-supplier','movement-list-query','movement-list-kind','movement-list-items'])
+    assert.match(html,new RegExp(`id="${id}"`));
+  assert.match(script,/readAll\('stock_movements','sequence_id'\)/);
+  assert.match(script,/movementListRows\.filter/);
+  assert.match(script,/showAllocations\(movement\)/);
+  assert.match(script,/'movement-list':'#movement-list-dialog \.product-list-table table'/);
+  assert.match(script,/movement-list-dialog/);
+  assert.match(style,/body\[data-print-target="movement-list"\] #movement-list-dialog/);
+});

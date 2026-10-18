@@ -55,12 +55,12 @@ async function showStockRisk() {
 }
 function renderSalesOrders(){
   const body=$('sales-order-items');body.replaceChildren();
-  if(!salesOrders.length){emptyRow(body,13,'저장된 수주가 없습니다.');return;}
+  if(!salesOrders.length){emptyRow(body,14,'저장된 수주가 없습니다.');return;}
   salesOrders.forEach(order=>{
     const row=document.createElement('tr');
-    [number(order.sequence_id),order.order_number,order.order_type,order.product_name,order.specification,order.unit,
+    [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.product_name,order.specification,order.unit,
       number(order.quantity),money(order.unit_price),money(order.amount),String(order.due_date).slice(0,10),
-      order.delivery_method,order.address,order.notes].forEach((value,index)=>row.append(makeCell(value,index===0||index===6||index===7||index===8)));
+      order.delivery_method,order.address,order.notes].forEach((value,index)=>row.append(makeCell(value,index===0||index===7||index===8||index===9)));
     body.append(row);
   });
 }

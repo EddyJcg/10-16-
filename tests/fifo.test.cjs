@@ -39,6 +39,7 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       assert.equal(order.quantity,3);
       assert.equal(Number(order.unit_price),1250.5);
       assert.equal(Number(order.amount),3751.5);
+      assert.match(order.order_date,/^\d{4}-\d{2}-\d{2}$/);
       assert.equal(String(order.due_date).slice(0,10),'2026-12-31');
       assert.equal(order.delivery_method,'택배');
       assert.equal(order.address,'서울시 중구');

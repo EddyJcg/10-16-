@@ -20,6 +20,8 @@ test('sales order dialog contains all requested fields and choices',()=>{
   assert.match(form,/id="sales_order_type" required><option value="">선택하세요<\/option><option value="온라인 수주">온라인 수주<\/option><option value="오프라인 수주">오프라인 수주<\/option>/);
   assert.match(form,/id="sales_amount" readonly/);
   assert.match(html,/id="sales-order-items"/);
+  assert.match(html,/<th>일련번호<\/th><th>수주일자<\/th><th>수주번호<\/th>/);
+  assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);
 });
 
 test('sales order amount updates from quantity and unit price',()=>{

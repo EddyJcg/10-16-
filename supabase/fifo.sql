@@ -66,12 +66,17 @@ create table if not exists public.sales_orders (
   unit_price numeric(18,2) not null check (unit_price between 0 and 1000000000),
   amount numeric(24,2) not null check (amount >= 0),
   due_date date not null check (due_date >= date '1900-01-01'),
+  order_date date,
   delivery_method text not null default '' check (char_length(delivery_method) <= 120),
   address text not null default '' check (char_length(address) <= 1000),
   notes text not null default '' check (char_length(notes) <= 2000),
   created_by uuid not null,
   created_at timestamptz not null default clock_timestamp()
 );
+alter table public.sales_orders add column if not exists order_date date;
+update public.sales_orders set order_date=(created_at at time zone 'Asia/Seoul')::date where order_date is null;
+alter table public.sales_orders alter column order_date set default ((now() at time zone 'Asia/Seoul')::date);
+alter table public.sales_orders alter column order_date set not null;
 create index if not exists sales_orders_created on public.sales_orders(created_at desc,sequence_id desc);
 
 -- 잔량 및 원장을 임의 수정하지 못하게 하고, 쓰기는 아래 트랜잭션 함수로만 허용합니다.

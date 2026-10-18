@@ -63,6 +63,41 @@ begin
 end;
 $$;
 
+create or replace function public.register_stock_product(p_details jsonb)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  v_code text;
+  v_product public.stock_products%rowtype;
+begin
+  if not public.inventory_access_allowed() then raise exception 'ACCOUNT_DISABLED' using errcode='42501'; end if;
+  if p_details is null or jsonb_typeof(p_details) <> 'object' then raise exception 'INVALID_PRODUCT_DETAILS'; end if;
+  v_code := upper(trim(p_details->>'product_code'));
+  if v_code is null or char_length(v_code) not between 1 and 80
+    or coalesce(char_length(trim(p_details->>'product_category')),0) not between 1 and 80
+    or coalesce(char_length(trim(p_details->>'product_name')),0) not between 1 and 120
+    or char_length(coalesce(p_details->>'specification','')) > 200
+    or char_length(coalesce(p_details->>'material','')) > 120
+    or char_length(coalesce(p_details->>'color','')) > 120 then
+    raise exception 'INVALID_PRODUCT_DETAILS';
+  end if;
+  insert into public.stock_products(product_category,product_code,product_name,specification,material,color)
+  values(trim(p_details->>'product_category'),v_code,trim(p_details->>'product_name'),
+    coalesce(p_details->>'specification',''),coalesce(p_details->>'material',''),coalesce(p_details->>'color',''))
+  on conflict (product_code) do nothing;
+  select * into v_product from public.stock_products where product_code=v_code for update;
+  if v_product.product_category <> trim(p_details->>'product_category')
+    or v_product.product_name <> trim(p_details->>'product_name')
+    or v_product.specification <> coalesce(p_details->>'specification','')
+    or v_product.material <> coalesce(p_details->>'material','')
+    or v_product.color <> coalesce(p_details->>'color','') then
+    raise exception 'PRODUCT_DETAILS_CONFLICT';
+  end if;
+  return to_jsonb(v_product);
+end;
+$$;
+revoke all on function public.register_stock_product(jsonb) from public, anon;
+grant execute on function public.register_stock_product(jsonb) to authenticated;
+
 create or replace view public.stock_summary with (security_invoker = true) as
 with movements as (
   select product_id,
@@ -126,13 +161,13 @@ begin
       or char_length(coalesce(p_details->>'color','')) > 120
       or char_length(coalesce(p_details->>'storage_location','')) > 120
       or char_length(coalesce(p_details->>'supplier','')) > 120 then raise exception 'INVALID_PRODUCT_DETAILS'; end if;
-    insert into public.stock_products(product_category,product_code,product_name,specification,material,color,storage_location,supplier)
-    values(trim(p_details->>'product_category'),v_code,trim(p_details->>'product_name'),coalesce(p_details->>'specification',''),coalesce(p_details->>'material',''),coalesce(p_details->>'color',''),coalesce(p_details->>'storage_location',''),coalesce(p_details->>'supplier',''))
-    on conflict (product_code) do nothing;
   end if;
   -- 같은 품목의 입출고를 직렬 처리합니다. 부족하면 함수 전체가 롤백됩니다.
   select * into v_product from public.stock_products where product_code=v_code for update;
-  if not found then raise exception 'PRODUCT_NOT_FOUND'; end if;
+  if not found then
+    if p_kind <> 'issue' then raise exception 'PRODUCT_INFO_REQUIRED'; end if;
+    raise exception 'PRODUCT_NOT_FOUND';
+  end if;
   select * into v_existing from public.stock_movements where request_id=p_request_id;
   if found then
     if v_existing.created_by <> auth.uid() or v_existing.request_payload <> v_payload then raise exception 'REQUEST_CONFLICT'; end if;
@@ -142,8 +177,15 @@ begin
     v_product.product_category <> trim(p_details->>'product_category') or v_product.product_name <> trim(p_details->>'product_name')
     or v_product.specification <> coalesce(p_details->>'specification','') or v_product.material <> coalesce(p_details->>'material','')
     or v_product.color <> coalesce(p_details->>'color','')
-    or v_product.storage_location <> coalesce(p_details->>'storage_location','') or v_product.supplier <> coalesce(p_details->>'supplier','')
+    or (v_product.storage_location <> '' and v_product.storage_location <> coalesce(p_details->>'storage_location',''))
+    or (v_product.supplier <> '' and v_product.supplier <> coalesce(p_details->>'supplier',''))
   ) then raise exception 'PRODUCT_DETAILS_CONFLICT'; end if;
+  if p_kind <> 'issue' then
+    update public.stock_products
+    set storage_location=case when storage_location='' then coalesce(p_details->>'storage_location','') else storage_location end,
+      supplier=case when supplier='' then coalesce(p_details->>'supplier','') else supplier end
+    where id=v_product.id returning * into v_product;
+  end if;
   if p_kind='opening' and exists(select 1 from public.stock_movements where product_id=v_product.id) then raise exception 'OPENING_ALREADY_STARTED'; end if;
   -- 이미 확정한 출고의 원가를 바꿀 수 있는 과거 입고는 허용하지 않습니다.
   select max(movement_date) into v_last_date from public.stock_movements

@@ -14,12 +14,25 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
     const migration = readFileSync('supabase/fifo.sql','utf8');
     await db.exec(migration); await db.exec(migration);
     const details = (code,color='자연색') => ({product_category:'BAG',product_code:code,product_name:'Eco Bag',specification:'450*300 자연색',material:'니나리찌',color,storage_location:'A-1-3-1',supplier:'종로가방'});
+    const register = async productDetails => (await db.query('select public.register_stock_product($1) as result',[productDetails])).rows[0].result;
     const post = async (code,kind,quantity,cost,date,request = randomUUID(),productDetails = details(code)) => {
+      if(kind!=='issue')await register(productDetails);
       const result = await db.query('select public.post_stock_movement($1,$2,$3,$4,$5,$6) as result',[request,kind,date,productDetails,quantity,cost]);
       return result.rows[0].result;
     };
     const summary = async code => (await db.query('select * from public.stock_summary where product_code=$1',[code])).rows[0];
 
+    await t.test('product master must be registered before opening stock or receipt',async () => {
+      const product=details('UNREGISTERED');
+      await assert.rejects(db.query('select public.post_stock_movement($1,$2,$3,$4,$5,$6)',[randomUUID(),'receipt','2020-01-01',product,1,100]),/PRODUCT_INFO_REQUIRED/);
+      const saved=await register(product);
+      assert.equal(saved.product_code,'UNREGISTERED');
+      assert.equal(Number((await summary('UNREGISTERED')).stock_quantity),0);
+      assert.equal((await register(product)).id,saved.id);
+      await assert.rejects(register({...product,color:'빨강'}),/PRODUCT_DETAILS_CONFLICT/);
+      await post('UNREGISTERED','receipt',1,100,'2020-01-01');
+      assert.equal(Number((await summary('UNREGISTERED')).stock_quantity),1);
+    });
     await t.test('Excel sample reconciles exactly with FIFO',async () => {
       await post('SAMPLE','opening',1,28000,'2020-01-01');
       await post('SAMPLE','receipt',1,30000,'2020-01-02');

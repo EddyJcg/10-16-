@@ -5,18 +5,18 @@ const vm=require('node:vm');
 const {createClient}=require('@supabase/supabase-js');
 
 async function boot(file){
-  const values=new Map(),elements=new Map();let options;
+  const values=new Map(),elements=new Map(),alerts=[];let options;
   const storage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
   const element=id=>{if(!elements.has(id))elements.set(id,{value:'',textContent:'',hidden:false,disabled:false,handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},querySelectorAll(){return[];},replaceChildren(){},reset(){},classList:{toggle(){}}});return elements.get(id);};
   const context=vm.createContext({
     SUPABASE_URL:'https://example.supabase.co',SUPABASE_PUBLISHABLE_KEY:'test-key',
     document:{getElementById:element,querySelectorAll(){return[];},addEventListener(){}},
-    window:{sessionStorage:storage,supabase:{createClient:(url,key,value)=>{options=value;return {auth:{onAuthStateChange(){}},removeAllChannels(){}};}},addEventListener(){}},
+    window:{sessionStorage:storage,supabase:{createClient:(url,key,value)=>{options=value;return {auth:{onAuthStateChange(){}},removeAllChannels(){}};}},addEventListener(){},alert:message=>alerts.push(message)},
     render(){},renderHeaders(){},setInterval(){return 1;},clearInterval(){},clearTimeout(){},setTimeout(){return 1;}
   });
   await vm.runInContext(readFileSync(file,'utf8'),context);
   if(file==='inventory-app.js')await vm.runInContext('startApp()',context);
-  return {options,storage,values,context,element};
+  return {options,storage,values,context,element,alerts};
 }
 
 for(const file of ['inventory-app.js','admin.js'])test(file+' restores login after reload and clears it on logout',async()=>{
@@ -39,6 +39,14 @@ test('inventory screen omits the manual stock refresh button',async()=>{
   const app=await boot('inventory-app.js');
   assert.doesNotMatch(readFileSync('inventory.html','utf8'),/id="refresh"/);
   assert.equal(app.element('refresh').handlers.click,undefined);
+});
+
+test('unknown receipt item displays the required product information alert',async()=>{
+  const app=await boot('inventory-app.js');
+  assert.match(readFileSync('inventory.html','utf8'),/<form id="movement-form" novalidate>/);
+  vm.runInContext('currentUser={id:"user"};items=[{product_code:"KNOWN"}];mode="receipt";$("product_code").value="UNKNOWN";',app.context);
+  await vm.runInContext('saveMovement({preventDefault(){}})',app.context);
+  assert.deepEqual(app.alerts,['품목정보를 입력해 주세요!']);
 });
 
 test('inventory and admin use the same tab session without another sign-in',async()=>{

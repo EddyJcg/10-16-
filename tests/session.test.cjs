@@ -82,6 +82,15 @@ test('sales order menu opens its dialog and binds save and amount calculation',a
   assert.equal(typeof app.element('sales_unit_price').handlers.input,'function');
 });
 
+test('sales status menu opens its list and binds searches and status updates',async()=>{
+  const app=await boot('inventory-app.js');
+  assert.equal(typeof app.element('sales-status-button').handlers.click,'function');
+  assert.equal(typeof app.element('close-sales-status').handlers.click,'function');
+  assert.equal(typeof app.element('apply-sales-status-search').handlers.click,'function');
+  assert.equal(typeof app.element('clear-sales-status-search').handlers.click,'function');
+  assert.equal(typeof app.element('sales-status-items').handlers.change,'function');
+});
+
 test('inventory and admin use the same tab session without another sign-in',async()=>{
   const inventory=await boot('inventory-app.js'),admin=await boot('admin.js');
   assert.equal(admin.options.auth.storageKey,inventory.options.auth.storageKey);

@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const {PRODUCT_UNITS,validOrderDueDate}=require('../inventory-model.js');
+const {PRODUCT_UNITS,filterSalesOrders,summarizeSalesOrders,validOrderDueDate}=require('../inventory-model.js');
 
 test('sales order dialog contains all requested fields and choices',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
@@ -22,6 +22,29 @@ test('sales order dialog contains all requested fields and choices',()=>{
   assert.match(html,/id="sales-order-items"/);
   assert.match(html,/<th>일련번호<\/th><th>수주일자<\/th><th>수주번호<\/th>/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);
+});
+
+test('sales status view includes every order field and completion control after order number',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  const table=html.match(/<table aria-label="전체 수주현황">([\s\S]*?)<\/table>/)?.[1]||'';
+  assert.match(html,/id="sales-status-button"[^>]*>수주현황<\/button>/);
+  assert.match(table,/<th>수주번호<\/th><th>매출 상태<\/th><th>수주형태<\/th>/);
+  for(const label of ['일련번호','수주일자','수주번호','매출 상태','수주형태','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
+    assert.ok(table.includes(`<th>${label}</th>`),label);
+  for(const id of ['sales-status-start-date','sales-status-end-date','sales-status-type-filter','sales-status-filter','sales-status-total','sales-status-completed-total','sales-status-outstanding-total'])
+    assert.match(html,new RegExp(`id="${id}"`),id);
+});
+
+test('sales orders filter inclusively by date, type and completion, and summarize period totals',()=>{
+  const orders=[
+    {order_date:'2026-10-01',order_type:'온라인 수주',sales_status:'매출완료',amount:'10.25'},
+    {order_date:'2026-10-19',order_type:'온라인 수주',sales_status:'매출미완료',amount:'20.10'},
+    {order_date:'2026-10-20',order_type:'오프라인 수주',sales_status:'매출미완료',amount:'30.00'}
+  ];
+  const filters={startDate:'2026-10-01',endDate:'2026-10-19',orderType:'온라인 수주'};
+  assert.equal(filterSalesOrders(orders,{...filters,salesStatus:'매출완료'}).length,1);
+  assert.deepEqual(summarizeSalesOrders(orders,filters),{total:30.35,completed:10.25,outstanding:20.1});
+  assert.equal(filterSalesOrders(orders,{salesStatus:'매출미완료'}).length,2);
 });
 
 test('sales order amount updates from quantity and unit price',()=>{
@@ -50,7 +73,9 @@ test('sales order dialog is connected to the authenticated database save flow',(
   assert.match(script,/function showSalesOrder\(\)/);
   assert.match(script,/function saveSalesOrder\(event\)/);
   assert.match(script,/client\.rpc\('register_sales_order'/);
+  assert.match(script,/client\.rpc\('set_sales_order_status'/);
   assert.match(script,/sales-order-form'\)\.addEventListener\('submit',saveSalesOrder\)/);
   assert.match(sql,/create table if not exists public\.sales_orders/);
   assert.match(sql,/create or replace function public\.register_sales_order/);
+  assert.match(sql,/create or replace function public\.set_sales_order_status/);
 });

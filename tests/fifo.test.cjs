@@ -40,10 +40,15 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       assert.equal(Number(order.unit_price),1250.5);
       assert.equal(Number(order.amount),3751.5);
       assert.match(order.order_date,/^\d{4}-\d{2}-\d{2}$/);
+      assert.equal(order.sales_status,'매출미완료');
       assert.equal(String(order.due_date).slice(0,10),'2026-12-31');
       assert.equal(order.delivery_method,'택배');
       assert.equal(order.address,'서울시 중구');
       assert.equal(order.notes,'선물 포장');
+      const completed=(await db.query('select public.set_sales_order_status($1,$2) as result',[order.id,'매출완료'])).rows[0].result;
+      assert.equal(completed.sales_status,'매출완료');
+      assert.equal((await db.query('select sales_status from public.sales_orders where id=$1',[order.id])).rows[0].sales_status,'매출완료');
+      await assert.rejects(db.query('select public.set_sales_order_status($1,$2)',[order.id,'진행중']),/INVALID_SALES_STATUS/);
       await assert.rejects(db.query(`select public.register_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
         ['SO-BAD','방문','Item','','EA(개)',1,100,'2026-12-31','','','']),/INVALID_SALES_ORDER/);
     });

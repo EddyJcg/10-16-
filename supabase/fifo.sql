@@ -67,6 +67,7 @@ create table if not exists public.sales_orders (
   amount numeric(24,2) not null check (amount >= 0),
   due_date date not null check (due_date >= date '1900-01-01'),
   order_date date,
+  sales_status text not null default '매출미완료' check (sales_status in ('매출완료','매출미완료')),
   delivery_method text not null default '' check (char_length(delivery_method) <= 120),
   address text not null default '' check (char_length(address) <= 1000),
   notes text not null default '' check (char_length(notes) <= 2000),
@@ -77,7 +78,10 @@ alter table public.sales_orders add column if not exists order_date date;
 update public.sales_orders set order_date=(created_at at time zone 'Asia/Seoul')::date where order_date is null;
 alter table public.sales_orders alter column order_date set default ((now() at time zone 'Asia/Seoul')::date);
 alter table public.sales_orders alter column order_date set not null;
+alter table public.sales_orders add column if not exists sales_status text not null default '매출미완료'
+  check (sales_status in ('매출완료','매출미완료'));
 create index if not exists sales_orders_created on public.sales_orders(created_at desc,sequence_id desc);
+create index if not exists sales_orders_order_date on public.sales_orders(order_date desc,sequence_id desc);
 
 -- 잔량 및 원장을 임의 수정하지 못하게 하고, 쓰기는 아래 트랜잭션 함수로만 허용합니다.
 do $$
@@ -123,6 +127,24 @@ end;
 $$;
 revoke all on function public.register_sales_order(text,text,text,text,text,integer,numeric,date,text,text,text) from public, anon;
 grant execute on function public.register_sales_order(text,text,text,text,text,integer,numeric,date,text,text,text) to authenticated;
+
+create or replace function public.set_sales_order_status(p_order_id uuid,p_sales_status text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  v_order public.sales_orders%rowtype;
+begin
+  if not public.inventory_access_allowed() then raise exception 'ACCOUNT_DISABLED' using errcode='42501'; end if;
+  if p_sales_status is null or p_sales_status not in ('매출완료','매출미완료') then
+    raise exception 'INVALID_SALES_STATUS' using errcode='22023';
+  end if;
+  update public.sales_orders set sales_status=p_sales_status
+    where id=p_order_id returning * into v_order;
+  if not found then raise exception 'SALES_ORDER_NOT_FOUND' using errcode='P0002'; end if;
+  return to_jsonb(v_order);
+end;
+$$;
+revoke all on function public.set_sales_order_status(uuid,text) from public, anon;
+grant execute on function public.set_sales_order_status(uuid,text) to authenticated;
 
 create or replace function public.register_stock_product(p_details jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$

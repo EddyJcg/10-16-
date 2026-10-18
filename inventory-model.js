@@ -28,6 +28,24 @@ function filterInventoryItems(rows,{query='',availability='all',dateProductIds=n
     String(item.supplier||'').toLowerCase().includes(vendor)
   );
 }
+function filterSalesOrders(rows,{startDate='',endDate='',orderType='',salesStatus=''}={}) {
+  return rows.filter(order=>{
+    const date=String(order.order_date||'').slice(0,10);
+    return (!startDate||date>=startDate)&&(!endDate||date<=endDate)&&
+      (!orderType||order.order_type===orderType)&&(!salesStatus||order.sales_status===salesStatus);
+  });
+}
+function summarizeSalesOrders(rows,filters={}) {
+  const orders=filterSalesOrders(rows,{...filters,salesStatus:''});
+  const cents=orders.reduce((totals,order)=>{
+    const amount=Math.round(Number(order.amount||0)*100);
+    totals.total+=amount;
+    if(order.sales_status==='매출완료')totals.completed+=amount;
+    else totals.outstanding+=amount;
+    return totals;
+  },{total:0,completed:0,outstanding:0});
+  return {total:cents.total/100,completed:cents.completed/100,outstanding:cents.outstanding/100};
+}
 function todayDate() {
   const parts = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
   const get = type => parts.find(part => part.type === type).value;
@@ -67,4 +85,4 @@ function planFifo(lots,quantity,date) {
   const amount = Number(amountCents)/100;
   return {allocations,shortage:Math.max(left,0),amount,unitCost:quantity>0 ? amount/quantity : 0};
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,todayDate,validDate,validOrderDueDate,planFifo};
+if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,filterSalesOrders,summarizeSalesOrders,todayDate,validDate,validOrderDueDate,planFifo};

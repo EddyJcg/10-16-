@@ -67,6 +67,7 @@
 .product-list-table th,.product-list-table td{white-space:nowrap}
 #current-stock-table,#movement-list-table{width:max-content;table-layout:fixed}
 #current-stock-table th,#current-stock-table td,#movement-list-table th,#movement-list-table td{overflow:hidden;text-overflow:ellipsis}
+#current-stock-table th,#current-stock-table td,#movement-list-table th,#movement-list-table td{text-align:center}
 .column-resizer{position:absolute;top:0;right:0;bottom:0;width:10px;padding:0;border:0;background:transparent;cursor:col-resize;touch-action:none}
 .column-resizer::after{content:"";position:absolute;top:25%;bottom:25%;left:4px;width:2px;border-radius:2px;background:#9aafa1}
 .column-resizer:hover::after,.column-resizer:focus-visible::after{background:#23654e}

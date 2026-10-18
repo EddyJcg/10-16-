@@ -105,6 +105,7 @@ test('main dashboard replaces recent movement history with a printable sales bal
   assert.doesNotMatch(html,/<section id="movement-history"/);
   assert.match(html,/<section id="sales-balance" class="panel history">/);
   assert.ok(html.indexOf('id="sales-balance"')<html.indexOf('id="product-list"'),'sales balance should appear above the product list');
+  assert.match(style,/#sales-balance\+#product-list\{margin-top:32px\}/);
   assert.match(html,/data-print-settings="sales-balance"/);
   assert.match(html,/data-print="sales-balance"/);
   for(const id of ['sales-balance-start-date','sales-balance-end-date','sales-balance-type-filter','apply-sales-balance-search','clear-sales-balance-search'])

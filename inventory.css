@@ -30,6 +30,7 @@
 #workspace{display:flex;flex-direction:column;gap:16px}
 #workspace>.session,#workspace>.stats,#workspace>.panel{margin:0}
 #workspace>.stats{gap:16px}
+#sales-balance+#product-list{margin-top:32px}
 #current-stock-dialog{width:min(1400px,calc(100% - 32px))}
 #product-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}
 #movement-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}

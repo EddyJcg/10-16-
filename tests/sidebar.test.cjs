@@ -28,6 +28,8 @@ test('sidebar width restores safely, clamps limits and supports keyboard resizin
 });
 test('existing menu folders stay under the new inventory parent folder',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),nav=html.match(/<nav aria-label="재고관리 메뉴">([\s\S]*?)<\/nav>/)[1];
+  assert.ok(nav.indexOf('id="basic-info-folder"')<nav.indexOf('id="sales-folder"'),'기본정보 should appear before 매출관리');
+  assert.match(nav,/<details id="basic-info-folder"[^>]*data-sidebar-folder><summary>기본정보<\/summary><\/details>/);
   assert.ok(nav.indexOf('id="sales-folder"')<nav.indexOf('id="inventory-folder"'),'매출관리 should appear above 재고관리');
   assert.match(nav,/<details id="sales-folder"[^>]*data-sidebar-folder><summary>매출관리<\/summary><\/details>/);
   const parentStart=nav.indexOf('<details id="inventory-folder"');

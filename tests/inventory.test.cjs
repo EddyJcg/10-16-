@@ -104,10 +104,20 @@ test('main dashboard replaces recent movement history with a printable sales bal
   const html=fs.readFileSync('inventory.html','utf8'),script=fs.readFileSync('inventory-app.js','utf8'),style=fs.readFileSync('inventory.css','utf8');
   assert.doesNotMatch(html,/<section id="movement-history"/);
   assert.match(html,/<section id="sales-balance" class="panel history">/);
+  assert.ok(html.indexOf('id="sales-balance"')<html.indexOf('id="product-list"'),'sales balance should appear above the product list');
   assert.match(html,/data-print-settings="sales-balance"/);
   assert.match(html,/data-print="sales-balance"/);
   assert.match(script,/order=>\(order\.sales_status\|\|'매출미완료'\)==='매출미완료'/);
   assert.match(style,/body\[data-print-target="sales-balance"\] #sales-balance/);
+});
+test('dashboard replaces registered-item card with live sales backlog count and amount',()=>{
+  const html=fs.readFileSync('inventory.html','utf8'),app=fs.readFileSync('inventory-app.js','utf8'),renderer=fs.readFileSync('inventory-render.js','utf8');
+  const stats=html.match(/<section class="stats"[^>]*>([\s\S]*?)<\/section>/)?.[1]||'';
+  assert.match(stats,/<span>수주잔고 현황<\/span><strong id="total-sales-backlog-count">0건<\/strong><span id="total-sales-backlog-amount" class="stat-description">합계 0원<\/span>/);
+  assert.doesNotMatch(html,/id="total-items"/);
+  assert.match(app,/\$\('total-sales-backlog-count'\)\.textContent=outstanding\.length\.toLocaleString\('ko-KR'\)\+'건'/);
+  assert.match(app,/\$\('total-sales-backlog-amount'\)\.textContent='합계 '\+money\(totalCents\/100\)\+'원'/);
+  assert.doesNotMatch(renderer,/total-items/);
 });
 test('optional inventory search conditions combine without changing defaults',()=>{
   const rows=[

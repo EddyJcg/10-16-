@@ -44,6 +44,30 @@ test('dashboard sales balance uses the same sales-order columns and status selec
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/select\.value='매출미완료';select\.disabled=salesStatusUpdating/);
 });
 
+test('dashboard backlog card shows live outstanding order count and exact total',()=>{
+  const elements=new Map();
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{id,textContent:'',children:[],dataset:{},append(...nodes){this.children.push(...nodes);},replaceChildren(...nodes){this.children=[...nodes];},setAttribute(){}});
+    return elements.get(id);
+  };
+  const context=vm.createContext({
+    document:{getElementById:element,createElement:tag=>({tag,children:[],dataset:{},append(...nodes){this.children.push(...nodes);},setAttribute(){}})},
+    number:value=>Number(value||0).toLocaleString('ko-KR',{maximumFractionDigits:2}),
+    money:value=>Number(value||0).toLocaleString('ko-KR',{maximumFractionDigits:2}),
+    makeCell:text=>({textContent:String(text),className:''}),
+    emptyRow(){}
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`salesOrders=[
+    {id:'a',sequence_id:1,order_date:'2026-10-01',order_number:'SO-1',sales_status:'매출미완료',amount:10.25},
+    {id:'b',sequence_id:2,order_date:'2026-10-02',order_number:'SO-2',sales_status:'매출미완료',amount:20.10},
+    {id:'c',sequence_id:3,sales_status:'매출완료',amount:50}
+  ];renderSalesBalance()`,context);
+  assert.equal(element('total-sales-backlog-count').textContent,'2건');
+  assert.equal(element('total-sales-backlog-amount').textContent,'합계 30.35원');
+  assert.equal(element('sales-balance-items').children.length,2);
+});
+
 test('sales orders filter inclusively by date, type and completion, and summarize period totals',()=>{
   const orders=[
     {order_date:'2026-10-01',order_type:'온라인 수주',sales_status:'매출완료',amount:'10.25'},

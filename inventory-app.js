@@ -67,8 +67,11 @@ function renderSalesOrders(){
 }
 function renderSalesBalance(){
   const body=$('sales-balance-items'),outstanding=salesOrders.filter(order=>(order.sales_status||'매출미완료')==='매출미완료');
+  const totalCents=outstanding.reduce((sum,order)=>sum+Math.round(Number(order.amount||0)*100),0);
   body.replaceChildren();
-  $('sales-balance-summary').textContent=outstanding.length.toLocaleString('ko-KR')+'건 · 수주 잔고 '+money(outstanding.reduce((sum,order)=>sum+Math.round(Number(order.amount||0)*100),0)/100)+'원';
+  $('total-sales-backlog-count').textContent=outstanding.length.toLocaleString('ko-KR')+'건';
+  $('total-sales-backlog-amount').textContent='합계 '+money(totalCents/100)+'원';
+  $('sales-balance-summary').textContent=outstanding.length.toLocaleString('ko-KR')+'건 · 수주 잔고 '+money(totalCents/100)+'원';
   if(!outstanding.length){emptyRow(body,15,'현재 매출미완료 수주가 없습니다.');return;}
   outstanding.forEach(order=>{
     const row=document.createElement('tr');

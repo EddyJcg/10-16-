@@ -15,7 +15,7 @@ function render(){
   renderCurrentStock();
   renderStockRisk();
   renderLongStock();
-  $('total-items').textContent=number(items.length);$('total-value').textContent=money(items.reduce((sum,item)=>sum+Number(item.stock_amount||0),0))+'원';
+  $('total-value').textContent=money(items.reduce((sum,item)=>sum+Number(item.stock_amount||0),0))+'원';
   const shown=filterInventoryItems(items,{query:$('search').value,availability:$('filter').value,dateProductIds:appliedDateProductIds,supplier:appliedSupplier});
   $('list-count').textContent=shown.length+'개';$('items').replaceChildren();
   if(!shown.length)emptyRow($('items'),STOCK_DISPLAY_FIELDS.length+1,items.length?'검색 조건에 맞는 품목이 없습니다.':'왼쪽 기초재고 또는 입고관리 폴더에서 첫 품목을 등록하세요.');

@@ -6,6 +6,7 @@ const MODE_LABELS = {opening:['기초재고','기초','기초일자'],receipt:['
 let client,currentUser = null,items = [],movements = [],totalMovements = 0,authGeneration = 0;
 let loadPromise = null,reloadQueued = false,syncTimer = null,busy = false,exporting = false;
 let appliedDateProductIds = null,appliedSupplier = '',searching = false;
+let productListDateIds = null,productListSupplier = '',productListQuery = '',productListSearching = false;
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function errorText(error) {
@@ -165,7 +166,7 @@ async function updateSession(session) {
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
-    $('movement-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('product-list-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try { await loadStock(); if (currentUser) {subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
   catch (error) { notify(errorText(error),true); }
@@ -222,6 +223,66 @@ async function showCurrentStock() {
   renderCurrentStock();$('current-stock-status').textContent='최신 재고를 불러오는 중…';$('current-stock-dialog').showModal();
   try {await loadStock();if(generation===authGeneration)$('current-stock-status').textContent='';}
   catch(error){if(generation===authGeneration)$('current-stock-status').textContent='최신 조회에 실패했습니다. 표시된 재고는 마지막 조회 결과입니다. '+errorText(error);}
+}
+function renderProductListHeaders() {
+  const head=$('product-list-head');head.replaceChildren();
+  const serial=document.createElement('th');serial.scope='col';serial.className='numeric';serial.textContent='일련번호';head.append(serial);
+  STOCK_FIELDS.forEach(field=>{const header=document.createElement('th');header.scope='col';header.textContent=field.label;if(field.numeric)header.className='numeric';head.append(header);});
+}
+function renderProductList() {
+  const shown=filterInventoryItems(items,{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds});
+  const body=$('product-list-items');body.replaceChildren();$('product-list-count').textContent=shown.length.toLocaleString('ko-KR')+'개';
+  if(!shown.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=STOCK_FIELDS.length+1;cell.className='empty';cell.textContent=items.length?'검색 조건에 맞는 품목이 없습니다.':'등록된 품목이 없습니다.';row.append(cell);body.append(row);return;}
+  shown.forEach((item,index)=>{const row=document.createElement('tr'),serial=document.createElement('td');serial.className='numeric';serial.textContent=number(index+1);row.append(serial);STOCK_FIELDS.forEach(field=>{const cell=document.createElement('td');if(field.numeric)cell.className='numeric';cell.textContent=field.numeric?number(item[field.key]):item[field.key]||'';row.append(cell);});body.append(row);});
+}
+function updateProductListSuppliers() {
+  const select=$('product-list-supplier'),selected=select.value;select.replaceChildren();
+  const all=document.createElement('option');all.value='';all.textContent='전체 업체';select.append(all);
+  [...new Set(items.map(item=>String(item.supplier||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'))
+    .forEach(supplier=>{const option=document.createElement('option');option.value=supplier;option.textContent=supplier;select.append(option);});
+  select.value=[...select.options].some(option=>option.value===selected)?selected:'';
+}
+async function showProductList() {
+  if(!currentUser||busy)return;
+  const generation=authGeneration;
+  renderProductListHeaders();
+  $('product-list-status').textContent='최신 품목목록을 불러오는 중…';$('product-list-dialog').showModal();
+  try {
+    await loadStock();
+    if(generation!==authGeneration||!$('product-list-dialog').open)return;
+    updateProductListSuppliers();renderProductList();$('product-list-status').textContent='';
+  } catch(error) {
+    if(generation===authGeneration)$('product-list-status').textContent='최신 품목목록을 불러오지 못했습니다. 표시된 목록은 마지막 조회 결과입니다. '+errorText(error);
+  }
+}
+async function searchProductList() {
+  if(!currentUser||productListSearching)return;
+  const startDate=$('product-list-start-date').value,endDate=$('product-list-end-date').value;
+  if(startDate&&endDate&&startDate>endDate){$('product-list-status').textContent='시작일은 종료일보다 늦을 수 없습니다.';return;}
+  const supplier=$('product-list-supplier').value.trim().toLowerCase(),query=$('product-list-query').value.trim();
+  const generation=authGeneration;productListSearching=true;$('search-product-list').disabled=true;
+  $('clear-product-list-search').disabled=true;$('product-list-start-date').disabled=true;$('product-list-end-date').disabled=true;
+  $('product-list-supplier').disabled=true;$('product-list-query').disabled=true;
+  try {
+    productListDateIds=await findMovementProductIds(startDate,endDate,'');
+    if(generation!==authGeneration)return;
+    productListSupplier=supplier;productListQuery=query;
+    renderProductList();$('product-list-status').textContent='검색이 완료되었습니다.';
+  } catch(error) {
+    if(generation===authGeneration)$('product-list-status').textContent=errorText(error);
+  } finally {
+    productListSearching=false;$('search-product-list').disabled=false;$('clear-product-list-search').disabled=false;
+    $('product-list-start-date').disabled=false;$('product-list-end-date').disabled=false;$('product-list-supplier').disabled=false;$('product-list-query').disabled=false;
+  }
+}
+function clearProductListSearch() {
+  if(productListSearching)return;
+  $('product-list-start-date').value='';$('product-list-end-date').value='';$('product-list-supplier').value='';$('product-list-query').value='';
+  productListDateIds=null;productListSupplier='';productListQuery='';renderProductList();$('product-list-status').textContent='검색 조건을 초기화했습니다.';
+}
+function printProductList() {
+  if(!$('product-list-dialog').open)return;
+  window.print();
 }
 function closeMovement() { if (!busy) {lotsGeneration++; $('movement-dialog').close();} }
 async function saveMovement(event) {
@@ -292,6 +353,11 @@ async function startApp(){
   $('close-detail').addEventListener('click',()=>$('detail-dialog').close());
   $('current-stock-button').addEventListener('click',showCurrentStock);
   $('close-current-stock').addEventListener('click',()=>$('current-stock-dialog').close());
+  $('product-list-button').addEventListener('click',showProductList);
+  $('close-product-list').addEventListener('click',()=>$('product-list-dialog').close());
+  $('search-product-list').addEventListener('click',searchProductList);
+  $('clear-product-list-search').addEventListener('click',clearProductListSearch);
+  $('print-product-list').addEventListener('click',printProductList);
   $('search').addEventListener('input',render);$('filter').addEventListener('change',render);$('export').addEventListener('click',exportExcel);
   $('movement-kind-filter').addEventListener('change',()=>{$('supplier-filter-wrap').hidden=$('movement-kind-filter').value!=='supplier';});
   $('apply-search').addEventListener('click',applyInventorySearch);$('clear-search').addEventListener('click',clearInventorySearch);

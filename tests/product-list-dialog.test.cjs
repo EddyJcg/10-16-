@@ -15,6 +15,9 @@ test('sidebar opens the searchable full product list in a modal dialog',()=>{
 test('product list dialog searches all stock fields and prints the displayed list',()=>{
   const script=readFileSync('inventory-app.js','utf8');
   const style=readFileSync('inventory.css','utf8');
+  assert.match(script,/function productListFields\(\) \{ return STOCK_FIELDS\.flatMap\(field=>field\.key==='material'\?\[field,\{key:'color',label:'색상',numeric:false\}\]:\[field\]\); \}/);
+  assert.match(script,/productListFields\(\)\.forEach\(field=>/);
+  assert.match(script,/cell\.colSpan=fields\.length\+1/);
   assert.match(script,/filterInventoryItems\(items,\{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds\}\)/);
   assert.match(script,/findMovementProductIds\(startDate,endDate,''\)/);
   assert.match(script,/window\.print\(\)/);
@@ -73,6 +76,8 @@ test('movement history opens a searchable full-history dialog and preserves FIFO
   assert.match(script,/readAll\('stock_movements','sequence_id'\)/);
   assert.match(script,/movementListRows\.filter/);
   assert.match(script,/showAllocations\(movement\)/);
+  assert.match(script,/item\?\.color/);
+  assert.match(script,/item\?\.specification,item\?\.color,item\?\.storage_location/);
   assert.match(script,/'movement-list':'#movement-list-dialog \.product-list-table table'/);
   assert.match(script,/movement-list-dialog/);
   assert.match(style,/body\[data-print-target="movement-list"\] #movement-list-dialog/);
@@ -85,8 +90,9 @@ test('movement history columns can be resized by pointer and keyboard and keep t
   const style=readFileSync('inventory.css','utf8');
   const columns=html.match(/<colgroup id="movement-list-columns">([\s\S]*?)<\/colgroup>/)?.[1]||'';
   const resizers=html.match(/class="column-resizer"/g)||[];
-  assert.equal((columns.match(/<col>/g)||[]).length,11);
-  assert.equal(resizers.length,11);
+  assert.equal((columns.match(/<col>/g)||[]).length,12);
+  assert.equal(resizers.length,12);
+  assert.match(html,/<th>색상<button class="column-resizer" type="button" data-column="6"/);
   assert.match(script,/function startColumnResizing\(tableId,columnsId,storageKey,defaults\)/);
   assert.match(script,/handle\.setPointerCapture\(event\.pointerId\)/);
   assert.match(script,/ArrowLeft:widths\[index\]-delta,ArrowRight:widths\[index\]\+delta/);

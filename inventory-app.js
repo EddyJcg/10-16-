@@ -12,7 +12,7 @@ const printMargins = {top:10,right:10,bottom:10,left:10};
 let printMarginDrag = null,activePrintTarget='product-list';
 const columnWidthDefaults={
   'current-stock':[120,140,160,150,120,120,110,110,120,140,150,150],
-  'movement-list':[100,115,90,140,160,150,130,150,100,110,120]
+  'movement-list':[100,115,90,140,160,150,120,130,150,100,110,120]
 };
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
@@ -234,13 +234,14 @@ async function showCurrentStock() {
 function renderProductListHeaders() {
   const head=$('product-list-head');head.replaceChildren();
   const serial=document.createElement('th');serial.scope='col';serial.className='numeric';serial.textContent='일련번호';head.append(serial);
-  STOCK_FIELDS.forEach(field=>{const header=document.createElement('th');header.scope='col';header.textContent=field.label;if(field.numeric)header.className='numeric';head.append(header);});
+  productListFields().forEach(field=>{const header=document.createElement('th');header.scope='col';header.textContent=field.label;if(field.numeric)header.className='numeric';head.append(header);});
 }
+function productListFields() { return STOCK_FIELDS.flatMap(field=>field.key==='material'?[field,{key:'color',label:'색상',numeric:false}]:[field]); }
 function renderProductList() {
   const shown=filterInventoryItems(items,{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds});
-  const body=$('product-list-items');body.replaceChildren();$('product-list-count').textContent=shown.length.toLocaleString('ko-KR')+'개';
-  if(!shown.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=STOCK_FIELDS.length+1;cell.className='empty';cell.textContent=items.length?'검색 조건에 맞는 품목이 없습니다.':'등록된 품목이 없습니다.';row.append(cell);body.append(row);return;}
-  shown.forEach((item,index)=>{const row=document.createElement('tr'),serial=document.createElement('td');serial.className='numeric';serial.textContent=number(index+1);row.append(serial);STOCK_FIELDS.forEach(field=>{const cell=document.createElement('td');if(field.numeric)cell.className='numeric';cell.textContent=field.numeric?number(item[field.key]):item[field.key]||'';row.append(cell);});body.append(row);});
+  const fields=productListFields(),body=$('product-list-items');body.replaceChildren();$('product-list-count').textContent=shown.length.toLocaleString('ko-KR')+'개';
+  if(!shown.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=fields.length+1;cell.className='empty';cell.textContent=items.length?'검색 조건에 맞는 품목이 없습니다.':'등록된 품목이 없습니다.';row.append(cell);body.append(row);return;}
+  shown.forEach((item,index)=>{const row=document.createElement('tr'),serial=document.createElement('td');serial.className='numeric';serial.textContent=number(index+1);row.append(serial);fields.forEach(field=>{const cell=document.createElement('td');if(field.numeric)cell.className='numeric';cell.textContent=field.numeric?number(item[field.key]):item[field.key]||'';row.append(cell);});body.append(row);});
 }
 function updateProductListSuppliers() {
   const select=$('product-list-supplier'),selected=select.value;select.replaceChildren();
@@ -279,12 +280,12 @@ function renderMovementList() {
     if(startDate&&date<startDate||endDate&&date>endDate||kind&&movement.kind!==kind)return false;
     if(supplier&&supplier!==String(item?.supplier||'').trim().toLowerCase())return false;
     if(!query)return true;
-    return [movement.sequence_id,date,MODE_LABELS[movement.kind]?.[1],item?.product_code,item?.product_name,item?.specification,item?.storage_location,item?.supplier]
+    return [movement.sequence_id,date,MODE_LABELS[movement.kind]?.[1],item?.product_code,item?.product_name,item?.specification,item?.color,item?.storage_location,item?.supplier]
       .some(value=>String(value??'').toLowerCase().includes(query));
   });
   const body=$('movement-list-items');body.replaceChildren();$('movement-list-count').textContent=shown.length.toLocaleString('ko-KR')+'건';
   if(!shown.length){
-    const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=11;cell.className='empty';
+    const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=12;cell.className='empty';
     cell.textContent=movementListRows.length?'검색 조건에 맞는 내역이 없습니다.':'기록된 입출고 내역이 없습니다.';row.append(cell);body.append(row);return;
   }
   shown.forEach(movement=>{
@@ -297,6 +298,7 @@ function renderMovementList() {
       makeCell(item?.product_code||''),
       makeCell(item?.product_name||''),
       makeCell(item?.specification||''),
+      makeCell(item?.color||''),
       makeCell(item?.storage_location||''),
       makeCell(item?.supplier||''),
       makeCell(number(movement.quantity),true),

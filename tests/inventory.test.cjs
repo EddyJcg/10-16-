@@ -24,12 +24,48 @@ test('all inventory input forms use the selected master unit before quantity',()
 test('movement form locks a known product unit and resets unknown product input',()=>{
   const nodes=new Map(),context=vm.createContext({PRODUCT_FIELDS,document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',disabled:false,readOnly:false});return nodes.get(id);}}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
-  vm.runInContext('items=[{product_code:"SKU",unit:"Kg"}];mode="receipt";$("product_code").value="SKU";populateProduct()',context);
+  vm.runInContext('items=[{product_code:"SKU",product_category:"RAW",product_name:"Material",specification:"10 x 20",material:"Steel",color:"Silver",unit:"Kg",storage_location:"A-1",supplier:"Vendor"}];mode="receipt";$("product_code").value="SKU";populateProduct()',context);
+  assert.equal(nodes.get('product_name').value,'Material');
+  assert.equal(nodes.get('specification').value,'10 x 20');
+  assert.equal(nodes.get('material').value,'Steel');
+  assert.equal(nodes.get('color').value,'Silver');
   assert.equal(nodes.get('unit').value,'Kg');
   assert.equal(nodes.get('unit').disabled,true);
-  vm.runInContext('$("product_code").value="UNKNOWN";populateProduct()',context);
+  vm.runInContext('$("specification").value="10 X 20";populateProduct("specification")',context);
+  assert.equal(nodes.get('product_code').value,'SKU');
+  assert.equal(nodes.get('product_name').value,'Material');
+  vm.runInContext('$("specification").value="unknown spec";populateProduct("specification")',context);
+  assert.equal(nodes.get('product_code').value,'');
+  assert.equal(nodes.get('product_name').value,'');
+  assert.equal(nodes.get('specification').value,'unknown spec');
+  assert.equal(nodes.get('product_code').readOnly,false);
+  vm.runInContext('$("product_code").value="UNKNOWN";populateProduct("product_code")',context);
   assert.equal(nodes.get('unit').value,'EA(개)');
   assert.equal(nodes.get('unit').disabled,false);
+});
+test('duplicate specifications do not select an arbitrary product',()=>{
+  const fields=new Map([['specification',{value:'Shared'}],['product_code',{value:'SKU'}]]);
+  const context=vm.createContext({items:[{product_code:'A',specification:'Shared'},{product_code:'B',specification:'Shared'}],document:{getElementById:id=>fields.get(id)}});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  assert.equal(vm.runInContext('productForLookup("specification")',context),null);
+});
+test('movement product selectors offer SKU and specification lookups',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  assert.match(html,/<input id="product_code"[^>]*list="product-codes"/);
+  assert.match(html,/<input id="specification"[^>]*list="product-specifications"/);
+  assert.match(html,/<datalist id="product-specifications"><\/datalist>/);
+});
+test('product information form autofills existing item by SKU or unique specification',()=>{
+  const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:''});return nodes.get(id);}}});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext('items=[{product_code:"SKU",product_category:"RAW",product_name:"Material",specification:"10 x 20",material:"Steel",color:"Silver",unit:"Kg"}]',context);
+  vm.runInContext('$("info_product_code").value="SKU";populateProductInfo("info_product_code")',context);
+  assert.equal(nodes.get('info_product_name').value,'Material');
+  assert.equal(nodes.get('info_specification').value,'10 x 20');
+  assert.equal(nodes.get('info_unit').value,'Kg');
+  vm.runInContext('$("info_specification").value="10 X 20";populateProductInfo("info_specification")',context);
+  assert.equal(nodes.get('info_product_code').value,'SKU');
+  assert.equal(nodes.get('info_material').value,'Steel');
 });
 test('stock quantity totals stay separated by unit',()=>{
   const ctx=vm.createContext({number:value=>String(value)});
@@ -134,6 +170,7 @@ test('missing migration and stock errors have actionable messages',()=>{
   assert.match(vm.runInContext('errorText({code:"PGRST205"})',ctx),/fifo.sql/);
   assert.match(vm.runInContext('errorText({message:"INSUFFICIENT_STOCK"})',ctx),/재고가 부족/);
   assert.match(vm.runInContext('errorText({message:"BACKDATE_CONFLICT"})',ctx),/날짜 순서/);
+  assert.match(vm.runInContext('errorText({message:"PRODUCT_CODE_ALREADY_EXISTS"})',ctx),/이미 등록된 품번/);
 });
 test('insufficient FIFO preview does not present a misleading unit price',()=>{
   const fields={product_code:{value:'SKU'},unit:{value:'Kg'},movement_quantity:{value:'2'},movement_date:{value:'2020-01-02'},movement_cost:{value:'0'},movement_amount:{value:''},'fifo-remaining-heading':{textContent:''},'fifo-issue-heading':{textContent:''},'form-message':{textContent:''}};

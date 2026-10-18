@@ -87,16 +87,8 @@ begin
   insert into public.stock_products(product_category,product_code,product_name,specification,material,color,unit)
   values(trim(p_details->>'product_category'),v_code,trim(p_details->>'product_name'),
     coalesce(p_details->>'specification',''),coalesce(p_details->>'material',''),coalesce(p_details->>'color',''),p_details->>'unit')
-  on conflict (product_code) do nothing;
-  select * into v_product from public.stock_products where product_code=v_code for update;
-  if v_product.product_category <> trim(p_details->>'product_category')
-    or v_product.product_name <> trim(p_details->>'product_name')
-    or v_product.specification <> coalesce(p_details->>'specification','')
-    or v_product.material <> coalesce(p_details->>'material','')
-    or v_product.color <> coalesce(p_details->>'color','')
-    or v_product.unit <> p_details->>'unit' then
-    raise exception 'PRODUCT_DETAILS_CONFLICT';
-  end if;
+  on conflict (product_code) do nothing returning * into v_product;
+  if not found then raise exception 'PRODUCT_CODE_ALREADY_EXISTS'; end if;
   return to_jsonb(v_product);
 end;
 $$;

@@ -71,9 +71,9 @@
         <div class="dialog-body">
           <div class="form-grid">
             <div class="field"><label for="info_product_category">품목분류</label><input id="info_product_category" required maxlength="80"></div>
-            <div class="field"><label for="info_product_code">품번</label><input id="info_product_code" required maxlength="80"></div>
+            <div class="field"><label for="info_product_code">품번</label><input id="info_product_code" required maxlength="80" list="product-info-codes" autocomplete="off"><datalist id="product-info-codes"></datalist><datalist id="product-info-specifications"></datalist></div>
             <div class="field"><label for="info_product_name">품명</label><input id="info_product_name" required maxlength="120"></div>
-            <div class="field"><label for="info_specification">규격</label><input id="info_specification" maxlength="200"></div>
+            <div class="field"><label for="info_specification">규격</label><input id="info_specification" maxlength="200" list="product-info-specifications" autocomplete="off"></div>
             <div class="field"><label for="info_material">재질</label><input id="info_material" maxlength="120"></div>
             <div class="field"><label for="info_color">색상</label><input id="info_color" maxlength="120"></div>
             <div class="field"><label for="info_unit">단위</label><select id="info_unit" required><option>EA(개)</option><option>벌</option><option>Set(세트)</option><option>M</option><option>Cm</option><option>mm</option><option>Box</option><option>Kg</option><option>g</option><option>L</option><option>mL</option><option>봉</option><option>식</option></select></div>
@@ -87,9 +87,9 @@
   </dialog>
   <dialog id="movement-dialog" aria-labelledby="dialog-title"><form id="movement-form" novalidate><div class="dialog-header"><div><h2 id="dialog-title"></h2><p id="dialog-description"></p></div><button type="button" class="close" id="close-dialog" aria-label="입력 창 닫기">×</button></div><fieldset id="movement-editor"><div class="dialog-body"><div class="form-grid">
     <div class="field"><label for="product_category">품목분류</label><input id="product_category" required maxlength="80"></div>
-    <div class="field"><label for="product_code">품번</label><input id="product_code" required maxlength="80" list="product-codes" autocomplete="off" placeholder="기존 품번 선택 또는 새 품번 입력"><datalist id="product-codes"></datalist></div>
+    <div class="field"><label for="product_code">품번</label><input id="product_code" required maxlength="80" list="product-codes" autocomplete="off" placeholder="품번 또는 규격을 입력하면 등록 정보 자동 입력"><datalist id="product-codes"></datalist><datalist id="product-specifications"></datalist></div>
     <div class="field"><label for="product_name">품명</label><input id="product_name" required maxlength="120"></div>
-    <div class="field"><label for="specification">규격</label><input id="specification" maxlength="200"></div>
+    <div class="field"><label for="specification">규격</label><input id="specification" maxlength="200" list="product-specifications" autocomplete="off"></div>
     <div class="field"><label for="material">재질</label><input id="material" maxlength="120"></div>
     <div class="field"><label for="color">색상</label><input id="color" maxlength="120"></div>
     <div class="field"><label for="storage_location">저장위치</label><input id="storage_location" maxlength="120"></div>

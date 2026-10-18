@@ -49,6 +49,12 @@ test('unknown receipt item displays the required product information alert',asyn
   assert.deepEqual(app.alerts,['품목정보를 입력해 주세요!']);
 });
 
+test('all stock and product-info forms bind SKU and specification autofill',async()=>{
+  const app=await boot('inventory-app.js');
+  for(const id of ['product_code','specification','info_product_code','info_specification'])
+    assert.equal(typeof app.element(id).handlers.input,'function',id+' should trigger product lookup');
+});
+
 test('inventory and admin use the same tab session without another sign-in',async()=>{
   const inventory=await boot('inventory-app.js'),admin=await boot('admin.js');
   assert.equal(admin.options.auth.storageKey,inventory.options.auth.storageKey);

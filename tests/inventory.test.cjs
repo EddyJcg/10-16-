@@ -2,11 +2,39 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const {STOCK_FIELDS,planFifo,validDate,filterInventoryItems}=require('../inventory-model.js');
+const {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,planFifo,validDate,filterInventoryItems}=require('../inventory-model.js');
 const {CURRENT_STOCK_FIELDS,currentStockRows}=require('../inventory-model.js');
 
 test('current stock keeps all workbook fields except opening, receipt and issue totals',()=>{
-  assert.deepEqual(CURRENT_STOCK_FIELDS.map(field=>field.label),['품목분류','품번','품명','규격','재질','색상','재고수량','재고단가','재고금액','저장위치','납품업체']);
+  assert.deepEqual(CURRENT_STOCK_FIELDS.map(field=>field.label),['품목분류','품번','품명','규격','재질','색상','단위','재고수량','재고단가','재고금액','저장위치','납품업체']);
+});
+test('all inventory input forms use the selected master unit before quantity',()=>{
+  const html=fs.readFileSync('inventory.html','utf8'),transaction=html.match(/<div class="transaction-grid">([\s\S]*?)<\/div><div id="fifo-section"/)[1];
+  const optionValues=id=>{
+    const select=html.match(new RegExp(`<select id="${id}"[^>]*>([\\s\\S]*?)<\\/select>`));
+    return [...select[1].matchAll(/<option>([^<]+)<\/option>/g)].map(match=>match[1]);
+  };
+  assert.deepEqual(optionValues('info_unit'),PRODUCT_UNITS);
+  assert.deepEqual(optionValues('unit'),PRODUCT_UNITS);
+  assert.ok(transaction.indexOf('for="unit"')<transaction.indexOf('for="movement_quantity"'));
+  assert.match(html,/<label for="info_unit">단위<\/label><select id="info_unit" required>/);
+  assert.ok(STOCK_DISPLAY_FIELDS.findIndex(field=>field.key==='unit')<STOCK_DISPLAY_FIELDS.findIndex(field=>field.key==='opening_quantity'));
+  assert.ok(CURRENT_STOCK_FIELDS.findIndex(field=>field.key==='unit')<CURRENT_STOCK_FIELDS.findIndex(field=>field.key==='stock_quantity'));
+});
+test('movement form locks a known product unit and resets unknown product input',()=>{
+  const nodes=new Map(),context=vm.createContext({PRODUCT_FIELDS,document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',disabled:false,readOnly:false});return nodes.get(id);}}});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext('items=[{product_code:"SKU",unit:"Kg"}];mode="receipt";$("product_code").value="SKU";populateProduct()',context);
+  assert.equal(nodes.get('unit').value,'Kg');
+  assert.equal(nodes.get('unit').disabled,true);
+  vm.runInContext('$("product_code").value="UNKNOWN";populateProduct()',context);
+  assert.equal(nodes.get('unit').value,'EA(개)');
+  assert.equal(nodes.get('unit').disabled,false);
+});
+test('stock quantity totals stay separated by unit',()=>{
+  const ctx=vm.createContext({number:value=>String(value)});
+  vm.runInContext(fs.readFileSync('inventory-render.js','utf8'),ctx);
+  assert.equal(vm.runInContext('formatStockQuantityTotals([{stock_quantity:4,unit:"EA(개)"},{stock_quantity:2,unit:"Kg"},{stock_quantity:3,unit:"EA(개)"}])',ctx),'7 EA(개) · 2 Kg');
 });
 test('current stock includes every positive balance and excludes exhausted products',()=>{
   const rows=[{id:1,stock_quantity:2},{id:2,stock_quantity:0},{id:3,stock_quantity:'3'},{id:4,stock_quantity:null},{id:5,stock_quantity:-1}];
@@ -108,11 +136,11 @@ test('missing migration and stock errors have actionable messages',()=>{
   assert.match(vm.runInContext('errorText({message:"BACKDATE_CONFLICT"})',ctx),/날짜 순서/);
 });
 test('insufficient FIFO preview does not present a misleading unit price',()=>{
-  const fields={product_code:{value:'SKU'},movement_quantity:{value:'2'},movement_date:{value:'2020-01-02'},movement_cost:{value:'0'},movement_amount:{value:''},'form-message':{textContent:''}};
+  const fields={product_code:{value:'SKU'},unit:{value:'Kg'},movement_quantity:{value:'2'},movement_date:{value:'2020-01-02'},movement_cost:{value:'0'},movement_amount:{value:''},'fifo-remaining-heading':{textContent:''},'fifo-issue-heading':{textContent:''},'form-message':{textContent:''}};
   const ctx=vm.createContext({document:{getElementById:id=>fields[id]},planFifo,renderFifoPreview(){}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),ctx);
   vm.runInContext('mode="issue";items=[{product_code:"SKU"}];productLots=[{id:1,received_date:"2020-01-01",remaining_quantity:1,unit_cost:30000}];updateAmounts()',ctx);
-  assert.equal(fields.movement_cost.value,'');assert.equal(fields.movement_amount.value,'재고 부족');assert.match(fields['form-message'].textContent,/1개 부족/);
+  assert.equal(fields.movement_cost.value,'');assert.equal(fields.movement_amount.value,'재고 부족');assert.match(fields['form-message'].textContent,/1 Kg 부족/);
 });
 test('FIFO preview adds decimal currency at cent precision',()=>{
   const plan=planFifo([{id:1,received_date:'2020-01-01',remaining_quantity:1,unit_cost:0.1},{id:2,received_date:'2020-01-01',remaining_quantity:1,unit_cost:0.2}],2,'2020-01-02');

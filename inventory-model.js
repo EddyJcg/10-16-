@@ -7,9 +7,11 @@ const STOCK_FIELDS = [
   ['stock_quantity','재고수량'],['stock_unit_cost','재고단가'],['stock_amount','재고금액'],
   ['storage_location','저장위치'],['supplier','납품업체']
 ].map(([key,label]) => ({key,label,numeric:/_(quantity|unit_cost|amount)$/.test(key)}));
-const PRODUCT_FIELDS = ['product_category','product_code','product_name','specification','material','color','storage_location','supplier'];
+const STOCK_DISPLAY_FIELDS = STOCK_FIELDS.flatMap(field=>field.key==='opening_quantity'?[{key:'unit',label:'단위',numeric:false},field]:[field]);
+const PRODUCT_UNITS = ['EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식'];
+const PRODUCT_FIELDS = ['product_category','product_code','product_name','specification','material','color','unit','storage_location','supplier'];
 const CURRENT_STOCK_FIELDS = STOCK_FIELDS.filter(field=>! /^(opening|receipt|issue)_/.test(field.key))
-  .flatMap(field=>field.key==='material'?[field,{key:'color',label:'색상',numeric:false}]:[field]);
+  .flatMap(field=>field.key==='material'?[field,{key:'color',label:'색상',numeric:false}]:field.key==='stock_quantity'?[{key:'unit',label:'단위',numeric:false},field]:[field]);
 function currentStockRows(rows) { return rows.filter(row=>Number(row.stock_quantity)>0); }
 function filterInventoryItems(rows,{query='',availability='all',dateProductIds=null,supplier=''}={}) {
   const text=String(query).trim().toLowerCase(),vendor=String(supplier).trim().toLowerCase();
@@ -44,4 +46,4 @@ function planFifo(lots,quantity,date) {
   const amount = Number(amountCents)/100;
   return {allocations,shortage:Math.max(left,0),amount,unitCost:quantity>0 ? amount/quantity : 0};
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,PRODUCT_FIELDS,CURRENT_STOCK_FIELDS,currentStockRows,filterInventoryItems,todayDate,validDate,planFifo};
+if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,filterInventoryItems,todayDate,validDate,planFifo};

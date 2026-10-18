@@ -13,7 +13,7 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       create function public.inventory_access_allowed() returns boolean language sql as $$ select current_setting('test.active',true) is distinct from 'false' $$;`);
     const migration = readFileSync('supabase/fifo.sql','utf8');
     await db.exec(migration); await db.exec(migration);
-    const details = (code,color='자연색') => ({product_category:'BAG',product_code:code,product_name:'Eco Bag',specification:'450*300 자연색',material:'니나리찌',color,storage_location:'A-1-3-1',supplier:'종로가방'});
+    const details = (code,color='자연색',unit='EA(개)') => ({product_category:'BAG',product_code:code,product_name:'Eco Bag',specification:'450*300 자연색',material:'니나리찌',color,unit,storage_location:'A-1-3-1',supplier:'종로가방'});
     const register = async productDetails => (await db.query('select public.register_stock_product($1) as result',[productDetails])).rows[0].result;
     const post = async (code,kind,quantity,cost,date,request = randomUUID(),productDetails = details(code)) => {
       if(kind!=='issue')await register(productDetails);
@@ -27,11 +27,24 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       await assert.rejects(db.query('select public.post_stock_movement($1,$2,$3,$4,$5,$6)',[randomUUID(),'receipt','2020-01-01',product,1,100]),/PRODUCT_INFO_REQUIRED/);
       const saved=await register(product);
       assert.equal(saved.product_code,'UNREGISTERED');
+      assert.equal(saved.unit,'EA(개)');
       assert.equal(Number((await summary('UNREGISTERED')).stock_quantity),0);
       assert.equal((await register(product)).id,saved.id);
       await assert.rejects(register({...product,color:'빨강'}),/PRODUCT_DETAILS_CONFLICT/);
+      await assert.rejects(register({...product,unit:'Kg'}),/PRODUCT_DETAILS_CONFLICT/);
+      await assert.rejects(register({...product,unit:'invalid'}),/INVALID_PRODUCT_DETAILS/);
       await post('UNREGISTERED','receipt',1,100,'2020-01-01');
       assert.equal(Number((await summary('UNREGISTERED')).stock_quantity),1);
+    });
+    await t.test('selected unit is persisted and cannot change for an existing product',async () => {
+      const product=details('WEIGHT','','Kg');
+      const saved=await register(product);
+      assert.equal(saved.unit,'Kg');
+      assert.equal((await summary('WEIGHT')).unit,'Kg');
+      const receipt=await post('WEIGHT','receipt',2,25,'2020-01-01',randomUUID(),product);
+      assert.equal(receipt.quantity,2);
+      await assert.rejects(db.query('select public.post_stock_movement($1,$2,$3,$4,$5,$6)',[randomUUID(),'receipt','2020-01-02',{...product,unit:'g'},1,25]),/PRODUCT_DETAILS_CONFLICT/);
+      await assert.rejects(db.query('select public.post_stock_movement($1,$2,$3,$4,$5,$6)',[randomUUID(),'issue','2020-01-02',{...product,unit:'g'},1,0]),/PRODUCT_DETAILS_CONFLICT/);
     });
     await t.test('Excel sample reconciles exactly with FIFO',async () => {
       await post('SAMPLE','opening',1,28000,'2020-01-01');

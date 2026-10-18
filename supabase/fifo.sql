@@ -13,6 +13,9 @@ create table if not exists public.stock_products (
 );
 alter table public.stock_products
   add column if not exists color text not null default '' check (char_length(color) <= 120);
+alter table public.stock_products
+  add column if not exists unit text not null default 'EA(개)'
+  check (unit in ('EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식'));
 create table if not exists public.stock_movements (
   id uuid primary key default gen_random_uuid(),
   sequence_id bigint generated always as identity unique,
@@ -77,19 +80,21 @@ begin
     or coalesce(char_length(trim(p_details->>'product_name')),0) not between 1 and 120
     or char_length(coalesce(p_details->>'specification','')) > 200
     or char_length(coalesce(p_details->>'material','')) > 120
-    or char_length(coalesce(p_details->>'color','')) > 120 then
+    or char_length(coalesce(p_details->>'color','')) > 120
+    or coalesce(p_details->>'unit','') not in ('EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식') then
     raise exception 'INVALID_PRODUCT_DETAILS';
   end if;
-  insert into public.stock_products(product_category,product_code,product_name,specification,material,color)
+  insert into public.stock_products(product_category,product_code,product_name,specification,material,color,unit)
   values(trim(p_details->>'product_category'),v_code,trim(p_details->>'product_name'),
-    coalesce(p_details->>'specification',''),coalesce(p_details->>'material',''),coalesce(p_details->>'color',''))
+    coalesce(p_details->>'specification',''),coalesce(p_details->>'material',''),coalesce(p_details->>'color',''),p_details->>'unit')
   on conflict (product_code) do nothing;
   select * into v_product from public.stock_products where product_code=v_code for update;
   if v_product.product_category <> trim(p_details->>'product_category')
     or v_product.product_name <> trim(p_details->>'product_name')
     or v_product.specification <> coalesce(p_details->>'specification','')
     or v_product.material <> coalesce(p_details->>'material','')
-    or v_product.color <> coalesce(p_details->>'color','') then
+    or v_product.color <> coalesce(p_details->>'color','')
+    or v_product.unit <> p_details->>'unit' then
     raise exception 'PRODUCT_DETAILS_CONFLICT';
   end if;
   return to_jsonb(v_product);
@@ -117,7 +122,7 @@ select p.id,p.product_category,p.product_code,p.product_name,p.specification,p.m
   m.receipt_quantity,coalesce(m.receipt_amount/nullif(m.receipt_quantity,0),0) as receipt_unit_cost,m.receipt_amount,
   m.issue_quantity,coalesce(m.issue_amount/nullif(m.issue_quantity,0),0) as issue_unit_cost,m.issue_amount,
   coalesce(s.stock_quantity,0) as stock_quantity,
-  coalesce(s.stock_amount/nullif(s.stock_quantity,0),0) as stock_unit_cost,coalesce(s.stock_amount,0) as stock_amount,p.color
+  coalesce(s.stock_amount/nullif(s.stock_quantity,0),0) as stock_unit_cost,coalesce(s.stock_amount,0) as stock_amount,p.color,p.unit
 from public.stock_products p left join movements m on m.product_id=p.id left join stock s on s.product_id=p.id;
 revoke all on public.stock_summary from anon;
 grant select on public.stock_summary to authenticated;
@@ -159,6 +164,7 @@ begin
       or char_length(coalesce(p_details->>'specification','')) > 200
       or char_length(coalesce(p_details->>'material','')) > 120
       or char_length(coalesce(p_details->>'color','')) > 120
+      or coalesce(p_details->>'unit','') not in ('EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식')
       or char_length(coalesce(p_details->>'storage_location','')) > 120
       or char_length(coalesce(p_details->>'supplier','')) > 120 then raise exception 'INVALID_PRODUCT_DETAILS'; end if;
   end if;
@@ -180,6 +186,7 @@ begin
     or (v_product.storage_location <> '' and v_product.storage_location <> coalesce(p_details->>'storage_location',''))
     or (v_product.supplier <> '' and v_product.supplier <> coalesce(p_details->>'supplier',''))
   ) then raise exception 'PRODUCT_DETAILS_CONFLICT'; end if;
+  if v_product.unit <> coalesce(p_details->>'unit','') then raise exception 'PRODUCT_DETAILS_CONFLICT'; end if;
   if p_kind <> 'issue' then
     update public.stock_products
     set storage_location=case when storage_location='' then coalesce(p_details->>'storage_location','') else storage_location end,

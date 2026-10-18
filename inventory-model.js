@@ -7,8 +7,9 @@ const STOCK_FIELDS = [
   ['stock_quantity','재고수량'],['stock_unit_cost','재고단가'],['stock_amount','재고금액'],
   ['storage_location','저장위치'],['supplier','납품업체']
 ].map(([key,label]) => ({key,label,numeric:/_(quantity|unit_cost|amount)$/.test(key)}));
-const PRODUCT_FIELDS = ['product_category','product_code','product_name','specification','material','storage_location','supplier'];
-const CURRENT_STOCK_FIELDS = STOCK_FIELDS.filter(field=>! /^(opening|receipt|issue)_/.test(field.key));
+const PRODUCT_FIELDS = ['product_category','product_code','product_name','specification','material','color','storage_location','supplier'];
+const CURRENT_STOCK_FIELDS = STOCK_FIELDS.filter(field=>! /^(opening|receipt|issue)_/.test(field.key))
+  .flatMap(field=>field.key==='material'?[field,{key:'color',label:'색상',numeric:false}]:[field]);
 function currentStockRows(rows) { return rows.filter(row=>Number(row.stock_quantity)>0); }
 function filterInventoryItems(rows,{query='',availability='all',dateProductIds=null,supplier=''}={}) {
   const text=String(query).trim().toLowerCase(),vendor=String(supplier).trim().toLowerCase();

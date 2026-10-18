@@ -11,6 +11,8 @@ create table if not exists public.stock_products (
   supplier text not null default '' check (char_length(supplier) <= 120),
   created_at timestamptz not null default clock_timestamp()
 );
+alter table public.stock_products
+  add column if not exists color text not null default '' check (char_length(color) <= 120);
 create table if not exists public.stock_movements (
   id uuid primary key default gen_random_uuid(),
   sequence_id bigint generated always as identity unique,
@@ -75,11 +77,12 @@ with movements as (
   select product_id,sum(remaining_quantity) as stock_quantity,sum(remaining_quantity*unit_cost) as stock_amount
   from public.stock_lots group by product_id
 )
-select p.*,m.opening_quantity,coalesce(m.opening_amount/nullif(m.opening_quantity,0),0) as opening_unit_cost,m.opening_amount,
+select p.id,p.product_category,p.product_code,p.product_name,p.specification,p.material,p.storage_location,p.supplier,p.created_at,
+  m.opening_quantity,coalesce(m.opening_amount/nullif(m.opening_quantity,0),0) as opening_unit_cost,m.opening_amount,
   m.receipt_quantity,coalesce(m.receipt_amount/nullif(m.receipt_quantity,0),0) as receipt_unit_cost,m.receipt_amount,
   m.issue_quantity,coalesce(m.issue_amount/nullif(m.issue_quantity,0),0) as issue_unit_cost,m.issue_amount,
   coalesce(s.stock_quantity,0) as stock_quantity,
-  coalesce(s.stock_amount/nullif(s.stock_quantity,0),0) as stock_unit_cost,coalesce(s.stock_amount,0) as stock_amount
+  coalesce(s.stock_amount/nullif(s.stock_quantity,0),0) as stock_unit_cost,coalesce(s.stock_amount,0) as stock_amount,p.color
 from public.stock_products p left join movements m on m.product_id=p.id left join stock s on s.product_id=p.id;
 revoke all on public.stock_summary from anon;
 grant select on public.stock_summary to authenticated;
@@ -120,10 +123,11 @@ begin
       or coalesce(char_length(trim(p_details->>'product_name')),0) not between 1 and 120
       or char_length(coalesce(p_details->>'specification','')) > 200
       or char_length(coalesce(p_details->>'material','')) > 120
+      or char_length(coalesce(p_details->>'color','')) > 120
       or char_length(coalesce(p_details->>'storage_location','')) > 120
       or char_length(coalesce(p_details->>'supplier','')) > 120 then raise exception 'INVALID_PRODUCT_DETAILS'; end if;
-    insert into public.stock_products(product_category,product_code,product_name,specification,material,storage_location,supplier)
-    values(trim(p_details->>'product_category'),v_code,trim(p_details->>'product_name'),coalesce(p_details->>'specification',''),coalesce(p_details->>'material',''),coalesce(p_details->>'storage_location',''),coalesce(p_details->>'supplier',''))
+    insert into public.stock_products(product_category,product_code,product_name,specification,material,color,storage_location,supplier)
+    values(trim(p_details->>'product_category'),v_code,trim(p_details->>'product_name'),coalesce(p_details->>'specification',''),coalesce(p_details->>'material',''),coalesce(p_details->>'color',''),coalesce(p_details->>'storage_location',''),coalesce(p_details->>'supplier',''))
     on conflict (product_code) do nothing;
   end if;
   -- 같은 품목의 입출고를 직렬 처리합니다. 부족하면 함수 전체가 롤백됩니다.
@@ -137,6 +141,7 @@ begin
   if p_kind <> 'issue' and (
     v_product.product_category <> trim(p_details->>'product_category') or v_product.product_name <> trim(p_details->>'product_name')
     or v_product.specification <> coalesce(p_details->>'specification','') or v_product.material <> coalesce(p_details->>'material','')
+    or v_product.color <> coalesce(p_details->>'color','')
     or v_product.storage_location <> coalesce(p_details->>'storage_location','') or v_product.supplier <> coalesce(p_details->>'supplier','')
   ) then raise exception 'PRODUCT_DETAILS_CONFLICT'; end if;
   if p_kind='opening' and exists(select 1 from public.stock_movements where product_id=v_product.id) then raise exception 'OPENING_ALREADY_STARTED'; end if;

@@ -103,7 +103,7 @@ test('current stock dialog has a resizable column for every displayed field',()=
   const style=readFileSync('inventory.css','utf8');
   assert.match(html,/<table id="current-stock-table" aria-label="현재 재고현황">/);
   const columns=html.match(/<colgroup id="current-stock-columns">([\s\S]*?)<\/colgroup>/)?.[1]||'';
-  assert.equal((columns.match(/<col>/g)||[]).length,11);
+  assert.equal((columns.match(/<col>/g)||[]).length,12);
   assert.match(renderer,/\[\{label:'일련번호',numeric:true\},\.\.\.CURRENT_STOCK_FIELDS\]\.forEach\(\(field,index\)/);
   assert.match(script,/'current-stock-table','current-stock-columns','inventory-current-stock-column-widths'/);
   assert.match(style,/#current-stock-table \.column-resizer,#movement-list-table \.column-resizer\{display:none!important\}/);

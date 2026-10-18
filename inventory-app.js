@@ -11,7 +11,7 @@ let movementListRows = [],movementListLoading = false;
 const printMargins = {top:10,right:10,bottom:10,left:10};
 let printMarginDrag = null,activePrintTarget='product-list';
 const columnWidthDefaults={
-  'current-stock':[120,140,160,150,120,110,110,120,140,150,150],
+  'current-stock':[120,140,160,150,120,120,110,110,120,140,150,150],
   'movement-list':[100,115,90,140,160,150,130,150,100,110,120]
 };
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0;

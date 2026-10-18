@@ -13,9 +13,9 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       create function public.inventory_access_allowed() returns boolean language sql as $$ select current_setting('test.active',true) is distinct from 'false' $$;`);
     const migration = readFileSync('supabase/fifo.sql','utf8');
     await db.exec(migration); await db.exec(migration);
-    const details = code => ({product_category:'BAG',product_code:code,product_name:'Eco Bag',specification:'450*300 자연색',material:'니나리찌',storage_location:'A-1-3-1',supplier:'종로가방'});
-    const post = async (code,kind,quantity,cost,date,request = randomUUID()) => {
-      const result = await db.query('select public.post_stock_movement($1,$2,$3,$4,$5,$6) as result',[request,kind,date,details(code),quantity,cost]);
+    const details = (code,color='자연색') => ({product_category:'BAG',product_code:code,product_name:'Eco Bag',specification:'450*300 자연색',material:'니나리찌',color,storage_location:'A-1-3-1',supplier:'종로가방'});
+    const post = async (code,kind,quantity,cost,date,request = randomUUID(),productDetails = details(code)) => {
+      const result = await db.query('select public.post_stock_movement($1,$2,$3,$4,$5,$6) as result',[request,kind,date,productDetails,quantity,cost]);
       return result.rows[0].result;
     };
     const summary = async code => (await db.query('select * from public.stock_summary where product_code=$1',[code])).rows[0];
@@ -50,6 +50,11 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       const receipt = await post('SERIAL','receipt',3,120,'2020-01-02');
       assert.ok(Number(opening.sequence_id)>0);
       assert.ok(Number(receipt.sequence_id)>Number(opening.sequence_id));
+    });
+    await t.test('product color is stored and cannot conflict across movements',async () => {
+      await post('COLOR','opening',2,100,'2020-01-01',randomUUID(),details('COLOR','남색'));
+      assert.equal((await summary('COLOR')).color,'남색');
+      await assert.rejects(post('COLOR','receipt',1,100,'2020-01-02',randomUUID(),details('COLOR','빨강')),/PRODUCT_DETAILS_CONFLICT/);
     });
     await t.test('insufficient stock rolls back all movement and allocation changes',async () => {
       const before = await summary('MULTI');

@@ -35,6 +35,15 @@ test('sales status view includes every order field and completion control after 
     assert.match(html,new RegExp(`id="${id}"`),id);
 });
 
+test('dashboard sales balance uses the same sales-order columns and status selection',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  const statusHeaders=html.match(/<table aria-label="전체 수주현황"><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
+  const balanceHeaders=html.match(/<table aria-label="수주잔고 현황"><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
+  assert.equal(balanceHeaders,statusHeaders);
+  assert.match(html,/id="sales-balance-items"/);
+  assert.match(fs.readFileSync('inventory-app.js','utf8'),/select\.value='매출미완료';select\.disabled=salesStatusUpdating/);
+});
+
 test('sales orders filter inclusively by date, type and completion, and summarize period totals',()=>{
   const orders=[
     {order_date:'2026-10-01',order_type:'온라인 수주',sales_status:'매출완료',amount:'10.25'},

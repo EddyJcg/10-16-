@@ -48,11 +48,11 @@ test('print settings button is positioned to the left of print',()=>{
   assert.ok(toolbar.indexOf('data-print-settings="product-list"')<toolbar.indexOf('data-print="product-list"'));
 });
 
-test('current stock and movement history expose printing with shared adjustable settings',()=>{
+test('current stock and sales balance expose printing with shared adjustable settings',()=>{
   const html=readFileSync('inventory.html','utf8');
   const script=readFileSync('inventory-app.js','utf8');
   const style=readFileSync('inventory.css','utf8');
-  for(const target of ['current-stock','movement-history']){
+  for(const target of ['current-stock','sales-balance']){
     assert.match(html,new RegExp(`data-print-settings="${target}"`));
     assert.match(html,new RegExp(`data-print="${target}"`));
   }
@@ -60,9 +60,9 @@ test('current stock and movement history expose printing with shared adjustable 
   assert.match(script,/document\.querySelectorAll\('\[data-print\]'\)/);
   assert.match(script,/document\.querySelectorAll\('\[data-print-settings\]'\)/);
   assert.match(script,/'current-stock':'#current-stock-dialog table'/);
-  assert.match(script,/'movement-history':'#movement-history table'/);
+  assert.match(script,/'sales-balance':'#sales-balance table'/);
   assert.match(style,/body\[data-print-target="current-stock"\] #current-stock-dialog/);
-  assert.match(style,/body\[data-print-target="movement-history"\] #movement-history/);
+  assert.match(style,/body\[data-print-target="sales-balance"\] #sales-balance/);
 });
 
 test('stock risk card opens a printable list and its threshold uses standard stock',()=>{

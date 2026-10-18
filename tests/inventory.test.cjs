@@ -100,10 +100,14 @@ test('aged stock includes positive lot balances received at least six calendar m
   assert.equal(sixMonthsAgoDate('2026-08-31'),'2026-02-28');
   assert.deepEqual(stockAgingRows(rows,'2026-10-18').map(row=>row.lot_id),[4,1,2]);
 });
-test('movement history displays the database-generated serial number',()=>{
-  const html=fs.readFileSync('inventory.html','utf8'),renderer=fs.readFileSync('inventory-render.js','utf8');
-  assert.match(html,/<th class="numeric">일련번호<\/th><th>일자<\/th>/);
-  assert.match(renderer,/movement\.sequence_id==null\?'':number\(movement\.sequence_id\)/);
+test('main dashboard replaces recent movement history with a printable sales balance list',()=>{
+  const html=fs.readFileSync('inventory.html','utf8'),script=fs.readFileSync('inventory-app.js','utf8'),style=fs.readFileSync('inventory.css','utf8');
+  assert.doesNotMatch(html,/<section id="movement-history"/);
+  assert.match(html,/<section id="sales-balance" class="panel history">/);
+  assert.match(html,/data-print-settings="sales-balance"/);
+  assert.match(html,/data-print="sales-balance"/);
+  assert.match(script,/order=>\(order\.sales_status\|\|'매출미완료'\)==='매출미완료'/);
+  assert.match(style,/body\[data-print-target="sales-balance"\] #sales-balance/);
 });
 test('optional inventory search conditions combine without changing defaults',()=>{
   const rows=[

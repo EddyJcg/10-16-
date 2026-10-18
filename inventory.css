@@ -26,7 +26,7 @@
 .sidebar-resizer:hover,.sidebar-resizer:focus-visible,.sidebar-dragging .sidebar-resizer{background:#cde2d3}
 .sidebar-dragging{cursor:col-resize;user-select:none}
 #sidebar-toggle{border:1px solid #6d9481;background:#285442;color:#fff;border-radius:7px;padding:8px 12px;font-size:12px;white-space:nowrap}
-#product-list,#movement-history{scroll-margin-top:20px}
+#product-list,#sales-balance{scroll-margin-top:20px}
 #current-stock-dialog{width:min(1400px,calc(100% - 32px))}
 #product-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}
 #movement-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}
@@ -108,6 +108,8 @@
 .sales-order-totals strong{font-size:16px;font-variant-numeric:tabular-nums}
 .sales-status-table{max-height:calc(90vh - 305px)}
 .sales-status-table select{min-width:130px;padding:6px 8px;font-size:12px}
+.sales-balance-table{max-height:420px;margin-top:14px}
+.sales-balance-table select{min-width:130px;padding:6px 8px;font-size:12px}
 @media(max-width:850px){.sales-status-filters{grid-template-columns:repeat(2,minmax(130px,1fr))}.sales-status-filter-actions{grid-column:1/-1}}
 @media(max-width:520px){.sales-order-totals{grid-template-columns:1fr}.sales-status-filters{grid-template-columns:1fr}.sales-status-filter-actions{grid-column:auto}}
 @media(max-width:850px){.sales-order-wide{grid-column:span 2}}
@@ -120,29 +122,29 @@
   body[data-print-target="stock-risk"] #stock-risk-dialog,
   body[data-print-target="long-stock"] #long-stock-dialog,
   body[data-print-target="movement-list"] #movement-list-dialog,
-  body[data-print-target="movement-history"] #movement-history,
+  body[data-print-target="sales-balance"] #sales-balance,
   body[data-print-target="product-list"] #product-list-dialog *,
   body[data-print-target="current-stock"] #current-stock-dialog *,
   body[data-print-target="stock-risk"] #stock-risk-dialog *,
   body[data-print-target="long-stock"] #long-stock-dialog *,
   body[data-print-target="movement-list"] #movement-list-dialog *,
-  body[data-print-target="movement-history"] #movement-history *{visibility:visible!important}
+  body[data-print-target="sales-balance"] #sales-balance *{visibility:visible!important}
   body[data-print-target="product-list"] #product-list-dialog,
   body[data-print-target="current-stock"] #current-stock-dialog,
   body[data-print-target="stock-risk"] #stock-risk-dialog,
   body[data-print-target="long-stock"] #long-stock-dialog,
   body[data-print-target="movement-list"] #movement-list-dialog,
-  body[data-print-target="movement-history"] #movement-history{display:block;position:absolute;inset:0 auto auto 0;width:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;overflow:visible;background:#fff}
-  body[data-print-target="movement-history"] #app-layout{display:block!important}
+  body[data-print-target="sales-balance"] #sales-balance{display:block;position:absolute;inset:0 auto auto 0;width:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;overflow:visible;background:#fff}
+  body[data-print-target="sales-balance"] #app-layout{display:block!important}
   #product-list-dialog::backdrop,#current-stock-dialog::backdrop,#stock-risk-dialog::backdrop,#long-stock-dialog::backdrop,#movement-list-dialog::backdrop{display:none}
   #product-list-dialog .dialog-header,#current-stock-dialog .dialog-header,#stock-risk-dialog .dialog-header,#long-stock-dialog .dialog-header,#movement-list-dialog .dialog-header{padding:0 0 12px;border:0}
   #product-list-dialog .dialog-body,#current-stock-dialog .dialog-body,#stock-risk-dialog .dialog-body,#long-stock-dialog .dialog-body,#movement-list-dialog .dialog-body{max-height:none;padding:0;overflow:visible}
   #product-list-dialog .product-list-search,#product-list-dialog .product-list-status,#current-stock-dialog #current-stock-status,#stock-risk-dialog #stock-risk-status,#long-stock-dialog #long-stock-status,#movement-list-dialog .product-list-search,#movement-list-dialog .product-list-status,.print-toolbar,#product-list-dialog .product-list-toolbar button,#movement-list-dialog .product-list-toolbar button,#current-stock-table .column-resizer,#movement-list-table .column-resizer{display:none!important}
   #product-list-dialog .product-list-table,.table-wrap{max-height:none!important;min-height:0;overflow:visible!important;border:0}
-  #product-list-dialog table,#current-stock-dialog table,#stock-risk-dialog table,#long-stock-dialog table,#movement-list-dialog table,#movement-history table{font-size:9px;white-space:normal;width:100%}
-  #product-list-dialog thead,#current-stock-dialog thead,#stock-risk-dialog thead,#long-stock-dialog thead,#movement-list-dialog thead,#movement-history thead{display:table-header-group}
-  #product-list-dialog tr,#current-stock-dialog tr,#stock-risk-dialog tr,#long-stock-dialog tr,#movement-list-dialog tr,#movement-history tr{break-inside:avoid}
-  #product-list-dialog th,#product-list-dialog td,#current-stock-dialog th,#current-stock-dialog td,#stock-risk-dialog th,#stock-risk-dialog td,#long-stock-dialog th,#long-stock-dialog td,#movement-list-dialog th,#movement-list-dialog td,#movement-history th,#movement-history td{position:static;padding:5px 4px;white-space:normal;word-break:break-word}
+  #product-list-dialog table,#current-stock-dialog table,#stock-risk-dialog table,#long-stock-dialog table,#movement-list-dialog table,#sales-balance table{font-size:9px;white-space:normal;width:100%}
+  #product-list-dialog thead,#current-stock-dialog thead,#stock-risk-dialog thead,#long-stock-dialog thead,#movement-list-dialog thead,#sales-balance thead{display:table-header-group}
+  #product-list-dialog tr,#current-stock-dialog tr,#stock-risk-dialog tr,#long-stock-dialog tr,#movement-list-dialog tr,#sales-balance tr{break-inside:avoid}
+  #product-list-dialog th,#product-list-dialog td,#current-stock-dialog th,#current-stock-dialog td,#stock-risk-dialog th,#stock-risk-dialog td,#long-stock-dialog th,#long-stock-dialog td,#movement-list-dialog th,#movement-list-dialog td,#sales-balance th,#sales-balance td{position:static;padding:5px 4px;white-space:normal;word-break:break-word}
   #current-stock-table th,#current-stock-table td,#movement-list-table th,#movement-list-table td{overflow:visible;text-overflow:clip}
 }
 .intro h1{display:flex;align-items:center;gap:12px}

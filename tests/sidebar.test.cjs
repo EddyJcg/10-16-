@@ -46,6 +46,14 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   assert.equal(nav.slice(adminFolderStart).match(/<details\b/g).length,1,'관리자 should be the last menu folder');
   assert.match(nav,/id="inventory-folder"[^>]*data-sidebar-folder open/);
 });
+test('sidebar text sizes are increased by approximately twenty percent',()=>{
+  const style=fs.readFileSync('inventory.css','utf8');
+  assert.match(style,/\.sidebar-heading\{[^}]*font-size:18px/);
+  assert.match(style,/\.sidebar-heading span\{[^}]*font-size:13px/);
+  assert.match(style,/\.menu-folder summary\{[^}]*font-size:17px/);
+  assert.match(style,/\.sidebar-action\{[^}]*font-size:16px/);
+  assert.match(style,/\.sidebar-hint\{[^}]*font-size:13px/);
+});
 test('pointer resize persists width and folders remember their open state',()=>{
   const app=boot(),resizer=app.elements.get('sidebar-resizer');
   resizer.handlers.pointerdown({button:0,pointerId:1,preventDefault(){}});

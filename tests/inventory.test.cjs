@@ -45,10 +45,29 @@ test('optional start and end dates query inclusive movement ranges',async()=>{
   assert.equal(await vm.runInContext('findMovementProductIds("","")',ctx),null);
   assert.equal(calls.length,0);
 });
+test('movement kind can be searched alone or combined with a date range',async()=>{
+  const calls=[],ctx=vm.createContext({});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),ctx);
+  ctx.testClient={from(table){
+    const query={select(columns){calls.push(['select',table,columns]);return this;},order(column){calls.push(['order',column]);return this;},gte(column,value){calls.push(['gte',column,value]);return this;},lte(column,value){calls.push(['lte',column,value]);return this;},eq(column,value){calls.push(['eq',column,value]);return this;},range(start,end){calls.push(['range',start,end]);return Promise.resolve({data:[],error:null});}};
+    return query;
+  }};
+  vm.runInContext('client=testClient',ctx);
+  await vm.runInContext('findMovementProductIds("","", "opening")',ctx);
+  assert.deepEqual(calls.filter(([method])=>method==='eq'),[['eq','kind','opening']]);
+  calls.length=0;
+  await vm.runInContext('findMovementProductIds("2026-02-10","2026-02-20","issue")',ctx);
+  assert.deepEqual(calls.filter(([method])=>['gte','lte','eq'].includes(method)),[
+    ['gte','movement_date','2026-02-10'],['lte','movement_date','2026-02-20'],['eq','kind','issue']
+  ]);
+});
 test('start, end and supplier search inputs are optional',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   for(const id of ['movement-start-date','movement-end-date','supplier-filter'])
     assert.match(html,new RegExp(`<input id="${id}"(?![^>]*\\brequired\\b)[^>]*>`));
+  assert.match(html,/<select id="movement-kind-filter"[^>]*>/);
+  for(const kind of ['opening','receipt','issue'])
+    assert.match(html,new RegExp(`<option value="${kind}">`));
   assert.doesNotMatch(html,/movement-month-filter/);
 });
 

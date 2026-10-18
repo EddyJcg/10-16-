@@ -41,15 +41,15 @@
 .intro h1{display:flex;align-items:center;gap:12px}
 .intro h1 img{width:56px;height:56px;flex:0 0 56px;object-fit:contain}
 @media(max-width:700px){.intro h1 img{width:48px;height:48px;flex-basis:48px}}
-.search-conditions{display:grid;grid-template-columns:minmax(280px,1.4fr) minmax(160px,1fr) auto;gap:10px;align-items:end;margin:0 0 18px}
+.search-conditions{display:grid;grid-template-columns:minmax(250px,1.4fr) minmax(140px,.8fr) minmax(150px,1fr) auto;gap:10px;align-items:end;margin:0 0 18px}
 .search-conditions label{margin:0;color:#456450}
 .search-conditions label span,.search-hint,.date-range-filter .optional{color:#788b7f;font-weight:400}
-.search-conditions input{margin-top:5px}
+.search-conditions input,.search-conditions select{margin-top:5px}
 .date-range-filter>span{display:block;margin-bottom:6px;font-size:12px;font-weight:600;color:#456450}
 .date-range-filter>div{display:flex;align-items:center;gap:8px}
 .date-range-filter input{min-width:0}
 .search-actions{display:flex;gap:8px;align-items:center}
 .search-actions button{white-space:nowrap}
 .search-hint{grid-column:1/-1;margin:0;font-size:12px}
-@media(max-width:900px){.search-conditions{grid-template-columns:minmax(220px,1.4fr) minmax(140px,1fr)}.search-actions{grid-column:1/-1}.search-hint{grid-column:1/-1}}
+@media(max-width:1000px){.search-conditions{grid-template-columns:minmax(220px,1.4fr) minmax(140px,1fr)}.search-actions{grid-column:1/-1}.search-hint{grid-column:1/-1}}
 @media(max-width:500px){.search-conditions{grid-template-columns:1fr}.search-actions{grid-column:auto;flex-wrap:wrap}}

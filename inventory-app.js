@@ -36,13 +36,14 @@ async function readAll(table,order = 'id',productId = null) {
     result.push(...data.map(row=>({...row,...(row.received_date?{received_date:String(row.received_date).slice(0,10)}:{})}))); if (data.length<500) return result;
   }
 }
-async function findMovementProductIds(startDate,endDate) {
-  if (!startDate && !endDate) return null;
+async function findMovementProductIds(startDate,endDate,kind) {
+  if (!startDate && !endDate && !kind) return null;
   const productIds=new Set();
   for (let offset=0;;offset+=500) {
     let query=client.from('stock_movements').select('product_id').order('id');
     if (startDate) query=query.gte('movement_date',startDate);
     if (endDate) query=query.lte('movement_date',endDate);
+    if (kind) query=query.eq('kind',kind);
     const {data,error}=await query.range(offset,offset+499);
     if (error) throw error;
     data.forEach(row=>productIds.add(String(row.product_id)));
@@ -52,15 +53,15 @@ async function findMovementProductIds(startDate,endDate) {
 async function applyInventorySearch() {
   if (searching) return;
   const generation=authGeneration;
-  const startDate=$('movement-start-date').value,endDate=$('movement-end-date').value,supplier=$('supplier-filter').value.trim().toLowerCase();
+  const startDate=$('movement-start-date').value,endDate=$('movement-end-date').value,kind=$('movement-kind-filter').value,supplier=$('supplier-filter').value.trim().toLowerCase();
   if (startDate && endDate && startDate>endDate) {
     notify('시작일은 종료일보다 늦을 수 없습니다.',true);
     return;
   }
   searching=true;$('apply-search').disabled=true;$('clear-search').disabled=true;
-  $('movement-start-date').disabled=true;$('movement-end-date').disabled=true;$('supplier-filter').disabled=true;
+  $('movement-start-date').disabled=true;$('movement-end-date').disabled=true;$('movement-kind-filter').disabled=true;$('supplier-filter').disabled=true;
   try {
-    const dateProductIds=await findMovementProductIds(startDate,endDate);
+    const dateProductIds=await findMovementProductIds(startDate,endDate,kind);
     if (generation!==authGeneration) return;
     appliedDateProductIds=dateProductIds;
     appliedSupplier=supplier;
@@ -69,11 +70,11 @@ async function applyInventorySearch() {
     notify(errorText(error),true);
   } finally {
     searching=false;$('apply-search').disabled=false;$('clear-search').disabled=false;
-    $('movement-start-date').disabled=false;$('movement-end-date').disabled=false;$('supplier-filter').disabled=false;
+    $('movement-start-date').disabled=false;$('movement-end-date').disabled=false;$('movement-kind-filter').disabled=false;$('supplier-filter').disabled=false;
   }
 }
 function clearInventorySearch() {
-  $('movement-start-date').value='';$('movement-end-date').value='';$('supplier-filter').value='';
+  $('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';
   appliedDateProductIds=null;appliedSupplier='';render();
 }
 function loadStock() {
@@ -139,7 +140,7 @@ async function updateSession(session) {
   const next = session?.user || null;
   if (currentUser && next?.id===currentUser.id || !currentUser && !next && authGeneration>0) return;
   authGeneration++; currentUser = next; client.removeAllChannels(); clearTimeout(syncTimer); lotsGeneration++;
-  appliedDateProductIds=null;appliedSupplier='';$('movement-start-date').value='';$('movement-end-date').value='';$('supplier-filter').value='';
+  appliedDateProductIds=null;appliedSupplier='';$('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';
   $('admin-link').hidden = true;
   $('admin-folder').hidden = true;
   $('sidebar-toggle').hidden = !currentUser;

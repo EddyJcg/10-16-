@@ -117,7 +117,8 @@ test('main dashboard replaces recent movement history with a printable sales bal
   assert.match(style,/#sales-balance \.sales-balance-search/);
   assert.match(style,/#workspace\{display:flex;flex-direction:column;gap:16px\}/);
   assert.match(style,/#workspace>\.session,#workspace>\.stats,#workspace>\.panel\{margin:0\}/);
-  assert.doesNotMatch(style,/#sales-balance\+#product-list\{margin-top:/);
+  assert.match(style,/#sales-balance\+#product-list\{margin-top:0\}/);
+  assert.doesNotMatch(style,/#sales-balance\+#product-list\{margin-top:32px\}/);
 });
 test('dashboard replaces registered-item card with live sales backlog count and amount',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),app=fs.readFileSync('inventory-app.js','utf8'),renderer=fs.readFileSync('inventory-render.js','utf8');

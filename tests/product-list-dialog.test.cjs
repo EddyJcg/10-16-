@@ -81,15 +81,30 @@ test('movement history opens a searchable full-history dialog and preserves FIFO
 test('movement history columns can be resized by pointer and keyboard and keep their widths',()=>{
   const html=readFileSync('inventory.html','utf8');
   const script=readFileSync('inventory-app.js','utf8');
+  const renderer=readFileSync('inventory-render.js','utf8');
   const style=readFileSync('inventory.css','utf8');
   const columns=html.match(/<colgroup id="movement-list-columns">([\s\S]*?)<\/colgroup>/)?.[1]||'';
   const resizers=html.match(/class="column-resizer"/g)||[];
   assert.equal((columns.match(/<col>/g)||[]).length,11);
   assert.equal(resizers.length,11);
-  assert.match(script,/function startMovementListColumnResizing\(\)/);
+  assert.match(script,/function startColumnResizing\(tableId,columnsId,storageKey,defaults\)/);
   assert.match(script,/handle\.setPointerCapture\(event\.pointerId\)/);
   assert.match(script,/ArrowLeft:widths\[index\]-delta,ArrowRight:widths\[index\]\+delta/);
   assert.match(script,/inventory-movement-list-column-widths/);
-  assert.match(style,/#movement-list-table\{width:max-content;table-layout:fixed\}/);
-  assert.match(style,/#movement-list-table \.column-resizer\{display:none!important\}/);
+  assert.match(style,/#current-stock-table,#movement-list-table\{width:max-content;table-layout:fixed\}/);
+  assert.match(style,/#current-stock-table \.column-resizer,#movement-list-table \.column-resizer\{display:none!important\}/);
+  assert.match(renderer,/resizer\.className='column-resizer'/);
+});
+
+test('current stock dialog has a resizable column for every displayed field',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const script=readFileSync('inventory-app.js','utf8');
+  const renderer=readFileSync('inventory-render.js','utf8');
+  const style=readFileSync('inventory.css','utf8');
+  assert.match(html,/<table id="current-stock-table" aria-label="현재 재고현황">/);
+  const columns=html.match(/<colgroup id="current-stock-columns">([\s\S]*?)<\/colgroup>/)?.[1]||'';
+  assert.equal((columns.match(/<col>/g)||[]).length,11);
+  assert.match(renderer,/\[\{label:'일련번호',numeric:true\},\.\.\.CURRENT_STOCK_FIELDS\]\.forEach\(\(field,index\)/);
+  assert.match(script,/'current-stock-table','current-stock-columns','inventory-current-stock-column-widths'/);
+  assert.match(style,/#current-stock-table \.column-resizer,#movement-list-table \.column-resizer\{display:none!important\}/);
 });

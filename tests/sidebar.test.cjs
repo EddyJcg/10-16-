@@ -31,11 +31,17 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   assert.ok(nav.indexOf('id="sales-folder"')<nav.indexOf('id="inventory-folder"'),'매출관리 should appear above 재고관리');
   assert.match(nav,/<details id="sales-folder"[^>]*data-sidebar-folder><summary>매출관리<\/summary><\/details>/);
   const parentStart=nav.indexOf('<details id="inventory-folder"');
-  const parentEnd=nav.lastIndexOf('</details>');
+  const parentEnd=nav.indexOf('\n      </div></details>',parentStart);
   assert.ok(parentStart>=0);
+  assert.ok(parentEnd>parentStart);
   assert.match(nav.slice(parentStart,parentEnd),/<summary>재고관리<\/summary>/);
-  for(const folder of ['opening-folder','receipt-folder','issue-folder','stock-folder','admin-folder'])
+  for(const folder of ['opening-folder','receipt-folder','issue-folder','stock-folder'])
     assert.ok(nav.indexOf(`id="${folder}"`)>parentStart,`${folder} should be nested under 재고관리`);
+  const adminPosition=nav.indexOf('id="admin-folder"');
+  assert.ok(adminPosition>parentEnd,'관리자 should be outside 재고관리');
+  assert.ok(adminPosition>nav.indexOf('id="inventory-folder"'),'관리자 should appear after 재고관리');
+  const adminFolderStart=nav.lastIndexOf('<details',adminPosition);
+  assert.equal(nav.slice(adminFolderStart).match(/<details\b/g).length,1,'관리자 should be the last menu folder');
   assert.match(nav,/id="inventory-folder"[^>]*data-sidebar-folder open/);
 });
 test('pointer resize persists width and folders remember their open state',()=>{

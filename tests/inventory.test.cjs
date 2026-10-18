@@ -179,6 +179,22 @@ test('insufficient FIFO preview does not present a misleading unit price',()=>{
   vm.runInContext('mode="issue";items=[{product_code:"SKU"}];productLots=[{id:1,received_date:"2020-01-01",remaining_quantity:1,unit_cost:30000}];updateAmounts()',ctx);
   assert.equal(fields.movement_cost.value,'');assert.equal(fields.movement_amount.value,'재고 부족');assert.match(fields['form-message'].textContent,/1 Kg 부족/);
 });
+test('issue quantity exceeding available stock warns and blocks validation',()=>{
+  const alerts=[],fields={product_code:{value:'SKU'},unit:{value:'Kg'},movement_quantity:{value:'6'},movement_date:{value:'2020-01-02'}};
+  let rpcCalls=0;
+  const ctx=vm.createContext({document:{getElementById:id=>fields[id]},window:{alert:message=>alerts.push(message)},planFifo,validDate:value=>value==='2020-01-02',PRODUCT_FIELDS:['product_code'],client:{rpc(){rpcCalls++;}}});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),ctx);
+  vm.runInContext('mode="issue";currentUser={id:"user"};items=[{product_code:"SKU"}];productLots=[{id:1,received_date:"2020-01-01",remaining_quantity:5,unit_cost:100}];productLotsReady=true',ctx);
+  assert.equal(vm.runInContext('validateIssueQuantity(true)',ctx),false);
+  assert.deepEqual(alerts,['출고 수량이 재고수량을 초과했습니다. 선택한 출고일자 기준 출고 가능 수량은 5 Kg입니다.']);
+  alerts.length=0;
+  vm.runInContext('saveMovement({preventDefault(){}})',ctx);
+  assert.deepEqual(alerts,['출고 수량이 재고수량을 초과했습니다. 선택한 출고일자 기준 출고 가능 수량은 5 Kg입니다.']);
+  assert.equal(rpcCalls,0,'an issue exceeding available stock must not be submitted');
+  fields.movement_quantity.value='5';
+  assert.equal(vm.runInContext('validateIssueQuantity(true)',ctx),true);
+  assert.equal(alerts.length,1);
+});
 test('FIFO preview adds decimal currency at cent precision',()=>{
   const plan=planFifo([{id:1,received_date:'2020-01-01',remaining_quantity:1,unit_cost:0.1},{id:2,received_date:'2020-01-01',remaining_quantity:1,unit_cost:0.2}],2,'2020-01-02');
   assert.equal(plan.amount,0.3);

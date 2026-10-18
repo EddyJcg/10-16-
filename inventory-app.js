@@ -14,7 +14,7 @@ const columnWidthDefaults={
   'current-stock':[120,140,160,150,120,120,110,110,90,120,140,150,150],
   'movement-list':[100,115,90,140,160,150,120,130,150,90,100,110,120]
 };
-let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0;
+let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0,productLotsReady = false;
 let selectedProductInfoCode = '';
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function errorText(error) {
@@ -223,15 +223,16 @@ function populateProduct(source='product_code') {
     if(item)$(key).value=item[key]||'';
     else if(previous&&key!==source)$(key).value='';
   });
-  if(mode==='issue'){productLots=[];updateAmounts();loadSelectedLots();}
+  if(mode==='issue'){productLots=[];productLotsReady=false;updateAmounts();loadSelectedLots();}
 }
 async function loadSelectedLots() {
   const item = activeProduct(), generation = ++lotsGeneration;
+  productLotsReady=false;
   if (!item) { productLots=[]; updateAmounts(); return; }
   try {
     const lots = await readAll('stock_lots','id',item.id);
     if (generation!==lotsGeneration || !$('movement-dialog').open || mode!=='issue') return;
-    productLots = lots; updateAmounts();
+    productLots = lots; productLotsReady=true; updateAmounts();
   } catch (error) { if (generation===lotsGeneration) $('form-message').textContent=errorText(error); }
 }
 function updateAmounts() {
@@ -245,11 +246,23 @@ function updateAmounts() {
   renderFifoPreview(plan.allocations);
   $('form-message').textContent = !activeProduct() ? '출고할 기존 품번을 선택하세요.' : plan.shortage>0 ? `선택한 날짜 기준 재고가 ${number(plan.shortage)} ${unit} 부족합니다.` : '';
 }
+function validateIssueQuantity(showAlert=false) {
+  if(mode!=='issue'||!productLotsReady)return true;
+  const quantity=Number($('movement_quantity').value),date=$('movement_date').value;
+  if(!Number.isSafeInteger(quantity)||quantity<1||!validDate(date))return true;
+  const plan=planFifo(productLots,quantity,date);
+  if(plan.shortage<=0)return true;
+  if(showAlert){
+    const unit=$('unit').value||'EA(개)',available=quantity-plan.shortage;
+    window.alert(`출고 수량이 재고수량을 초과했습니다. 선택한 출고일자 기준 출고 가능 수량은 ${number(available)} ${unit}입니다.`);
+  }
+  return false;
+}
 function openMovement(kind) {
   if (!currentUser || busy) return;
   if(kind!=='issue'&&!items.length){window.alert('품목정보를 입력해 주세요!');return;}
   mode = kind; const [title,prefix,dateLabel] = MODE_LABELS[mode];
-  $('movement-form').reset(); selectedCode=''; productLots=[]; lotsGeneration++; requestId=crypto.randomUUID();
+  $('movement-form').reset(); selectedCode=''; productLots=[]; productLotsReady=false; lotsGeneration++; requestId=crypto.randomUUID();
   $('dialog-title').textContent = title;
   $('dialog-description').textContent = mode==='issue' ? '먼저 들어온 입고 건부터 자동 차감합니다.' : '품목정보에 등록된 품번을 선택하세요.';
   $('date-label').textContent=dateLabel; $('quantity-label').textContent=prefix+'수량'; $('cost-label').textContent=prefix+'단가'; $('amount-label').textContent=prefix+'금액';
@@ -583,6 +596,7 @@ async function saveMovement(event) {
     $('form-message').textContent='날짜와 수량, 단가를 확인하세요. 수량은 양의 정수, 단가는 소수 둘째 자리까지 입력합니다.';return;
   }
   if (mode==='issue' && !activeProduct()) {$('form-message').textContent='출고할 기존 품번을 선택하세요.';return;}
+  if (mode==='issue' && !validateIssueQuantity(true)) return;
   const details=Object.fromEntries(PRODUCT_FIELDS.map(key=>[key,$(key).value.trim()])); details.product_code=details.product_code.toUpperCase();
   const generation=authGeneration; busy=true; $('movement-editor').disabled=true; $('close-dialog').disabled=true; $('form-message').textContent='저장 중…';
   try {
@@ -593,7 +607,7 @@ async function saveMovement(event) {
     const hasSerial=data?.sequence_id!=null;
     const text=MODE_LABELS[mode][0]+' 저장 완료 · 일련번호 '+(hasSerial?number(data.sequence_id):'확인 필요')+' · '+number(data.quantity)+' '+details.unit+' / '+money(data.amount)+'원';
     try {await loadStock();notify(text,!hasSerial);} catch {notify(text+' · 목록 새로고침은 다시 시도해 주세요.',true);}
-  } catch (error) {if (generation===authGeneration) {if(error?.message?.includes('PRODUCT_INFO_REQUIRED'))window.alert('품목정보를 입력해 주세요!');$('form-message').textContent=errorText(error);}}
+  } catch (error) {if (generation===authGeneration) {if(error?.message?.includes('PRODUCT_INFO_REQUIRED'))window.alert('품목정보를 입력해 주세요!');if(error?.message?.includes('INSUFFICIENT_STOCK'))window.alert(errorText(error));$('form-message').textContent=errorText(error);}}
   finally {busy=false;$('movement-editor').disabled=false;$('close-dialog').disabled=false;}
 }
 async function showLots(item) {
@@ -650,6 +664,7 @@ async function startApp(){
   $('product_code').addEventListener('input',()=>populateProduct('product_code'));
   $('specification').addEventListener('input',()=>populateProduct('specification'));
   ['movement_quantity','movement_cost','movement_date'].forEach(id=>$(id).addEventListener('input',updateAmounts));
+  ['movement_quantity','movement_date'].forEach(id=>$(id).addEventListener('change',()=>validateIssueQuantity(true)));
   $('close-detail').addEventListener('click',()=>$('detail-dialog').close());
   $('current-stock-button').addEventListener('click',showCurrentStock);
   $('close-current-stock').addEventListener('click',()=>$('current-stock-dialog').close());

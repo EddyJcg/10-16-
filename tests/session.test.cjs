@@ -55,6 +55,12 @@ test('all stock and product-info forms bind SKU and specification autofill',asyn
     assert.equal(typeof app.element(id).handlers.input,'function',id+' should trigger product lookup');
 });
 
+test('issue quantity and date changes validate stock availability',async()=>{
+  const app=await boot('inventory-app.js');
+  for(const id of ['movement_quantity','movement_date'])
+    assert.equal(typeof app.element(id).handlers.change,'function',id+' should validate available stock');
+});
+
 test('inventory and admin use the same tab session without another sign-in',async()=>{
   const inventory=await boot('inventory-app.js'),admin=await boot('admin.js');
   assert.equal(admin.options.auth.storageKey,inventory.options.auth.storageKey);

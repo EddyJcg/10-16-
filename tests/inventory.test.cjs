@@ -24,31 +24,32 @@ test('optional inventory search conditions combine without changing defaults',()
   assert.deepEqual(filterInventoryItems(rows,{dateProductIds:new Set(['1','2']),supplier:'seoul'}).map(row=>row.id),[1]);
   assert.deepEqual(filterInventoryItems(rows,{query:'pouch',supplier:'supply'}),[]);
 });
-test('date and month filters query complete movement ranges',async()=>{
+test('optional start and end dates query inclusive movement ranges',async()=>{
   const calls=[],ctx=vm.createContext({});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),ctx);
   ctx.testClient={from(table){
-    const query={select(columns){calls.push(['select',table,columns]);return this;},order(column){calls.push(['order',column]);return this;},gte(column,value){calls.push(['gte',column,value]);return this;},lt(column,value){calls.push(['lt',column,value]);return this;},eq(column,value){calls.push(['eq',column,value]);return this;},range(start,end){calls.push(['range',start,end]);return Promise.resolve({data:start===0?Array.from({length:500},(_,index)=>({product_id:'product-'+index})): [{product_id:'product-500'}],error:null});}};
+    const query={select(columns){calls.push(['select',table,columns]);return this;},order(column){calls.push(['order',column]);return this;},gte(column,value){calls.push(['gte',column,value]);return this;},lte(column,value){calls.push(['lte',column,value]);return this;},eq(column,value){calls.push(['eq',column,value]);return this;},range(start,end){calls.push(['range',start,end]);return Promise.resolve({data:start===0?Array.from({length:500},(_,index)=>({product_id:'product-'+index})): [{product_id:'product-500'}],error:null});}};
     return query;
   }};
   vm.runInContext('client=testClient',ctx);
-  const ids=await vm.runInContext('findMovementProductIds("","2026-02")',ctx);
+  const ids=await vm.runInContext('findMovementProductIds("2026-02-10","2026-02-20")',ctx);
   assert.equal(ids.size,501);
-  assert.deepEqual(calls.filter(([method])=>['gte','lt'].includes(method)),[['gte','movement_date','2026-02-01'],['lt','movement_date','2026-03-01'],['gte','movement_date','2026-02-01'],['lt','movement_date','2026-03-01']]);
+  assert.deepEqual(calls.filter(([method])=>['gte','lte'].includes(method)),[['gte','movement_date','2026-02-10'],['lte','movement_date','2026-02-20'],['gte','movement_date','2026-02-10'],['lte','movement_date','2026-02-20']]);
   assert.equal(calls.some(([method])=>method==='eq'),false);
   assert.deepEqual(calls.filter(([method])=>method==='range').map(([,start,end])=>[start,end]),[[0,499],[500,999]]);
   calls.length=0;
   await vm.runInContext('findMovementProductIds("2026-02-15","")',ctx);
-  assert.deepEqual(calls.filter(([method])=>method==='eq'),[['eq','movement_date','2026-02-15'],['eq','movement_date','2026-02-15']]);
-  assert.deepEqual(calls.filter(([method])=>['gte','lt'].includes(method)),[]);
+  assert.deepEqual(calls.filter(([method])=>method==='gte'),[['gte','movement_date','2026-02-15'],['gte','movement_date','2026-02-15']]);
+  assert.deepEqual(calls.filter(([method])=>method==='lte'),[]);
   calls.length=0;
   assert.equal(await vm.runInContext('findMovementProductIds("","")',ctx),null);
   assert.equal(calls.length,0);
 });
-test('date and supplier search inputs are optional',()=>{
+test('start, end and supplier search inputs are optional',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
-  for(const id of ['movement-date-filter','movement-month-filter','supplier-filter'])
+  for(const id of ['movement-start-date','movement-end-date','supplier-filter'])
     assert.match(html,new RegExp(`<input id="${id}"(?![^>]*\\brequired\\b)[^>]*>`));
+  assert.doesNotMatch(html,/movement-month-filter/);
 });
 
 test('display fields exactly match the attached workbook headings',async()=>{

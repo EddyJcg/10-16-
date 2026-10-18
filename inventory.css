@@ -41,3 +41,12 @@
 .intro h1{display:flex;align-items:center;gap:12px}
 .intro h1 img{width:56px;height:56px;flex:0 0 56px;object-fit:contain}
 @media(max-width:700px){.intro h1 img{width:48px;height:48px;flex-basis:48px}}
+.search-conditions{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr)) auto;gap:10px;align-items:end;margin:0 0 18px}
+.search-conditions label{margin:0;color:#456450}
+.search-conditions label span,.search-hint{color:#788b7f;font-weight:400}
+.search-conditions input{margin-top:5px}
+.search-actions{display:flex;gap:8px;align-items:center}
+.search-actions button{white-space:nowrap}
+.search-hint{grid-column:1/-1;margin:0;font-size:12px}
+@media(max-width:900px){.search-conditions{grid-template-columns:repeat(2,minmax(140px,1fr))}.search-actions{grid-column:1/-1}.search-hint{grid-column:1/-1}}
+@media(max-width:500px){.search-conditions{grid-template-columns:1fr}.search-actions{grid-column:auto;flex-wrap:wrap}}

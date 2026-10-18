@@ -10,6 +10,15 @@ const STOCK_FIELDS = [
 const PRODUCT_FIELDS = ['product_category','product_code','product_name','specification','material','storage_location','supplier'];
 const CURRENT_STOCK_FIELDS = STOCK_FIELDS.filter(field=>! /^(opening|receipt|issue)_/.test(field.key));
 function currentStockRows(rows) { return rows.filter(row=>Number(row.stock_quantity)>0); }
+function filterInventoryItems(rows,{query='',availability='all',dateProductIds=null,supplier=''}={}) {
+  const text=String(query).trim().toLowerCase(),vendor=String(supplier).trim().toLowerCase();
+  return rows.filter(item=>
+    PRODUCT_FIELDS.some(key=>String(item[key]||'').toLowerCase().includes(text))&&
+    (availability==='all'||(Number(item.stock_quantity)>0)===(availability==='available'))&&
+    (!dateProductIds||dateProductIds.has(String(item.id)))&&
+    String(item.supplier||'').toLowerCase().includes(vendor)
+  );
+}
 function todayDate() {
   const parts = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
   const get = type => parts.find(part => part.type === type).value;
@@ -34,4 +43,4 @@ function planFifo(lots,quantity,date) {
   const amount = Number(amountCents)/100;
   return {allocations,shortage:Math.max(left,0),amount,unitCost:quantity>0 ? amount/quantity : 0};
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,PRODUCT_FIELDS,CURRENT_STOCK_FIELDS,currentStockRows,todayDate,validDate,planFifo};
+if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,PRODUCT_FIELDS,CURRENT_STOCK_FIELDS,currentStockRows,filterInventoryItems,todayDate,validDate,planFifo};

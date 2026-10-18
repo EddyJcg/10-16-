@@ -9,8 +9,7 @@ function renderHeaders(){
 function render(){
   renderCurrentStock();
   $('total-items').textContent=number(items.length);$('total-qty').textContent=number(items.reduce((sum,item)=>sum+Number(item.stock_quantity||0),0));$('total-value').textContent=money(items.reduce((sum,item)=>sum+Number(item.stock_amount||0),0))+'원';$('total-movements').textContent=number(totalMovements);
-  const query=$('search').value.trim().toLowerCase(),filter=$('filter').value;
-  const shown=items.filter(item=>PRODUCT_FIELDS.some(key=>String(item[key]||'').toLowerCase().includes(query))&&(filter==='all'||(Number(item.stock_quantity)>0)===(filter==='available')));
+  const shown=filterInventoryItems(items,{query:$('search').value,availability:$('filter').value,dateProductIds:appliedDateProductIds,supplier:appliedSupplier});
   $('list-count').textContent=shown.length+'개';$('items').replaceChildren();
   if(!shown.length)emptyRow($('items'),STOCK_FIELDS.length+1,items.length?'검색 조건에 맞는 품목이 없습니다.':'왼쪽 기초재고 또는 입고관리 폴더에서 첫 품목을 등록하세요.');
   shown.forEach((item,index)=>{const row=document.createElement('tr');row.append(makeCell(number(index+1),true));STOCK_FIELDS.forEach(field=>{const cell=makeCell(field.numeric?number(item[field.key]):item[field.key]||'',field.numeric);if(field.key==='product_code'){const button=document.createElement('button');button.className='code-button';button.textContent=item.product_code;button.setAttribute('aria-label',item.product_code+' 입고별 잔량 보기');button.addEventListener('click',()=>showLots(item));cell.replaceChildren(button);}row.append(cell);});$('items').append(row);});

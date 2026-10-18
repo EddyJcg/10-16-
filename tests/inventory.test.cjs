@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const {STOCK_FIELDS,planFifo,validDate}=require('../inventory-model.js');
+const {STOCK_FIELDS,planFifo,validDate,filterInventoryItems}=require('../inventory-model.js');
 const {CURRENT_STOCK_FIELDS,currentStockRows}=require('../inventory-model.js');
 
 test('current stock keeps all workbook fields except opening, receipt and issue totals',()=>{
@@ -12,6 +12,43 @@ test('current stock includes every positive balance and excludes exhausted produ
   const rows=[{id:1,stock_quantity:2},{id:2,stock_quantity:0},{id:3,stock_quantity:'3'},{id:4,stock_quantity:null},{id:5,stock_quantity:-1}];
   assert.deepEqual(currentStockRows(rows).map(row=>row.id),[1,3]);
   assert.equal(rows.length,5);
+});
+test('optional inventory search conditions combine without changing defaults',()=>{
+  const rows=[
+    {id:1,product_code:'A-1',product_name:'Pouch',supplier:'Seoul Trading',stock_quantity:3},
+    {id:2,product_code:'B-2',product_name:'Bag',supplier:'Busan Supply',stock_quantity:0},
+    {id:3,product_code:'C-3',product_name:'Pouch',supplier:'Seoul Trading',stock_quantity:2}
+  ];
+  assert.deepEqual(filterInventoryItems(rows).map(row=>row.id),[1,2,3]);
+  assert.deepEqual(filterInventoryItems(rows,{availability:'available'}).map(row=>row.id),[1,3]);
+  assert.deepEqual(filterInventoryItems(rows,{dateProductIds:new Set(['1','2']),supplier:'seoul'}).map(row=>row.id),[1]);
+  assert.deepEqual(filterInventoryItems(rows,{query:'pouch',supplier:'supply'}),[]);
+});
+test('date and month filters query complete movement ranges',async()=>{
+  const calls=[],ctx=vm.createContext({});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),ctx);
+  ctx.testClient={from(table){
+    const query={select(columns){calls.push(['select',table,columns]);return this;},order(column){calls.push(['order',column]);return this;},gte(column,value){calls.push(['gte',column,value]);return this;},lt(column,value){calls.push(['lt',column,value]);return this;},eq(column,value){calls.push(['eq',column,value]);return this;},range(start,end){calls.push(['range',start,end]);return Promise.resolve({data:start===0?Array.from({length:500},(_,index)=>({product_id:'product-'+index})): [{product_id:'product-500'}],error:null});}};
+    return query;
+  }};
+  vm.runInContext('client=testClient',ctx);
+  const ids=await vm.runInContext('findMovementProductIds("","2026-02")',ctx);
+  assert.equal(ids.size,501);
+  assert.deepEqual(calls.filter(([method])=>['gte','lt'].includes(method)),[['gte','movement_date','2026-02-01'],['lt','movement_date','2026-03-01'],['gte','movement_date','2026-02-01'],['lt','movement_date','2026-03-01']]);
+  assert.equal(calls.some(([method])=>method==='eq'),false);
+  assert.deepEqual(calls.filter(([method])=>method==='range').map(([,start,end])=>[start,end]),[[0,499],[500,999]]);
+  calls.length=0;
+  await vm.runInContext('findMovementProductIds("2026-02-15","")',ctx);
+  assert.deepEqual(calls.filter(([method])=>method==='eq'),[['eq','movement_date','2026-02-15'],['eq','movement_date','2026-02-15']]);
+  assert.deepEqual(calls.filter(([method])=>['gte','lt'].includes(method)),[]);
+  calls.length=0;
+  assert.equal(await vm.runInContext('findMovementProductIds("","")',ctx),null);
+  assert.equal(calls.length,0);
+});
+test('date and supplier search inputs are optional',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  for(const id of ['movement-date-filter','movement-month-filter','supplier-filter'])
+    assert.match(html,new RegExp(`<input id="${id}"(?![^>]*\\brequired\\b)[^>]*>`));
 });
 
 test('display fields exactly match the attached workbook headings',async()=>{

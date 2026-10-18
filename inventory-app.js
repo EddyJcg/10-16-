@@ -5,6 +5,7 @@ const money = number;
 const MODE_LABELS = {opening:['기초재고','기초','기초일자'],receipt:['입고관리','입고','입고일자'],issue:['출고관리','출고','출고일자']};
 let client,currentUser = null,items = [],movements = [],totalMovements = 0,authGeneration = 0;
 let loadPromise = null,reloadQueued = false,syncTimer = null,busy = false,exporting = false;
+let appliedDateProductIds = null,appliedSupplier = '',searching = false;
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function errorText(error) {
@@ -34,6 +35,48 @@ async function readAll(table,order = 'id',productId = null) {
     if (error) throw error;
     result.push(...data.map(row=>({...row,...(row.received_date?{received_date:String(row.received_date).slice(0,10)}:{})}))); if (data.length<500) return result;
   }
+}
+async function findMovementProductIds(date,month) {
+  if (!date && !month) return null;
+  let start,end;
+  if (month) {
+    start=month+'-01';
+    const [year,monthNumber]=month.split('-').map(Number);
+    end=new Date(Date.UTC(year,monthNumber,1)).toISOString().slice(0,10);
+  }
+  const productIds=new Set();
+  for (let offset=0;;offset+=500) {
+    let query=client.from('stock_movements').select('product_id').order('id');
+    if (date) query=query.eq('movement_date',date);
+    if (month) query=query.gte('movement_date',start).lt('movement_date',end);
+    const {data,error}=await query.range(offset,offset+499);
+    if (error) throw error;
+    data.forEach(row=>productIds.add(String(row.product_id)));
+    if (data.length<500) return productIds;
+  }
+}
+async function applyInventorySearch() {
+  if (searching) return;
+  const generation=authGeneration;
+  const date=$('movement-date-filter').value,month=$('movement-month-filter').value,supplier=$('supplier-filter').value.trim().toLowerCase();
+  searching=true;$('apply-search').disabled=true;$('clear-search').disabled=true;
+  $('movement-date-filter').disabled=true;$('movement-month-filter').disabled=true;$('supplier-filter').disabled=true;
+  try {
+    const dateProductIds=await findMovementProductIds(date,month);
+    if (generation!==authGeneration) return;
+    appliedDateProductIds=dateProductIds;
+    appliedSupplier=supplier;
+    render();
+  } catch (error) {
+    notify(errorText(error),true);
+  } finally {
+    searching=false;$('apply-search').disabled=false;$('clear-search').disabled=false;
+    $('movement-date-filter').disabled=false;$('movement-month-filter').disabled=false;$('supplier-filter').disabled=false;
+  }
+}
+function clearInventorySearch() {
+  $('movement-date-filter').value='';$('movement-month-filter').value='';$('supplier-filter').value='';
+  appliedDateProductIds=null;appliedSupplier='';render();
 }
 function loadStock() {
   if (loadPromise) { reloadQueued = true; return loadPromise; }
@@ -98,6 +141,7 @@ async function updateSession(session) {
   const next = session?.user || null;
   if (currentUser && next?.id===currentUser.id || !currentUser && !next && authGeneration>0) return;
   authGeneration++; currentUser = next; client.removeAllChannels(); clearTimeout(syncTimer); lotsGeneration++;
+  appliedDateProductIds=null;appliedSupplier='';$('movement-date-filter').value='';$('movement-month-filter').value='';$('supplier-filter').value='';
   $('admin-link').hidden = true;
   $('admin-folder').hidden = true;
   $('sidebar-toggle').hidden = !currentUser;
@@ -233,6 +277,7 @@ async function startApp(){
   $('current-stock-button').addEventListener('click',showCurrentStock);
   $('close-current-stock').addEventListener('click',()=>$('current-stock-dialog').close());
   $('search').addEventListener('input',render);$('filter').addEventListener('change',render);$('export').addEventListener('click',exportExcel);
+  $('apply-search').addEventListener('click',applyInventorySearch);$('clear-search').addEventListener('click',clearInventorySearch);
   const timer=setInterval(scheduleSync,5000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleSync();});window.addEventListener('online',scheduleSync);
   window.addEventListener('pagehide',event=>{if(!event.persisted){clearInterval(timer);clearTimeout(syncTimer);client.removeAllChannels();}});
 }

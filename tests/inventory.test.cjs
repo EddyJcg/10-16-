@@ -61,13 +61,16 @@ test('movement kind can be searched alone or combined with a date range',async()
     ['gte','movement_date','2026-02-10'],['lte','movement_date','2026-02-20'],['eq','kind','issue']
   ]);
 });
-test('start, end and supplier search inputs are optional',()=>{
+test('supplier selection is nested under an optional transaction search',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
-  for(const id of ['movement-start-date','movement-end-date','supplier-filter'])
+  for(const id of ['movement-start-date','movement-end-date'])
     assert.match(html,new RegExp(`<input id="${id}"(?![^>]*\\brequired\\b)[^>]*>`));
-  assert.match(html,/<select id="movement-kind-filter"[^>]*>/);
-  for(const kind of ['opening','receipt','issue'])
-    assert.match(html,new RegExp(`<option value="${kind}">`));
+  const transactionFilter=html.match(/<div class="transaction-filter">([\s\S]*?)<\/div><div class="search-actions">/)[1];
+  assert.match(transactionFilter,/<select id="movement-kind-filter"[^>]*>/);
+  for(const condition of ['opening','receipt','issue','supplier'])
+    assert.match(transactionFilter,new RegExp(`<option value="${condition}">`));
+  assert.match(transactionFilter,/<select id="supplier-filter"[^>]*>/);
+  assert.doesNotMatch(transactionFilter,/<input id="supplier-filter"/);
   assert.doesNotMatch(html,/movement-month-filter/);
 });
 

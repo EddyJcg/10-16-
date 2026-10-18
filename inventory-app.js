@@ -50,12 +50,27 @@ async function findMovementProductIds(startDate,endDate,kind) {
     if (data.length<500) return productIds;
   }
 }
+function updateSupplierOptions() {
+  const select=$('supplier-filter'),selected=select.value;
+  select.replaceChildren();
+  const placeholder=document.createElement('option');
+  placeholder.value='';placeholder.textContent='거래처를 선택하세요';select.append(placeholder);
+  [...new Set(items.map(item=>String(item.supplier||'').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'ko'))
+    .forEach(supplier=>{const option=document.createElement('option');option.value=supplier;option.textContent=supplier;select.append(option);});
+  select.value=[...select.options].some(option=>option.value===selected)?selected:'';
+}
 async function applyInventorySearch() {
   if (searching) return;
   const generation=authGeneration;
-  const startDate=$('movement-start-date').value,endDate=$('movement-end-date').value,kind=$('movement-kind-filter').value,supplier=$('supplier-filter').value.trim().toLowerCase();
+  const startDate=$('movement-start-date').value,endDate=$('movement-end-date').value,selection=$('movement-kind-filter').value;
+  const kind=selection==='supplier'?'':selection,supplier=selection==='supplier' ? $('supplier-filter').value.trim().toLowerCase() : '';
   if (startDate && endDate && startDate>endDate) {
     notify('시작일은 종료일보다 늦을 수 없습니다.',true);
+    return;
+  }
+  if (selection==='supplier' && !supplier) {
+    notify('거래처별 검색을 하려면 거래처를 선택하세요.',true);
     return;
   }
   searching=true;$('apply-search').disabled=true;$('clear-search').disabled=true;
@@ -75,6 +90,7 @@ async function applyInventorySearch() {
 }
 function clearInventorySearch() {
   $('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';
+  $('supplier-filter-wrap').hidden=true;
   appliedDateProductIds=null;appliedSupplier='';render();
 }
 function loadStock() {
@@ -96,7 +112,7 @@ function loadStock() {
       ]);
       if (history.error) throw history.error;
       if (generation!==authGeneration || !currentUser) return;
-      items = summary; movements = history.data.map(row=>({...row,movement_date:String(row.movement_date).slice(0,10)})); totalMovements = history.count || 0; render();
+      items = summary;updateSupplierOptions(); movements = history.data.map(row=>({...row,movement_date:String(row.movement_date).slice(0,10)})); totalMovements = history.count || 0; render();
       if ($('movement-dialog').open && mode==='issue') loadSelectedLots();
     } while (reloadQueued);
   })().finally(()=>{loadPromise=null;});
@@ -140,12 +156,12 @@ async function updateSession(session) {
   const next = session?.user || null;
   if (currentUser && next?.id===currentUser.id || !currentUser && !next && authGeneration>0) return;
   authGeneration++; currentUser = next; client.removeAllChannels(); clearTimeout(syncTimer); lotsGeneration++;
-  appliedDateProductIds=null;appliedSupplier='';$('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';
+  appliedDateProductIds=null;appliedSupplier='';$('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';$('supplier-filter-wrap').hidden=true;
   $('admin-link').hidden = true;
   $('admin-folder').hidden = true;
   $('sidebar-toggle').hidden = !currentUser;
   $('app-layout').classList.toggle('signed-in',!!currentUser);
-  items = []; movements = []; totalMovements = 0; render();
+  items = []; movements = []; totalMovements = 0;updateSupplierOptions();render();
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
@@ -276,6 +292,7 @@ async function startApp(){
   $('current-stock-button').addEventListener('click',showCurrentStock);
   $('close-current-stock').addEventListener('click',()=>$('current-stock-dialog').close());
   $('search').addEventListener('input',render);$('filter').addEventListener('change',render);$('export').addEventListener('click',exportExcel);
+  $('movement-kind-filter').addEventListener('change',()=>{$('supplier-filter-wrap').hidden=$('movement-kind-filter').value!=='supplier';});
   $('apply-search').addEventListener('click',applyInventorySearch);$('clear-search').addEventListener('click',clearInventorySearch);
   const timer=setInterval(scheduleSync,5000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleSync();});window.addEventListener('online',scheduleSync);
   window.addEventListener('pagehide',event=>{if(!event.persisted){clearInterval(timer);clearTimeout(syncTimer);client.removeAllChannels();}});

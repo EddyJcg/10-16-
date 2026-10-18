@@ -35,12 +35,10 @@ for(const file of ['inventory-app.js','admin.js'])test(file+' restores login aft
   }finally{for(const client of [first,restored,afterLogout])if(client)await client.auth.stopAutoRefresh();}
 });
 
-test('stock refresh updates data without clearing the current login',async()=>{
+test('inventory screen omits the manual stock refresh button',async()=>{
   const app=await boot('inventory-app.js');
-  vm.runInContext('currentUser={id:"signed-in"};loadStock=async()=>{items=[{product_code:"UPDATED"}]};',app.context);
-  await app.element('refresh').handlers.click();
-  assert.equal(vm.runInContext('currentUser.id',app.context),'signed-in');
-  assert.equal(vm.runInContext('items[0].product_code',app.context),'UPDATED');
+  assert.doesNotMatch(readFileSync('inventory.html','utf8'),/id="refresh"/);
+  assert.equal(app.element('refresh').handlers.click,undefined);
 });
 
 test('inventory and admin use the same tab session without another sign-in',async()=>{

@@ -233,12 +233,6 @@ async function startApp(){
   $('current-stock-button').addEventListener('click',showCurrentStock);
   $('close-current-stock').addEventListener('click',()=>$('current-stock-dialog').close());
   $('search').addEventListener('input',render);$('filter').addEventListener('change',render);$('export').addEventListener('click',exportExcel);
-  $('refresh').addEventListener('click',async()=>{
-    if(busy || !currentUser || $('refresh').disabled)return;
-    const button=$('refresh');button.disabled=true;button.textContent='불러오는 중…';
-    try{await loadStock();notify('최신 재고를 불러왔습니다.');}catch(error){notify(errorText(error),true);}
-    finally{button.disabled=!currentUser;button.textContent='새로고침';}
-  });
   const timer=setInterval(scheduleSync,5000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleSync();});window.addEventListener('online',scheduleSync);
   window.addEventListener('pagehide',event=>{if(!event.persisted){clearInterval(timer);clearTimeout(syncTimer);client.removeAllChannels();}});
 }

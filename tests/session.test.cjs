@@ -67,6 +67,12 @@ test('dashboard stock risk button opens the risk list dialog',async()=>{
   assert.equal(typeof app.element('close-stock-risk').handlers.click,'function');
 });
 
+test('dashboard long-stock button opens and closes the detail dialog',async()=>{
+  const app=await boot('inventory-app.js');
+  assert.equal(typeof app.element('long-stock-button').handlers.click,'function');
+  assert.equal(typeof app.element('close-long-stock').handlers.click,'function');
+});
+
 test('inventory and admin use the same tab session without another sign-in',async()=>{
   const inventory=await boot('inventory-app.js'),admin=await boot('admin.js');
   assert.equal(admin.options.auth.storageKey,inventory.options.auth.storageKey);

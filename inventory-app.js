@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const number = value => Number(value || 0).toLocaleString('ko-KR',{maximumFractionDigits:2});
 const money = number;
 const MODE_LABELS = {opening:['기초재고','기초','기초일자'],receipt:['입고관리','입고','입고일자'],issue:['출고관리','출고','출고일자']};
-let client,currentUser = null,items = [],movements = [],totalMovements = 0,authGeneration = 0;
+let client,currentUser = null,items = [],movements = [],agedStock = [],authGeneration = 0;
 let loadPromise = null,reloadQueued = false,syncTimer = null,busy = false,exporting = false;
 let appliedDateProductIds = null,appliedSupplier = '',searching = false;
 let productListDateIds = null,productListSupplier = '',productListQuery = '',productListSearching = false;
@@ -37,6 +37,13 @@ function errorText(error) {
   if (['PGRST205','PGRST202','42P01','42703','42501'].includes(error?.code)) return '재고 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql을 실행하세요. 로그인·권한 설정은 기존 schema.sql을 사용합니다.';
   return '요청을 완료하지 못했습니다. 네트워크와 로그인 상태를 확인하세요. 저장 응답이 끊겼다면 내역을 확인하거나 같은 내용으로 다시 저장하세요.';
 }
+async function showLongStock() {
+  if(!currentUser||busy)return;
+  const generation=authGeneration;
+  $('long-stock-status').textContent='최신 재고를 불러오는 중…';renderLongStock();$('long-stock-dialog').showModal();
+  try {await loadStock();if(generation===authGeneration)$('long-stock-status').textContent='';}
+  catch(error){if(generation===authGeneration)$('long-stock-status').textContent='최신 조회에 실패했습니다. 표시된 내역은 마지막 조회 결과입니다. '+errorText(error);}
+}
 async function showStockRisk() {
   if(!currentUser||busy)return;
   const generation=authGeneration;
@@ -52,6 +59,16 @@ async function readAll(table,order = 'id',productId = null) {
     const {data,error} = await query;
     if (error) throw error;
     result.push(...data.map(row=>({...row,...(row.received_date?{received_date:String(row.received_date).slice(0,10)}:{})}))); if (data.length<500) return result;
+  }
+}
+async function readAgedStock() {
+  const rows=[],cutoff=sixMonthsAgoDate();
+  for(let offset=0;;offset+=500){
+    const {data,error}=await client.from('stock_aging').select('*').gt('remaining_quantity',0)
+      .lte('received_date',cutoff).order('received_date',{ascending:true}).order('sequence_id',{ascending:true}).range(offset,offset+499);
+    if(error)throw error;
+    rows.push(...data);
+    if(data.length<500)return stockAgingRows(rows);
   }
 }
 async function findMovementProductIds(startDate,endDate,kind) {
@@ -124,13 +141,14 @@ function loadStock() {
         await updateSession(null); client.auth.signOut({scope:'local'}).catch(()=>{});
         throw {message:'ACCOUNT_DISABLED'};
       }
-      const [summary,history] = await Promise.all([
+      const [summary,history,aging] = await Promise.all([
         readAll('stock_summary'),
-        client.from('stock_movements').select('*',{count:'exact'}).order('sequence_id',{ascending:false}).limit(100)
+        client.from('stock_movements').select('*').order('sequence_id',{ascending:false}).limit(100),
+        readAgedStock()
       ]);
       if (history.error) throw history.error;
       if (generation!==authGeneration || !currentUser) return;
-      items = summary;updateSupplierOptions(); movements = history.data.map(row=>({...row,movement_date:String(row.movement_date).slice(0,10)})); totalMovements = history.count || 0; render();
+      items = summary;agedStock=aging;updateSupplierOptions(); movements = history.data.map(row=>({...row,movement_date:String(row.movement_date).slice(0,10)})); render();
       if ($('movement-dialog').open && mode==='issue') loadSelectedLots();
     } while (reloadQueued);
   })().finally(()=>{loadPromise=null;});
@@ -143,7 +161,8 @@ function scheduleSync() {
   },250);
 }
 function subscribeToChanges() {
-  client.channel('stock-ledger').on('postgres_changes',{event:'*',schema:'public',table:'stock_movements'},scheduleSync)
+  client.channel('stock-ledger').on('postgres_changes',{event:'*',schema:'public',table:'stock_products'},scheduleSync)
+    .on('postgres_changes',{event:'*',schema:'public',table:'stock_movements'},scheduleSync)
     .on('postgres_changes',{event:'*',schema:'public',table:'stock_lots'},scheduleSync)
     .subscribe(status=>{
       if (!currentUser) return;
@@ -179,11 +198,11 @@ async function updateSession(session) {
   $('admin-folder').hidden = true;
   $('sidebar-toggle').hidden = !currentUser;
   $('app-layout').classList.toggle('signed-in',!!currentUser);
-  items = []; movements = []; totalMovements = 0;updateSupplierOptions();render();
+  items = []; movements = []; agedStock=[];updateSupplierOptions();render();
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
-    $('movement-dialog').close(); $('product-info-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('product-info-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try { await loadStock(); if (currentUser) {subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
   catch (error) { notify(errorText(error),true); }
@@ -538,7 +557,7 @@ function openPrintSettings(target) {
   $('print-settings-dialog').showModal();
 }
 function printInventoryList(target) {
-  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','movement-list':'movement-list-dialog'};
+  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','long-stock':'long-stock-dialog','movement-list':'movement-list-dialog'};
   if(target in targetDialogs&&!$(targetDialogs[target]).open)return;
   activePrintTarget=target;
   applyProductListPrintSettings();
@@ -561,6 +580,7 @@ function applyProductListPrintSettings() {
     'product-list':'#product-list-dialog .product-list-table table',
     'current-stock':'#current-stock-dialog table',
     'stock-risk':'#stock-risk-dialog table',
+    'long-stock':'#long-stock-dialog table',
     'movement-history':'#movement-history table',
     'movement-list':'#movement-list-dialog .product-list-table table'
   };
@@ -690,6 +710,8 @@ async function startApp(){
   $('close-current-stock').addEventListener('click',()=>$('current-stock-dialog').close());
   $('stock-risk-button').addEventListener('click',showStockRisk);
   $('close-stock-risk').addEventListener('click',()=>$('stock-risk-dialog').close());
+  $('long-stock-button').addEventListener('click',showLongStock);
+  $('close-long-stock').addEventListener('click',()=>$('long-stock-dialog').close());
   $('product-list-button').addEventListener('click',showProductList);
   $('close-product-list').addEventListener('click',()=>$('product-list-dialog').close());
   $('search-product-list').addEventListener('click',searchProductList);

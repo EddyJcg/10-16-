@@ -151,6 +151,18 @@ from public.stock_products p left join movements m on m.product_id=p.id left joi
 revoke all on public.stock_summary from anon;
 grant select on public.stock_summary to authenticated;
 
+create or replace view public.stock_aging with (security_invoker = true) as
+select l.id as lot_id,l.product_id,l.movement_id,m.sequence_id,m.movement_date::text as received_date,
+  m.created_at as received_at,l.remaining_quantity,l.unit_cost,
+  l.remaining_quantity*l.unit_cost as amount,p.product_category,p.product_code,p.product_name,
+  p.specification,p.unit,p.storage_location,p.supplier
+from public.stock_lots l
+join public.stock_movements m on m.id=l.movement_id
+join public.stock_products p on p.id=l.product_id
+where m.kind in ('opening','receipt');
+revoke all on public.stock_aging from anon;
+grant select on public.stock_aging to authenticated;
+
 create or replace function public.post_stock_movement(
   p_request_id uuid,p_kind text,p_date date,p_details jsonb,p_quantity integer,p_unit_cost numeric default 0
 ) returns jsonb language plpgsql security definer set search_path = '' as $$

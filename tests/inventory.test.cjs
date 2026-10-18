@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,planFifo,validDate,filterInventoryItems,stockRiskItems}=require('../inventory-model.js');
+const {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,planFifo,validDate,filterInventoryItems,stockRiskItems,stockAgingRows,sixMonthsAgoDate}=require('../inventory-model.js');
 const {CURRENT_STOCK_FIELDS,currentStockRows}=require('../inventory-model.js');
 
 test('current stock keeps all workbook fields except opening, receipt and issue totals',()=>{
@@ -88,6 +88,17 @@ test('stock risk includes only products below twenty percent of their standard q
     {product_code:'OK',standard_stock_quantity:100,stock_quantity:21}
   ];
   assert.deepEqual(stockRiskItems(rows).map(item=>item.product_code),['ZERO','LOW']);
+});
+test('aged stock includes positive lot balances received at least six calendar months ago',()=>{
+  const rows=[
+    {lot_id:1,received_date:'2026-04-17',remaining_quantity:2,sequence_id:1},
+    {lot_id:2,received_date:'2026-04-18',remaining_quantity:1,sequence_id:2},
+    {lot_id:3,received_date:'2026-04-01',remaining_quantity:0,sequence_id:3},
+    {lot_id:4,received_date:'2026-04-01',remaining_quantity:1,sequence_id:4}
+  ];
+  assert.equal(sixMonthsAgoDate('2026-10-18'),'2026-04-18');
+  assert.equal(sixMonthsAgoDate('2026-08-31'),'2026-02-28');
+  assert.deepEqual(stockAgingRows(rows,'2026-10-18').map(row=>row.lot_id),[4,1,2]);
 });
 test('movement history displays the database-generated serial number',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),renderer=fs.readFileSync('inventory-render.js','utf8');

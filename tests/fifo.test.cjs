@@ -45,6 +45,12 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       await assert.rejects(register({...product,product_code:'DECIMAL-STANDARD',standard_stock_quantity:1.5}),/INVALID_PRODUCT_DETAILS/);
       await post('UNREGISTERED','receipt',1,100,'2020-01-01');
       assert.equal(Number((await summary('UNREGISTERED')).stock_quantity),1);
+      const aged=(await db.query("select * from public.stock_aging where product_code='UNREGISTERED'")).rows[0];
+      assert.equal(String(aged.received_date).slice(0,10),'2020-01-01');
+      assert.equal(Number(aged.remaining_quantity),1);
+      assert.equal(Number(aged.amount),100);
+      assert.equal(aged.product_name,'Eco Bag');
+      assert.ok(aged.received_at);
       const updated=await db.query('select public.set_stock_product_standard_stock_quantity($1,$2) as result',['UNREGISTERED',25]);
       assert.equal(updated.rows[0].result.product_name,'Eco Bag');
       assert.equal(Number(updated.rows[0].result.standard_stock_quantity),25);

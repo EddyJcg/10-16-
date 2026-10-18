@@ -33,6 +33,16 @@ function todayDate() {
   const get = type => parts.find(part => part.type === type).value;
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
+function sixMonthsAgoDate(today=todayDate()) {
+  const [year,month,day]=today.split('-').map(Number),targetMonth=month-1-6;
+  const lastTargetDay=new Date(Date.UTC(year,targetMonth+1,0)).getUTCDate();
+  return new Date(Date.UTC(year,targetMonth,Math.min(day,lastTargetDay))).toISOString().slice(0,10);
+}
+function stockAgingRows(rows,today=todayDate()) {
+  const cutoff=sixMonthsAgoDate(today);
+  return rows.filter(row=>Number(row.remaining_quantity)>0&&row.received_date<=cutoff)
+    .slice().sort((a,b)=>a.received_date.localeCompare(b.received_date)||Number(a.sequence_id)-Number(b.sequence_id));
+}
 function validDate(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(value + 'T00:00:00Z');
@@ -52,4 +62,4 @@ function planFifo(lots,quantity,date) {
   const amount = Number(amountCents)/100;
   return {allocations,shortage:Math.max(left,0),amount,unitCost:quantity>0 ? amount/quantity : 0};
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,stockRiskItems,filterInventoryItems,todayDate,validDate,planFifo};
+if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,todayDate,validDate,planFifo};

@@ -86,6 +86,30 @@ test('stock risk card opens a printable list and its threshold uses standard sto
   assert.match(style,/body\[data-print-target="stock-risk"\] #stock-risk-dialog/);
 });
 
+test('long-stock card displays aged quantities and opens printable lot details',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const script=readFileSync('inventory-app.js','utf8');
+  const renderer=readFileSync('inventory-render.js','utf8');
+  const style=readFileSync('inventory.css','utf8');
+  const sql=readFileSync('supabase/fifo.sql','utf8');
+  const card=html.match(/<section class="stats"[^>]*>([\s\S]*?)<\/section>/)?.[1]||'';
+  assert.match(card,/<button id="long-stock-button" class="stat stat-action long-stock" type="button" aria-haspopup="dialog">/);
+  assert.match(card,/<span>장기재고<\/span><strong id="total-aged-qty">0<\/strong>/);
+  assert.doesNotMatch(card,/기록된 입출고|total-movements/);
+  assert.match(html,/<dialog id="long-stock-dialog" aria-labelledby="long-stock-title">/);
+  for(const heading of ['입고일시','품번','품명','규격','단위','수량','단가','금액','위치','거래처명'])
+    assert.ok(html.includes('<th>'+heading+'</th>'),heading);
+  for(const target of ['long-stock'])
+    assert.match(html,new RegExp(`data-print-settings="${target}"`)) && assert.match(html,new RegExp(`data-print="${target}"`));
+  assert.match(script,/from\('stock_aging'\)/);
+  assert.match(script,/function showLongStock\(\)/);
+  assert.match(script,/'long-stock':'#long-stock-dialog table'/);
+  assert.match(renderer,/formatStockQuantityTotals\(rows\.map\(row=>\(\{stock_quantity:row\.remaining_quantity,unit:row\.unit\}\)\)\)/);
+  assert.match(renderer,/receivedAt\.toLocaleString\('ko-KR'/);
+  assert.match(sql,/create or replace view public\.stock_aging with \(security_invoker = true\)/);
+  assert.match(style,/body\[data-print-target="long-stock"\] #long-stock-dialog/);
+});
+
 test('movement history opens a searchable full-history dialog and preserves FIFO details and printing',()=>{
   const html=readFileSync('inventory.html','utf8');
   const script=readFileSync('inventory-app.js','utf8');

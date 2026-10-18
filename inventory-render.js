@@ -28,13 +28,13 @@ function renderLongStock(){
   $('total-aged-qty').textContent=formatStockQuantityTotals(rows.map(row=>({stock_quantity:row.remaining_quantity,unit:row.unit})));
   $('long-stock-count').textContent='입고일 기준 6개월 이상 · '+rows.length.toLocaleString('ko-KR')+'건';
   $('long-stock-detail-count').textContent=rows.length.toLocaleString('ko-KR')+'건';body.replaceChildren();
-  if(!rows.length){emptyRow(body,10,'입고일 기준 6개월 이상 경과한 재고가 없습니다.');return;}
+  if(!rows.length){emptyRow(body,12,'입고일 기준 6개월 이상 경과한 재고가 없습니다.');return;}
   rows.forEach(item=>{
     const receivedAt=new Date(item.received_at);
     const receivedAtText=Number.isNaN(receivedAt.getTime())?item.received_date:receivedAt.toLocaleString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
     const quantity=Number(item.remaining_quantity),row=document.createElement('tr');
-    [receivedAtText,item.product_code,item.product_name,item.specification,item.unit,number(quantity),money(item.unit_cost),money(quantity*Number(item.unit_cost)),item.storage_location,item.supplier]
-      .forEach((value,index)=>row.append(makeCell(value,index>=5&&index<=7)));
+    [receivedAtText,item.product_code,item.product_name,item.specification,item.material,item.color,item.unit,number(quantity),money(item.unit_cost),money(quantity*Number(item.unit_cost)),item.storage_location,item.supplier]
+      .forEach((value,index)=>row.append(makeCell(value,index>=7&&index<=9)));
     body.append(row);
   });
 }

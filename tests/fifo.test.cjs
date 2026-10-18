@@ -50,6 +50,8 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       assert.equal(Number(aged.remaining_quantity),1);
       assert.equal(Number(aged.amount),100);
       assert.equal(aged.product_name,'Eco Bag');
+      assert.equal(aged.material,'니나리찌');
+      assert.equal(aged.color,'자연색');
       assert.ok(aged.received_at);
       const updated=await db.query('select public.set_stock_product_standard_stock_quantity($1,$2) as result',['UNREGISTERED',25]);
       assert.equal(updated.rows[0].result.product_name,'Eco Bag');

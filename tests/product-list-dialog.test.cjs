@@ -97,8 +97,9 @@ test('long-stock card displays aged quantities and opens printable lot details',
   assert.match(card,/<span>장기재고<\/span><strong id="total-aged-qty">0<\/strong>/);
   assert.doesNotMatch(card,/기록된 입출고|total-movements/);
   assert.match(html,/<dialog id="long-stock-dialog" aria-labelledby="long-stock-title">/);
-  for(const heading of ['입고일시','품번','품명','규격','단위','수량','단가','금액','위치','거래처명'])
+  for(const heading of ['입고일시','품번','품명','규격','재질','색상','단위','수량','단가','금액','위치','거래처명'])
     assert.ok(html.includes('<th>'+heading+'</th>'),heading);
+  assert.match(sql,/p\.specification,p\.material,p\.color,p\.unit,p\.storage_location,p\.supplier/);
   for(const target of ['long-stock'])
     assert.match(html,new RegExp(`data-print-settings="${target}"`)) && assert.match(html,new RegExp(`data-print="${target}"`));
   assert.match(script,/from\('stock_aging'\)/);

@@ -155,7 +155,7 @@ create or replace view public.stock_aging with (security_invoker = true) as
 select l.id as lot_id,l.product_id,l.movement_id,m.sequence_id,m.movement_date::text as received_date,
   m.created_at as received_at,l.remaining_quantity,l.unit_cost,
   l.remaining_quantity*l.unit_cost as amount,p.product_category,p.product_code,p.product_name,
-  p.specification,p.unit,p.storage_location,p.supplier
+  p.specification,p.material,p.color,p.unit,p.storage_location,p.supplier
 from public.stock_lots l
 join public.stock_movements m on m.id=l.movement_id
 join public.stock_products p on p.id=l.product_id

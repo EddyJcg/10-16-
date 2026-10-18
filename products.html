@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <script>if(window.opener)window.opener=null;</script>
+  <title>전체 품목목록 · ISUMMERLY</title><link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/inventory.css"><link rel="stylesheet" href="/products.css">
+</head>
+<body class="product-list-page">
+  <header><div class="brand">▦ ISUMMERLY<span>전체 품목목록</span></div><a class="secondary" href="/" target="_blank">재고관리로 이동 ↗</a></header>
+  <main>
+    <div class="intro"><div><h1>전체 품목목록</h1><p>기간, 거래처, 품번·품명·규격·저장위치 등으로 검색할 수 있습니다.</p></div></div>
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+    <section id="login-panel" class="panel login" hidden>
+      <h2>재고관리 로그인</h2><p>품목목록을 보려면 등록된 계정으로 로그인하세요.</p>
+      <form id="login-form"><div class="field"><label for="email">아이디 (이메일)</label><input id="email" type="email" required autocomplete="username"></div><div class="field"><label for="password">비밀번호</label><input id="password" type="password" required autocomplete="current-password"></div><button id="login-button" class="primary">로그인</button></form>
+    </section>
+    <section id="product-panel" class="panel" hidden>
+      <div class="toolbar"><h2>품목 <span id="product-count" class="count">0개</span></h2><button id="reload-products" class="secondary" type="button">목록 새로고침</button></div>
+      <div class="product-search">
+        <label class="product-date-range"><span>거래 기간 <span>(선택)</span></span><div><input id="start-date" type="date" aria-label="시작일"><span aria-hidden="true">~</span><input id="end-date" type="date" aria-label="종료일"></div></label>
+        <label for="supplier-filter">거래처 <span>(선택)</span><select id="supplier-filter"><option value="">전체 거래처</option></select></label>
+        <label for="product-query">품목 검색 <span>(선택)</span><input id="product-query" type="search" placeholder="품번, 품명, 규격, 저장위치 등"></label>
+        <div class="product-search-actions"><button id="apply-search" class="primary" type="button">검색</button><button id="clear-search" class="secondary" type="button">초기화</button></div>
+      </div>
+      <div class="table-wrap product-table-wrap"><table><thead><tr id="product-head"></tr></thead><tbody id="products"></tbody></table></div>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script>
+  <script src="/supabase-config.js"></script><script src="/inventory-model.js"></script><script src="/products.js"></script>
+</body>
+</html>

@@ -107,8 +107,14 @@ test('main dashboard replaces recent movement history with a printable sales bal
   assert.ok(html.indexOf('id="sales-balance"')<html.indexOf('id="product-list"'),'sales balance should appear above the product list');
   assert.match(html,/data-print-settings="sales-balance"/);
   assert.match(html,/data-print="sales-balance"/);
+  for(const id of ['sales-balance-start-date','sales-balance-end-date','sales-balance-type-filter','apply-sales-balance-search','clear-sales-balance-search'])
+    assert.match(html,new RegExp(`id="${id}"`),id);
+  assert.match(html,/id="sales-balance-type-filter"[^>]*><option value="">전체 수주<\/option><option value="온라인 수주">온라인 수주<\/option><option value="오프라인 수주">오프라인 수주<\/option>/);
   assert.match(script,/order=>\(order\.sales_status\|\|'매출미완료'\)==='매출미완료'/);
+  assert.match(script,/filterSalesOrders\(outstanding,\{\.\.\.appliedSalesBalanceFilters,salesStatus:'매출미완료'\}\)/);
+  assert.match(script,/function applySalesBalanceSearch\(clear=false\)/);
   assert.match(style,/body\[data-print-target="sales-balance"\] #sales-balance/);
+  assert.match(style,/#sales-balance \.sales-balance-search/);
 });
 test('dashboard replaces registered-item card with live sales backlog count and amount',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),app=fs.readFileSync('inventory-app.js','utf8'),renderer=fs.readFileSync('inventory-render.js','utf8');
@@ -171,7 +177,8 @@ test('supplier selection is nested under an optional transaction search',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   for(const id of ['movement-start-date','movement-end-date'])
     assert.match(html,new RegExp(`<input id="${id}"(?![^>]*\\brequired\\b)[^>]*>`));
-  const transactionFilter=html.match(/<div class="transaction-filter">([\s\S]*?)<\/div><div class="search-actions">/)[1];
+  const productList=html.slice(html.indexOf('id="product-list"'));
+  const transactionFilter=productList.match(/<div class="transaction-filter">([\s\S]*?)<\/div><div class="search-actions">/)[1];
   assert.match(transactionFilter,/<select id="movement-kind-filter"[^>]*>/);
   for(const condition of ['opening','receipt','issue','supplier'])
     assert.match(transactionFilter,new RegExp(`<option value="${condition}">`));

@@ -10,6 +10,7 @@ let productListDateIds = null,productListSupplier = '',productListQuery = '',pro
 let movementListRows = [],movementListLoading = false;
 let salesOrders = [],salesOrdersLoading = false,salesOrderSaving = false;
 let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:''},salesStatusUpdating=false;
+let appliedSalesBalanceFilters={startDate:'',endDate:'',orderType:''};
 const printMargins = {top:10,right:10,bottom:10,left:10};
 let printMarginDrag = null,activePrintTarget='product-list';
 const columnWidthDefaults={
@@ -67,13 +68,15 @@ function renderSalesOrders(){
 }
 function renderSalesBalance(){
   const body=$('sales-balance-items'),outstanding=salesOrders.filter(order=>(order.sales_status||'매출미완료')==='매출미완료');
+  const visibleOrders=filterSalesOrders(outstanding,{...appliedSalesBalanceFilters,salesStatus:'매출미완료'});
   const totalCents=outstanding.reduce((sum,order)=>sum+Math.round(Number(order.amount||0)*100),0);
+  const visibleCents=visibleOrders.reduce((sum,order)=>sum+Math.round(Number(order.amount||0)*100),0);
   body.replaceChildren();
   $('total-sales-backlog-count').textContent=outstanding.length.toLocaleString('ko-KR')+'건';
   $('total-sales-backlog-amount').textContent='합계 '+money(totalCents/100)+'원';
-  $('sales-balance-summary').textContent=outstanding.length.toLocaleString('ko-KR')+'건 · 수주 잔고 '+money(totalCents/100)+'원';
-  if(!outstanding.length){emptyRow(body,15,'현재 매출미완료 수주가 없습니다.');return;}
-  outstanding.forEach(order=>{
+  $('sales-balance-summary').textContent=visibleOrders.length.toLocaleString('ko-KR')+'건 · 수주 잔고 '+money(visibleCents/100)+'원';
+  if(!visibleOrders.length){emptyRow(body,15,outstanding.length?'검색 조건에 해당하는 수주잔고가 없습니다.':'현재 매출미완료 수주가 없습니다.');return;}
+  visibleOrders.forEach(order=>{
     const row=document.createElement('tr');
     [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number].forEach((value,index)=>row.append(makeCell(value,index===0)));
     const statusCell=document.createElement('td'),select=document.createElement('select');
@@ -87,6 +90,18 @@ function renderSalesBalance(){
       .forEach((value,index)=>row.append(makeCell(value,index===4||index===5||index===6)));
     body.append(row);
   });
+}
+function applySalesBalanceSearch(clear=false){
+  const startDate=clear?'':$('sales-balance-start-date').value,endDate=clear?'':$('sales-balance-end-date').value;
+  const orderType=clear?'':$('sales-balance-type-filter').value;
+  if((startDate&&!validOrderDueDate(startDate))||(endDate&&!validOrderDueDate(endDate))){
+    $('sales-balance-status').textContent='올바른 시작일과 종료일을 입력하세요.';return;
+  }
+  if(startDate&&endDate&&startDate>endDate){$('sales-balance-status').textContent='시작일은 종료일보다 늦을 수 없습니다.';return;}
+  if(clear){$('sales-balance-start-date').value='';$('sales-balance-end-date').value='';$('sales-balance-type-filter').value='';}
+  appliedSalesBalanceFilters={startDate,endDate,orderType};
+  $('sales-balance-status').textContent='';
+  renderSalesBalance();
 }
 function renderSalesStatus(){
   const body=$('sales-status-items');body.replaceChildren();
@@ -343,6 +358,8 @@ async function updateSession(session) {
   const next = session?.user || null;
   if (currentUser && next?.id===currentUser.id || !currentUser && !next && authGeneration>0) return;
   authGeneration++; currentUser = next; client.removeAllChannels(); clearTimeout(syncTimer);clearTimeout(salesSyncTimer); lotsGeneration++;
+  appliedSalesBalanceFilters={startDate:'',endDate:'',orderType:''};
+  $('sales-balance-start-date').value='';$('sales-balance-end-date').value='';$('sales-balance-type-filter').value='';
   appliedDateProductIds=null;appliedSupplier='';$('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';$('supplier-filter-wrap').hidden=true;
   $('admin-link').hidden = true;
   $('admin-folder').hidden = true;
@@ -910,6 +927,8 @@ async function startApp(){
   $('clear-sales-status-search').addEventListener('click',()=>applySalesStatusSearch(true));
   $('sales-status-items').addEventListener('change',changeSalesOrderStatus);
   $('export-sales-status').addEventListener('click',exportSalesStatusExcel);
+  $('apply-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch());
+  $('clear-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch(true));
   ['sales_quantity','sales_unit_price'].forEach(id=>$(id).addEventListener('input',updateSalesAmount));
   $('close-product-info').addEventListener('click',()=>$('product-info-dialog').close());
   $('cancel-product-info').addEventListener('click',()=>$('product-info-dialog').close());

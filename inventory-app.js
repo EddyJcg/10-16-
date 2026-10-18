@@ -10,6 +10,7 @@ let productListDateIds = null,productListSupplier = '',productListQuery = '',pro
 let movementListRows = [],movementListLoading = false;
 const printMargins = {top:10,right:10,bottom:10,left:10};
 let printMarginDrag = null,activePrintTarget='product-list';
+const movementColumnDefaults=[100,115,90,140,160,150,130,150,100,110,120];
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function errorText(error) {
@@ -334,6 +335,52 @@ function clearMovementListSearch() {
   ['movement-list-start-date','movement-list-end-date','movement-list-supplier','movement-list-query','movement-list-kind'].forEach(id=>$(id).value='');
   renderMovementList();$('movement-list-status').textContent='검색 조건을 초기화했습니다.';
 }
+function startMovementListColumnResizing() {
+  const columnGroup=$('movement-list-columns'),table=$('movement-list-table');
+  if(!columnGroup?.children||!table)return;
+  const columns=[...columnGroup.children];
+  const minimum=52,maximum=600,storageKey='inventory-movement-list-column-widths';
+  let widths=[...movementColumnDefaults],drag=null;
+  try {
+    const saved=JSON.parse(window.localStorage.getItem(storageKey)||'null');
+    if(Array.isArray(saved)&&saved.length===columns.length&&saved.every(width=>Number.isInteger(width)&&width>=minimum&&width<=maximum))widths=saved;
+  } catch {}
+  function applyWidth(index,width) {
+    widths[index]=Math.max(minimum,Math.min(maximum,Math.round(width)));
+    columns[index].style.width=widths[index]+'px';
+    const handle=document.querySelector(`.column-resizer[data-column="${index}"]`);
+    handle.setAttribute('aria-valuemin',String(minimum));handle.setAttribute('aria-valuemax',String(maximum));handle.setAttribute('aria-valuenow',String(widths[index]));
+  }
+  function saveWidths() {
+    try {window.localStorage.setItem(storageKey,JSON.stringify(widths));} catch {}
+  }
+  columns.forEach((_,index)=>applyWidth(index,widths[index]));
+  document.querySelectorAll('#movement-list-dialog .column-resizer').forEach(handle=>{
+    handle.addEventListener('pointerdown',event=>{
+      if(event.button!==0)return;
+      const index=Number(handle.dataset.column);
+      drag={pointerId:event.pointerId,index,startX:event.clientX,startWidth:widths[index]};
+      handle.setPointerCapture(event.pointerId);event.preventDefault();
+    });
+    handle.addEventListener('pointermove',event=>{
+      if(!drag||event.pointerId!==drag.pointerId)return;
+      applyWidth(drag.index,drag.startWidth+event.clientX-drag.startX);
+    });
+    function finish(event) {
+      if(!drag||event.pointerId!==drag.pointerId)return;
+      drag=null;saveWidths();
+    }
+    handle.addEventListener('pointerup',finish);
+    handle.addEventListener('pointercancel',finish);
+    handle.addEventListener('keydown',event=>{
+      const index=Number(handle.dataset.column);
+      const delta=event.shiftKey?50:10;
+      const next={ArrowLeft:widths[index]-delta,ArrowRight:widths[index]+delta,Home:minimum,End:maximum}[event.key];
+      if(next===undefined)return;
+      event.preventDefault();applyWidth(index,next);saveWidths();
+    });
+  });
+}
 async function searchProductList() {
   if(!currentUser||productListSearching)return;
   const startDate=$('product-list-start-date').value,endDate=$('product-list-end-date').value;
@@ -505,6 +552,7 @@ async function startApp(){
   $('close-movement-list').addEventListener('click',()=>$('movement-list-dialog').close());
   $('search-movement-list').addEventListener('click',searchMovementList);
   $('clear-movement-list-search').addEventListener('click',clearMovementListSearch);
+  startMovementListColumnResizing();
   document.querySelectorAll('[data-print]').forEach(button=>button.addEventListener('click',()=>printInventoryList(button.dataset.print)));
   $('close-print-settings').addEventListener('click',()=>$('print-settings-dialog').close());
   startProductListPrintSettings();

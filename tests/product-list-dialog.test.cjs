@@ -77,3 +77,19 @@ test('movement history opens a searchable full-history dialog and preserves FIFO
   assert.match(script,/movement-list-dialog/);
   assert.match(style,/body\[data-print-target="movement-list"\] #movement-list-dialog/);
 });
+
+test('movement history columns can be resized by pointer and keyboard and keep their widths',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const script=readFileSync('inventory-app.js','utf8');
+  const style=readFileSync('inventory.css','utf8');
+  const columns=html.match(/<colgroup id="movement-list-columns">([\s\S]*?)<\/colgroup>/)?.[1]||'';
+  const resizers=html.match(/class="column-resizer"/g)||[];
+  assert.equal((columns.match(/<col>/g)||[]).length,11);
+  assert.equal(resizers.length,11);
+  assert.match(script,/function startMovementListColumnResizing\(\)/);
+  assert.match(script,/handle\.setPointerCapture\(event\.pointerId\)/);
+  assert.match(script,/ArrowLeft:widths\[index\]-delta,ArrowRight:widths\[index\]\+delta/);
+  assert.match(script,/inventory-movement-list-column-widths/);
+  assert.match(style,/#movement-list-table\{width:max-content;table-layout:fixed\}/);
+  assert.match(style,/#movement-list-table \.column-resizer\{display:none!important\}/);
+});

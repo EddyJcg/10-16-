@@ -54,12 +54,31 @@ create table if not exists public.stock_allocations (
   amount numeric(24,2) not null,
   unique(issue_id,lot_id)
 );
+create table if not exists public.sales_orders (
+  id uuid primary key default gen_random_uuid(),
+  sequence_id bigint generated always as identity unique,
+  order_number text not null check (char_length(order_number) between 1 and 80),
+  order_type text not null check (order_type in ('온라인 수주','오프라인 수주')),
+  product_name text not null check (char_length(product_name) between 1 and 120),
+  specification text not null default '' check (char_length(specification) <= 200),
+  unit text not null check (unit in ('EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식')),
+  quantity integer not null check (quantity between 1 and 1000000),
+  unit_price numeric(18,2) not null check (unit_price between 0 and 1000000000),
+  amount numeric(24,2) not null check (amount >= 0),
+  due_date date not null check (due_date >= date '1900-01-01'),
+  delivery_method text not null default '' check (char_length(delivery_method) <= 120),
+  address text not null default '' check (char_length(address) <= 1000),
+  notes text not null default '' check (char_length(notes) <= 2000),
+  created_by uuid not null,
+  created_at timestamptz not null default clock_timestamp()
+);
+create index if not exists sales_orders_created on public.sales_orders(created_at desc,sequence_id desc);
 
 -- 잔량 및 원장을 임의 수정하지 못하게 하고, 쓰기는 아래 트랜잭션 함수로만 허용합니다.
 do $$
 declare t text;
 begin
-  foreach t in array array['stock_products','stock_movements','stock_lots','stock_allocations'] loop
+  foreach t in array array['stock_products','stock_movements','stock_lots','stock_allocations','sales_orders'] loop
     execute format('alter table public.%I enable row level security',t);
     execute format('revoke all on public.%I from anon, authenticated',t);
     execute format('grant select on public.%I to authenticated',t);
@@ -68,6 +87,37 @@ begin
   end loop;
 end;
 $$;
+
+create or replace function public.register_sales_order(
+  p_order_number text,p_order_type text,p_product_name text,p_specification text,p_unit text,
+  p_quantity integer,p_unit_price numeric,p_due_date date,p_delivery_method text,p_address text,p_notes text
+) returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  v_order public.sales_orders%rowtype;
+begin
+  if not public.inventory_access_allowed() then raise exception 'ACCOUNT_DISABLED' using errcode='42501'; end if;
+  if p_order_number is null or char_length(trim(p_order_number)) not between 1 and 80
+    or p_order_type not in ('온라인 수주','오프라인 수주')
+    or p_product_name is null or char_length(trim(p_product_name)) not between 1 and 120
+    or char_length(coalesce(p_specification,'')) > 200
+    or p_unit not in ('EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식')
+    or p_quantity is null or p_quantity not between 1 and 1000000
+    or p_unit_price is null or p_unit_price not between 0 and 1000000000 or p_unit_price <> round(p_unit_price,2)
+    or p_due_date is null or p_due_date < date '1900-01-01'
+    or char_length(coalesce(p_delivery_method,'')) > 120
+    or char_length(coalesce(p_address,'')) > 1000
+    or char_length(coalesce(p_notes,'')) > 2000 then
+    raise exception 'INVALID_SALES_ORDER' using errcode='22023';
+  end if;
+  insert into public.sales_orders(order_number,order_type,product_name,specification,unit,quantity,unit_price,amount,due_date,delivery_method,address,notes,created_by)
+  values(trim(p_order_number),p_order_type,trim(p_product_name),coalesce(p_specification,''),p_unit,p_quantity,p_unit_price,
+    p_quantity*p_unit_price,p_due_date,coalesce(p_delivery_method,''),coalesce(p_address,''),coalesce(p_notes,''),auth.uid())
+  returning * into v_order;
+  return to_jsonb(v_order);
+end;
+$$;
+revoke all on function public.register_sales_order(text,text,text,text,text,integer,numeric,date,text,text,text) from public, anon;
+grant execute on function public.register_sales_order(text,text,text,text,text,integer,numeric,date,text,text,text) to authenticated;
 
 create or replace function public.register_stock_product(p_details jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$

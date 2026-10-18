@@ -48,6 +48,11 @@ function validDate(value) {
   const date = new Date(value + 'T00:00:00Z');
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value && value >= '1900-01-01' && value <= todayDate();
 }
+function validOrderDueDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(value + 'T00:00:00Z');
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value && value >= '1900-01-01';
+}
 function planFifo(lots,quantity,date) {
   const ordered = lots.filter(lot => Number(lot.remaining_quantity)>0 && lot.received_date<=date)
     .slice().sort((a,b) => a.received_date.localeCompare(b.received_date) || (BigInt(a.id)<BigInt(b.id) ? -1 : BigInt(a.id)>BigInt(b.id) ? 1 : 0));
@@ -62,4 +67,4 @@ function planFifo(lots,quantity,date) {
   const amount = Number(amountCents)/100;
   return {allocations,shortage:Math.max(left,0),amount,unitCost:quantity>0 ? amount/quantity : 0};
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,todayDate,validDate,planFifo};
+if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,todayDate,validDate,validOrderDueDate,planFifo};

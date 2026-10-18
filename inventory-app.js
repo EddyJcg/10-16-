@@ -8,6 +8,7 @@ let loadPromise = null,reloadQueued = false,syncTimer = null,busy = false,export
 let appliedDateProductIds = null,appliedSupplier = '',searching = false;
 let productListDateIds = null,productListSupplier = '',productListQuery = '',productListSearching = false;
 let movementListRows = [],movementListLoading = false;
+let salesOrders = [],salesOrdersLoading = false,salesOrderSaving = false;
 const printMargins = {top:10,right:10,bottom:10,left:10};
 let printMarginDrag = null,activePrintTarget='product-list';
 const columnWidthDefaults={
@@ -31,7 +32,8 @@ function errorText(error) {
     REQUEST_CONFLICT:'같은 요청번호에 다른 내용이 들어 있습니다. 창을 다시 열어 확인하세요.',
     INVALID_INPUT:'날짜, 수량과 단가를 확인하세요. 미래 일자와 소수 수량은 사용할 수 없습니다.',
     INVALID_PRODUCT_DETAILS:'품목분류·품명 등 품목 정보를 확인하세요.',
-    INVALID_PRODUCT_CODE:'품번을 입력하세요.'
+    INVALID_PRODUCT_CODE:'품번을 입력하세요.',
+    INVALID_SALES_ORDER:'수주번호, 수주형태, 품명, 단위, 수량, 단가와 납기일자를 확인하세요.'
   };
   for (const [key,text] of Object.entries(errors)) if (message.includes(key)) return text;
   if (['PGRST205','PGRST202','42P01','42703','42501'].includes(error?.code)) return '재고 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql을 실행하세요. 로그인·권한 설정은 기존 schema.sql을 사용합니다.';
@@ -50,6 +52,68 @@ async function showStockRisk() {
   $('stock-risk-status').textContent='최신 재고를 불러오는 중…';renderStockRisk();$('stock-risk-dialog').showModal();
   try {await loadStock();if(generation===authGeneration)$('stock-risk-status').textContent='';}
   catch(error){if(generation===authGeneration)$('stock-risk-status').textContent='최신 조회에 실패했습니다. 표시된 목록은 마지막 조회 결과입니다. '+errorText(error);}
+}
+function renderSalesOrders(){
+  const body=$('sales-order-items');body.replaceChildren();
+  if(!salesOrders.length){emptyRow(body,13,'저장된 수주가 없습니다.');return;}
+  salesOrders.forEach(order=>{
+    const row=document.createElement('tr');
+    [number(order.sequence_id),order.order_number,order.order_type,order.product_name,order.specification,order.unit,
+      number(order.quantity),money(order.unit_price),money(order.amount),String(order.due_date).slice(0,10),
+      order.delivery_method,order.address,order.notes].forEach((value,index)=>row.append(makeCell(value,index===0||index===6||index===7||index===8)));
+    body.append(row);
+  });
+}
+async function loadSalesOrders(){
+  if(salesOrdersLoading)return;
+  salesOrdersLoading=true;$('sales-order-status').textContent='저장된 수주를 불러오는 중…';
+  try{
+    const rows=[];
+    for(let offset=0;;offset+=500){
+      const {data,error}=await client.from('sales_orders').select('*').order('sequence_id',{ascending:false}).range(offset,offset+499);
+      if(error)throw error;
+      rows.push(...data);
+      if(data.length<500)break;
+    }
+    salesOrders=rows;renderSalesOrders();$('sales-order-status').textContent='';
+  }catch(error){$('sales-order-status').textContent=errorText(error);}
+  finally{salesOrdersLoading=false;}
+}
+function updateSalesAmount(){
+  const quantity=Number($('sales_quantity').value),price=Number($('sales_unit_price').value);
+  $('sales_amount').value=$('sales_quantity').value&&$('sales_unit_price').value&&Number.isSafeInteger(quantity)&&quantity>0&&Number.isFinite(price)&&price>=0
+    ? money(quantity*price)+'원':'';
+}
+async function showSalesOrder(){
+  if(!currentUser||busy||salesOrderSaving)return;
+  $('sales-order-form').reset();$('sales-order-status').textContent='';updateSalesAmount();renderSalesOrders();
+  $('sales-order-dialog').showModal();await loadSalesOrders();
+}
+async function saveSalesOrder(event){
+  event.preventDefault();
+  if(!currentUser||busy||salesOrderSaving)return;
+  const quantity=Number($('sales_quantity').value),unitPrice=Number($('sales_unit_price').value),dueDate=$('sales_due_date').value;
+  if(!Number.isSafeInteger(quantity)||quantity<1||quantity>1000000||!Number.isFinite(unitPrice)||unitPrice<0||unitPrice>1000000000
+    ||Math.abs(unitPrice*100-Math.round(unitPrice*100))>0.0001||!validOrderDueDate(dueDate)){
+    $('sales-order-status').textContent='수량은 1~1,000,000의 정수, 단가는 0~1,000,000,000원(소수 둘째 자리까지), 납기일자는 올바른 날짜로 입력하세요.';
+    return;
+  }
+  const generation=authGeneration,fields=['sales_order_number','sales_order_type','sales_product_name','sales_specification','sales_unit','sales_delivery_method','sales_address','sales_notes'];
+  const details=Object.fromEntries(fields.map(id=>[id,$(id).value.trim()]));
+  salesOrderSaving=true;$('sales-order-editor').disabled=true;$('sales-order-status').textContent='수주를 저장하는 중…';
+  try{
+    const {data,error}=await client.rpc('register_sales_order',{
+      p_order_number:details.sales_order_number,p_order_type:details.sales_order_type,p_product_name:details.sales_product_name,
+      p_specification:details.sales_specification,p_unit:details.sales_unit,p_quantity:quantity,p_unit_price:unitPrice,
+      p_due_date:dueDate,p_delivery_method:details.sales_delivery_method,p_address:details.sales_address,p_notes:details.sales_notes
+    });
+    if(error)throw error;
+    if(generation!==authGeneration)return;
+    salesOrders=[data,...salesOrders.filter(order=>order.id!==data.id)];renderSalesOrders();
+    $('sales-order-form').reset();updateSalesAmount();
+    $('sales-order-status').textContent='수주를 저장했습니다. 일련번호 '+number(data.sequence_id)+' · 수주금액 '+money(data.amount)+'원';
+  }catch(error){if(generation===authGeneration)$('sales-order-status').textContent=errorText(error);}
+  finally{salesOrderSaving=false;$('sales-order-editor').disabled=false;}
 }
 async function readAll(table,order = 'id',productId = null) {
   const result = [];
@@ -198,11 +262,11 @@ async function updateSession(session) {
   $('admin-folder').hidden = true;
   $('sidebar-toggle').hidden = !currentUser;
   $('app-layout').classList.toggle('signed-in',!!currentUser);
-  items = []; movements = []; agedStock=[];updateSupplierOptions();render();
+  items = []; movements = []; agedStock=[];salesOrders=[];renderSalesOrders();updateSupplierOptions();render();
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
-    $('movement-dialog').close(); $('product-info-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('product-info-dialog').close(); $('sales-order-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try { await loadStock(); if (currentUser) {subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
   catch (error) { notify(errorText(error),true); }
@@ -692,6 +756,11 @@ async function startApp(){
   $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
   $('logout').addEventListener('click',async()=>{if(busy)return;const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);});
   $('product-info-button').addEventListener('click',showProductInfo);
+  $('sales-order-button').addEventListener('click',showSalesOrder);
+  $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
+  $('cancel-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
+  $('sales-order-form').addEventListener('submit',saveSalesOrder);
+  ['sales_quantity','sales_unit_price'].forEach(id=>$(id).addEventListener('input',updateSalesAmount));
   $('close-product-info').addEventListener('click',()=>$('product-info-dialog').close());
   $('cancel-product-info').addEventListener('click',()=>$('product-info-dialog').close());
   $('product-info-form').addEventListener('submit',saveProductInfo);

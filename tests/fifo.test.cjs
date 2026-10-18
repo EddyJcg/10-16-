@@ -26,6 +26,27 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
     };
     const summary = async code => (await db.query('select * from public.stock_summary where product_code=$1',[code])).rows[0];
 
+    await t.test('sales orders save all fields with generated serial number and calculated amount',async()=>{
+      const result=await db.query(`select public.register_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) as result`,
+        ['SO-2026-001','온라인 수주','Eco Bag','450 x 300','EA(개)',3,1250.5,'2026-12-31','택배','서울시 중구','선물 포장']);
+      const order=result.rows[0].result;
+      assert.ok(Number(order.sequence_id)>0);
+      assert.equal(order.order_number,'SO-2026-001');
+      assert.equal(order.order_type,'온라인 수주');
+      assert.equal(order.product_name,'Eco Bag');
+      assert.equal(order.specification,'450 x 300');
+      assert.equal(order.unit,'EA(개)');
+      assert.equal(order.quantity,3);
+      assert.equal(Number(order.unit_price),1250.5);
+      assert.equal(Number(order.amount),3751.5);
+      assert.equal(String(order.due_date).slice(0,10),'2026-12-31');
+      assert.equal(order.delivery_method,'택배');
+      assert.equal(order.address,'서울시 중구');
+      assert.equal(order.notes,'선물 포장');
+      await assert.rejects(db.query(`select public.register_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        ['SO-BAD','방문','Item','','EA(개)',1,100,'2026-12-31','','','']),/INVALID_SALES_ORDER/);
+    });
+
     await t.test('product master must be registered before opening stock or receipt',async () => {
       const product=details('UNREGISTERED');
       await assert.rejects(db.query('select public.post_stock_movement($1,$2,$3,$4,$5,$6)',[randomUUID(),'receipt','2020-01-01',product,1,100]),/PRODUCT_INFO_REQUIRED/);

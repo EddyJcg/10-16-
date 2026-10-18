@@ -73,6 +73,15 @@ test('dashboard long-stock button opens and closes the detail dialog',async()=>{
   assert.equal(typeof app.element('close-long-stock').handlers.click,'function');
 });
 
+test('sales order menu opens its dialog and binds save and amount calculation',async()=>{
+  const app=await boot('inventory-app.js');
+  assert.equal(typeof app.element('sales-order-button').handlers.click,'function');
+  assert.equal(typeof app.element('close-sales-order').handlers.click,'function');
+  assert.equal(typeof app.element('sales-order-form').handlers.submit,'function');
+  assert.equal(typeof app.element('sales_quantity').handlers.input,'function');
+  assert.equal(typeof app.element('sales_unit_price').handlers.input,'function');
+});
+
 test('inventory and admin use the same tab session without another sign-in',async()=>{
   const inventory=await boot('inventory-app.js'),admin=await boot('admin.js');
   assert.equal(admin.options.auth.storageKey,inventory.options.auth.storageKey);

@@ -92,6 +92,13 @@
 .stat-action strong{color:#a63b2c}
 .stat-action.long-stock>span:first-child,.stat-action.long-stock strong{color:#8d6328}
 .stat-action.long-stock strong{font-size:19px;line-height:1.35;overflow-wrap:anywhere}
+.sales-order-dialog{width:min(1280px,calc(100% - 32px))}
+.sales-order-dialog .dialog-body{max-height:calc(90vh - 150px)}
+.sales-order-dialog textarea{width:100%;padding:10px 11px;border:1px solid #d3dfd5;border-radius:7px;background:white;color:#294638;font:inherit;resize:vertical}
+.sales-order-wide{grid-column:span 3}
+.sales-order-table{max-height:320px}
+@media(max-width:850px){.sales-order-wide{grid-column:span 2}}
+@media(max-width:520px){.sales-order-wide{grid-column:auto}}
 @media print{
   @page{size:A4 landscape}
   body>*{visibility:hidden!important}

@@ -554,12 +554,12 @@ function updateMovementListSuppliers() {
     .forEach(supplier=>{const option=document.createElement('option');option.value=supplier;option.textContent=supplier;select.append(option);});
   select.value=[...select.options].some(option=>option.value===selected)?selected:'';
 }
-function renderMovementList() {
+function filteredMovementListRows() {
   const startDate=$('movement-list-start-date').value,endDate=$('movement-list-end-date').value;
   const supplier=$('movement-list-supplier').value.trim().toLowerCase(),query=$('movement-list-query').value.trim().toLowerCase();
   const kind=$('movement-list-kind').value;
   const itemsById=new Map(items.map(item=>[item.id,item]));
-  const shown=movementListRows.filter(movement=>{
+  return movementListRows.filter(movement=>{
     const date=String(movement.movement_date||'').slice(0,10),item=itemsById.get(movement.product_id);
     if(startDate&&date<startDate||endDate&&date>endDate||kind&&movement.kind!==kind)return false;
     if(supplier&&supplier!==String(item?.supplier||'').trim().toLowerCase())return false;
@@ -567,6 +567,9 @@ function renderMovementList() {
     return [movement.sequence_id,date,MODE_LABELS[movement.kind]?.[1],item?.product_code,item?.product_name,item?.specification,item?.color,item?.storage_location,item?.supplier]
       .some(value=>String(value??'').toLowerCase().includes(query));
   });
+}
+function renderMovementList() {
+  const shown=filteredMovementListRows(),itemsById=new Map(items.map(item=>[item.id,item]));
   const body=$('movement-list-items');body.replaceChildren();$('movement-list-count').textContent=shown.length.toLocaleString('ko-KR')+'건';
   if(!shown.length){
     const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=13;cell.className='empty';
@@ -818,6 +821,61 @@ async function showAllocations(movement) {
     renderDetailTable(['기초·입고일자',`차감수량 (${unit})`,'단가','금액'],data.map(row=>[row.stock_lots?.received_date || '',number(row.quantity),money(row.unit_cost),money(row.amount)]));
   } catch(error) {$('detail-content').textContent=errorText(error);}
 }
+async function downloadDataWorkbook(buttonId,sheetName,filePrefix,headers,rows,numericColumns,emptyMessage) {
+  if(exporting||!currentUser)return;
+  if(!rows.length){notify(emptyMessage);return;}
+  if(!window.ExcelJS){notify('Excel 도구를 불러오지 못했습니다. 새로고침해 주세요.',true);return;}
+  exporting=true;$(buttonId).disabled=true;const generation=authGeneration;
+  try {
+    const workbook=createDataWorkbook(window.ExcelJS,{sheetName,headers,rows,numericColumns});
+    const buffer=await workbook.xlsx.writeBuffer();
+    if(generation!==authGeneration)return;
+    const url=URL.createObjectURL(new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    const link=document.createElement('a');link.href=url;link.download=filePrefix+'-'+todayDate()+'.xlsx';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    notify(sheetName+' '+rows.length.toLocaleString('ko-KR')+'건을 Excel로 내보냈습니다.');
+  }catch(error){notify('Excel 파일을 만들지 못했습니다. '+errorText(error),true);}
+  finally{exporting=false;$(buttonId).disabled=false;}
+}
+function exportCurrentStockExcel(){
+  const fields=CURRENT_STOCK_FIELDS,rows=currentStockRows(items);
+  return downloadDataWorkbook('export-current-stock','현재재고','현재재고',
+    ['일련번호',...fields.map(field=>field.label)],
+    rows.map((item,index)=>[index+1,...fields.map(field=>field.numeric?Number(item[field.key]||0):item[field.key]||'')]),
+    [0,...fields.flatMap((field,index)=>field.numeric?[index+1]:[])],'내보낼 현재 재고가 없습니다.');
+}
+function exportProductListExcel(){
+  const fields=productListFields(),rows=filterInventoryItems(items,{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds});
+  return downloadDataWorkbook('export-product-list','품목목록','품목목록',
+    ['일련번호',...fields.map(field=>field.label)],
+    rows.map((item,index)=>[index+1,...fields.map(field=>field.numeric?Number(item[field.key]||0):item[field.key]||'')]),
+    [0,...fields.flatMap((field,index)=>field.numeric?[index+1]:[])],'내보낼 품목이 없습니다.');
+}
+function exportMovementListExcel(){
+  const fields=[
+    {key:'sequence_id',label:'일련번호',numeric:true},{key:'movement_date',label:'일자'},
+    {key:'kind',label:'구분'},{key:'product_code',label:'품번'},{key:'product_name',label:'품명'},
+    {key:'specification',label:'규격'},{key:'color',label:'색상'},{key:'storage_location',label:'저장위치'},
+    {key:'supplier',label:'업체'},{key:'unit',label:'단위'},{key:'quantity',label:'수량',numeric:true},
+    {key:'unit_cost',label:'단가',numeric:true},{key:'amount',label:'금액',numeric:true}
+  ];
+  const rows=filteredMovementListRows(),itemsById=new Map(items.map(item=>[item.id,item]));
+  return downloadDataWorkbook('export-movement-list','입출고내역','입출고내역',
+    fields.map(field=>field.label),rows.map(movement=>{
+      const item=itemsById.get(movement.product_id);
+      return [movement.sequence_id,String(movement.movement_date||'').slice(0,10),MODE_LABELS[movement.kind]?.[1]||movement.kind,
+        item?.product_code||'',item?.product_name||'',item?.specification||'',item?.color||'',item?.storage_location||'',
+        item?.supplier||'',item?.unit||'EA(개)',Number(movement.quantity||0),Number(movement.unit_cost||0),Number(movement.amount||0)];
+    }),fields.flatMap((field,index)=>field.numeric?[index]:[]),'내보낼 입출고 내역이 없습니다.');
+}
+function exportSalesStatusExcel(){
+  const rows=filterSalesOrders(salesOrders,appliedSalesStatusFilters);
+  const headers=['일련번호','수주일자','수주번호','매출 상태','수주형태','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'];
+  return downloadDataWorkbook('export-sales-status','수주현황','수주현황',headers,rows.map(order=>[
+    Number(order.sequence_id),String(order.order_date||'').slice(0,10),order.order_number,order.sales_status||'매출미완료',
+    order.order_type,order.product_name,order.specification,order.unit,Number(order.quantity||0),Number(order.unit_price||0),
+    Number(order.amount||0),String(order.due_date||'').slice(0,10),order.delivery_method,order.address,order.notes
+  ]),[0,8,9,10],'내보낼 수주 내역이 없습니다.');
+}
 async function exportExcel() {
   if(exporting || !currentUser) return;
   if(!items.length){notify('내보낼 품목이 없습니다.');return;}
@@ -848,6 +906,7 @@ async function startApp(){
   $('apply-sales-status-search').addEventListener('click',()=>applySalesStatusSearch());
   $('clear-sales-status-search').addEventListener('click',()=>applySalesStatusSearch(true));
   $('sales-status-items').addEventListener('change',changeSalesOrderStatus);
+  $('export-sales-status').addEventListener('click',exportSalesStatusExcel);
   ['sales_quantity','sales_unit_price'].forEach(id=>$(id).addEventListener('input',updateSalesAmount));
   $('close-product-info').addEventListener('click',()=>$('product-info-dialog').close());
   $('cancel-product-info').addEventListener('click',()=>$('product-info-dialog').close());
@@ -864,16 +923,19 @@ async function startApp(){
   ['movement_quantity','movement_date'].forEach(id=>$(id).addEventListener('change',()=>validateIssueQuantity(true)));
   $('close-detail').addEventListener('click',()=>$('detail-dialog').close());
   $('current-stock-button').addEventListener('click',showCurrentStock);
+  $('export-current-stock').addEventListener('click',exportCurrentStockExcel);
   $('close-current-stock').addEventListener('click',()=>$('current-stock-dialog').close());
   $('stock-risk-button').addEventListener('click',showStockRisk);
   $('close-stock-risk').addEventListener('click',()=>$('stock-risk-dialog').close());
   $('long-stock-button').addEventListener('click',showLongStock);
   $('close-long-stock').addEventListener('click',()=>$('long-stock-dialog').close());
   $('product-list-button').addEventListener('click',showProductList);
+  $('export-product-list').addEventListener('click',exportProductListExcel);
   $('close-product-list').addEventListener('click',()=>$('product-list-dialog').close());
   $('search-product-list').addEventListener('click',searchProductList);
   $('clear-product-list-search').addEventListener('click',clearProductListSearch);
   $('movement-list-button').addEventListener('click',showMovementList);
+  $('export-movement-list').addEventListener('click',exportMovementListExcel);
   $('close-movement-list').addEventListener('click',()=>$('movement-list-dialog').close());
   $('search-movement-list').addEventListener('click',searchMovementList);
   $('clear-movement-list-search').addEventListener('click',clearMovementListSearch);

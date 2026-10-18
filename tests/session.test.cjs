@@ -97,6 +97,12 @@ test('sales status menu opens its list and binds searches and status updates',as
   assert.equal(typeof app.element('sales-status-items').handlers.change,'function');
 });
 
+test('sales and inventory lists bind their Excel download buttons',async()=>{
+  const app=await boot('inventory-app.js');
+  for(const id of ['export-sales-status','export-current-stock','export-product-list','export-movement-list'])
+    assert.equal(typeof app.element(id).handlers.click,'function',id);
+});
+
 test('inventory and admin use the same tab session without another sign-in',async()=>{
   const inventory=await boot('inventory-app.js'),admin=await boot('admin.js');
   assert.equal(admin.options.auth.storageKey,inventory.options.auth.storageKey);

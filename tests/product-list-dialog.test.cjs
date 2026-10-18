@@ -25,6 +25,20 @@ test('product list dialog searches all stock fields and prints the displayed lis
   assert.match(style,/#product-list-dialog \.product-list-search,#product-list-dialog \.product-list-status/);
 });
 
+test('all requested status and inventory dialogs offer Excel downloads using visible result sets',()=>{
+  const html=readFileSync('inventory.html','utf8'),script=readFileSync('inventory-app.js','utf8');
+  for(const id of ['export-sales-status','export-current-stock','export-product-list','export-movement-list'])
+    assert.match(html,new RegExp(`id="${id}"[^>]*>↓ Excel 다운로드`),id);
+  for(const [id,handler] of [
+    ['export-sales-status','exportSalesStatusExcel'],['export-current-stock','exportCurrentStockExcel'],
+    ['export-product-list','exportProductListExcel'],['export-movement-list','exportMovementListExcel']
+  ])assert.match(script,new RegExp(`\\$\\('${id}'\\)\\.addEventListener\\('click',${handler}\\)`),id);
+  assert.match(script,/filterSalesOrders\(salesOrders,appliedSalesStatusFilters\)/);
+  assert.match(script,/currentStockRows\(items\)/);
+  assert.match(script,/filterInventoryItems\(items,\{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds\}\)/);
+  assert.match(script,/const rows=filteredMovementListRows\(\)/);
+});
+
 test('print settings expose scale and four adjustable margins and apply them to page output',()=>{
   const html=readFileSync('inventory.html','utf8');
   const script=readFileSync('inventory-app.js','utf8');

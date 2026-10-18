@@ -28,4 +28,26 @@ function createInventoryWorkbook(ExcelJS, rows) {
   return workbook;
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = {createInventoryWorkbook};
+function createDataWorkbook(ExcelJS,{sheetName,headers,rows,numericColumns=[]}) {
+  const workbook=new ExcelJS.Workbook();
+  workbook.creator='재고노트';
+  const sheet=workbook.addWorksheet(sheetName,{views:[{state:'frozen',ySplit:1}]});
+  sheet.columns=headers.map((header,index)=>({
+    header,
+    width:Math.min(32,Math.max(12,String(header).length*2+4)),
+    ...(numericColumns.includes(index)?{style:{numFmt:'#,##0.##'}}:{})
+  }));
+  rows.forEach(values=>sheet.addRow(values.map((value,index)=>{
+    if(numericColumns.includes(index))return Number(value||0);
+    return String(value??'');
+  })));
+  sheet.eachRow(row=>{row.font={name:'Arial',size:11};row.height=22;});
+  const header=sheet.getRow(1);
+  header.font={name:'Arial',size:11,bold:true,color:{argb:'FFFFFFFF'}};
+  header.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF163E32'}};
+  header.height=28;
+  sheet.autoFilter={from:'A1',to:sheet.getCell(1,headers.length).address.replace(/\d+$/,'')+sheet.rowCount};
+  return workbook;
+}
+
+if (typeof module !== 'undefined' && module.exports) module.exports = {createInventoryWorkbook,createDataWorkbook};

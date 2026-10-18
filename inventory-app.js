@@ -8,7 +8,7 @@ let loadPromise = null,reloadQueued = false,syncTimer = null,busy = false,export
 let appliedDateProductIds = null,appliedSupplier = '',searching = false;
 let productListDateIds = null,productListSupplier = '',productListQuery = '',productListSearching = false;
 const printMargins = {top:10,right:10,bottom:10,left:10};
-let printMarginDrag = null;
+let printMarginDrag = null,activePrintTarget='product-list';
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function errorText(error) {
@@ -168,7 +168,7 @@ async function updateSession(session) {
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
-    $('movement-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('product-list-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('product-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try { await loadStock(); if (currentUser) {subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
   catch (error) { notify(errorText(error),true); }
@@ -282,9 +282,18 @@ function clearProductListSearch() {
   $('product-list-start-date').value='';$('product-list-end-date').value='';$('product-list-supplier').value='';$('product-list-query').value='';
   productListDateIds=null;productListSupplier='';productListQuery='';renderProductList();$('product-list-status').textContent='검색 조건을 초기화했습니다.';
 }
-function printProductList() {
-  if(!$('product-list-dialog').open)return;
+function openPrintSettings(target) {
+  activePrintTarget=target;
+  $('print-settings-dialog').showModal();
+}
+function printInventoryList(target) {
+  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog'};
+  if(target in targetDialogs&&!$(targetDialogs[target]).open)return;
+  activePrintTarget=target;
   applyProductListPrintSettings();
+  if($('print-settings-dialog').open)$('print-settings-dialog').close();
+  document.body.dataset.printTarget=target;
+  window.addEventListener('afterprint',()=>{delete document.body.dataset.printTarget;},{once:true});
   window.print();
 }
 function setProductListPrintMargin(side,value) {
@@ -295,15 +304,16 @@ function setProductListPrintMargin(side,value) {
   input.value=String(printMargins[side]);handle.setAttribute('aria-valuenow',String(printMargins[side]));
   $('printable-area').style.setProperty('--margin-'+side+'-offset',(printMargins[side]/(side==='top'||side==='bottom'?210:297)*100)+'%');
 }
-function toggleProductListPrintSettings() {
-  const button=$('toggle-print-settings'),settings=$('product-list-print-settings');
-  settings.hidden=!settings.hidden;button.setAttribute('aria-expanded',String(!settings.hidden));
-}
 function applyProductListPrintSettings() {
   const scale=Number($('product-list-print-scale').value)/100;
+  const tables={
+    'product-list':'#product-list-dialog .product-list-table table',
+    'current-stock':'#current-stock-dialog table',
+    'movement-history':'#movement-history table'
+  };
   let style=document.getElementById('product-list-print-page-style');
   if(!style){style=document.createElement('style');style.id='product-list-print-page-style';document.head.append(style);}
-  style.textContent=`@page{size:A4 landscape;margin:${printMargins.top}mm ${printMargins.right}mm ${printMargins.bottom}mm ${printMargins.left}mm}@media print{#product-list-dialog .product-list-table table{zoom:${scale};width:${100/scale}%}}`;
+  style.textContent=`@page{size:A4 landscape;margin:${printMargins.top}mm ${printMargins.right}mm ${printMargins.bottom}mm ${printMargins.left}mm}@media print{${tables[activePrintTarget]}{zoom:${scale};width:${100/scale}%}}`;
 }
 function startProductListPrintSettings() {
   const scale=$('product-list-print-scale');
@@ -337,7 +347,7 @@ function startProductListPrintSettings() {
     input.addEventListener('input',()=>setProductListPrintMargin(side,input.value));
     input.addEventListener('change',()=>setProductListPrintMargin(side,input.value||10));
   });
-  $('toggle-print-settings').addEventListener('click',toggleProductListPrintSettings);
+  document.querySelectorAll('[data-print-settings]').forEach(button=>button.addEventListener('click',()=>openPrintSettings(button.dataset.printSettings)));
   $('product-list-print-scale').addEventListener('input',()=>applyProductListPrintSettings());
 }
 function closeMovement() { if (!busy) {lotsGeneration++; $('movement-dialog').close();} }
@@ -413,7 +423,8 @@ async function startApp(){
   $('close-product-list').addEventListener('click',()=>$('product-list-dialog').close());
   $('search-product-list').addEventListener('click',searchProductList);
   $('clear-product-list-search').addEventListener('click',clearProductListSearch);
-  $('print-product-list').addEventListener('click',printProductList);
+  document.querySelectorAll('[data-print]').forEach(button=>button.addEventListener('click',()=>printInventoryList(button.dataset.print)));
+  $('close-print-settings').addEventListener('click',()=>$('print-settings-dialog').close());
   startProductListPrintSettings();
   $('search').addEventListener('input',render);$('filter').addEventListener('change',render);$('export').addEventListener('click',exportExcel);
   $('movement-kind-filter').addEventListener('change',()=>{$('supplier-filter-wrap').hidden=$('movement-kind-filter').value!=='supplier';});

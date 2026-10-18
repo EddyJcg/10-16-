@@ -42,5 +42,22 @@ test('print settings expose scale and four adjustable margins and apply them to 
 test('print settings button is positioned to the left of print',()=>{
   const html=readFileSync('inventory.html','utf8');
   const toolbar=html.match(/<div class="product-list-toolbar">([\s\S]*?)<\/div>/)?.[1]||'';
-  assert.ok(toolbar.indexOf('id="toggle-print-settings"')<toolbar.indexOf('id="print-product-list"'));
+  assert.ok(toolbar.indexOf('data-print-settings="product-list"')<toolbar.indexOf('data-print="product-list"'));
+});
+
+test('current stock and movement history expose printing with shared adjustable settings',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const script=readFileSync('inventory-app.js','utf8');
+  const style=readFileSync('inventory.css','utf8');
+  for(const target of ['current-stock','movement-history']){
+    assert.match(html,new RegExp(`data-print-settings="${target}"`));
+    assert.match(html,new RegExp(`data-print="${target}"`));
+  }
+  assert.match(html,/<dialog id="print-settings-dialog"/);
+  assert.match(script,/document\.querySelectorAll\('\[data-print\]'\)/);
+  assert.match(script,/document\.querySelectorAll\('\[data-print-settings\]'\)/);
+  assert.match(script,/'current-stock':'#current-stock-dialog table'/);
+  assert.match(script,/'movement-history':'#movement-history table'/);
+  assert.match(style,/body\[data-print-target="current-stock"\] #current-stock-dialog/);
+  assert.match(style,/body\[data-print-target="movement-history"\] #movement-history/);
 });

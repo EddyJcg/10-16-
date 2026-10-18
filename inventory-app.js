@@ -206,6 +206,8 @@ function productForLookup(source,value=$(source).value) {
 function populateProductInfo(source) {
   const previous=selectedProductInfoCode,item=productForLookup(source);
   selectedProductInfoCode=item?.product_code||'';
+  ['info_product_category','info_product_name','info_specification','info_material','info_color'].forEach(id=>$(id).readOnly=!!item);
+  $('info_unit').disabled=!!item;
   if(item)$('info_product_code').value=item.product_code;
   else if(source==='info_specification')$('info_product_code').value='';
   ['product_category','product_code','product_name','specification','material','color','unit','standard_stock_quantity'].forEach(key=>{
@@ -315,19 +317,23 @@ async function saveProductInfo(event) {
     $('product-info-status').textContent='적정재고 수량은 1~1,000,000 사이의 정수로 입력하세요.';
     return;
   }
-  if(selectedProductInfoCode&&details.product_code===selectedProductInfoCode){
-    $('product-info-status').textContent='이미 등록된 품번입니다. 기존 품목정보를 확인하거나 다른 품번을 입력하세요.';
-    return;
-  }
+  const updatingStandard=!!selectedProductInfoCode&&details.product_code===selectedProductInfoCode;
   const generation=authGeneration;busy=true;$('product-info-editor').disabled=true;
   $('product-info-status').textContent='품목정보를 저장하는 중…';
   try {
-    const {data,error}=await client.rpc('register_stock_product',{p_details:details});
+    const {data,error}=updatingStandard
+      ? await client.rpc('set_stock_product_standard_stock_quantity',{p_product_code:details.product_code,p_standard_stock_quantity:details.standard_stock_quantity})
+      : await client.rpc('register_stock_product',{p_details:details});
     if(error)throw error;
     if(generation!==authGeneration)return;
-    items.push(data);selectedProductInfoCode='';
-    $('product-info-form').reset();renderProductInfoItems();
-    $('product-info-status').textContent='품목정보를 저장했습니다. 이제 기초재고 또는 입고를 등록할 수 있습니다.';
+    if(updatingStandard){
+      items=items.map(item=>item.id===data.id?{...item,...data}:item);render();renderProductInfoItems();
+      $('product-info-status').textContent='적정재고 수량을 수정했습니다. 다른 품목정보는 변경되지 않았습니다.';
+    }else{
+      items.push(data);selectedProductInfoCode='';
+      $('product-info-form').reset();renderProductInfoItems();
+      $('product-info-status').textContent='품목정보를 저장했습니다. 이제 기초재고 또는 입고를 등록할 수 있습니다.';
+    }
     try {await loadStock();if(generation===authGeneration)renderProductInfoItems();}
     catch(refreshError) {if(generation===authGeneration)$('product-info-status').textContent='품목정보는 저장했지만 목록 갱신에 실패했습니다. '+errorText(refreshError);}
   } catch(error) {

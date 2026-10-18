@@ -45,6 +45,12 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       await assert.rejects(register({...product,product_code:'DECIMAL-STANDARD',standard_stock_quantity:1.5}),/INVALID_PRODUCT_DETAILS/);
       await post('UNREGISTERED','receipt',1,100,'2020-01-01');
       assert.equal(Number((await summary('UNREGISTERED')).stock_quantity),1);
+      const updated=await db.query('select public.set_stock_product_standard_stock_quantity($1,$2) as result',['UNREGISTERED',25]);
+      assert.equal(updated.rows[0].result.product_name,'Eco Bag');
+      assert.equal(Number(updated.rows[0].result.standard_stock_quantity),25);
+      assert.equal(Number((await summary('UNREGISTERED')).standard_stock_quantity),25);
+      await assert.rejects(db.query('select public.set_stock_product_standard_stock_quantity($1,$2)',['UNREGISTERED',0]),/INVALID_PRODUCT_DETAILS/);
+      await assert.rejects(db.query('select public.set_stock_product_standard_stock_quantity($1,$2)',['MISSING',25]),/PRODUCT_NOT_FOUND/);
     });
     await t.test('selected unit is persisted and cannot change for an existing product',async () => {
       const product=details('WEIGHT','','Kg');

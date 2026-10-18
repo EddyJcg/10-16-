@@ -104,6 +104,29 @@ $$;
 revoke all on function public.register_stock_product(jsonb) from public, anon;
 grant execute on function public.register_stock_product(jsonb) to authenticated;
 
+create or replace function public.set_stock_product_standard_stock_quantity(p_product_code text,p_standard_stock_quantity integer)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  v_product public.stock_products%rowtype;
+  v_code text;
+begin
+  if not public.inventory_access_allowed() then raise exception 'ACCOUNT_DISABLED' using errcode='42501'; end if;
+  v_code := upper(trim(p_product_code));
+  if v_code is null or char_length(v_code) not between 1 and 80
+    or p_standard_stock_quantity is null or p_standard_stock_quantity not between 1 and 1000000 then
+    raise exception 'INVALID_PRODUCT_DETAILS';
+  end if;
+  update public.stock_products
+  set standard_stock_quantity=p_standard_stock_quantity
+  where product_code=v_code
+  returning * into v_product;
+  if not found then raise exception 'PRODUCT_NOT_FOUND'; end if;
+  return to_jsonb(v_product);
+end;
+$$;
+revoke all on function public.set_stock_product_standard_stock_quantity(text,integer) from public, anon;
+grant execute on function public.set_stock_product_standard_stock_quantity(text,integer) to authenticated;
+
 create or replace view public.stock_summary with (security_invoker = true) as
 with movements as (
   select product_id,

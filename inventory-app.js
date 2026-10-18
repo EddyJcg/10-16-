@@ -7,6 +7,8 @@ let client,currentUser = null,items = [],movements = [],totalMovements = 0,authG
 let loadPromise = null,reloadQueued = false,syncTimer = null,busy = false,exporting = false;
 let appliedDateProductIds = null,appliedSupplier = '',searching = false;
 let productListDateIds = null,productListSupplier = '',productListQuery = '',productListSearching = false;
+const printMargins = {top:10,right:10,bottom:10,left:10};
+let printMarginDrag = null;
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function errorText(error) {
@@ -282,7 +284,61 @@ function clearProductListSearch() {
 }
 function printProductList() {
   if(!$('product-list-dialog').open)return;
+  applyProductListPrintSettings();
   window.print();
+}
+function setProductListPrintMargin(side,value) {
+  const margin=Number(value);
+  if(!Number.isFinite(margin))return;
+  printMargins[side]=Math.min(40,Math.max(2,Math.round(margin)));
+  const input=$('print-margin-'+side),handle=document.querySelector(`.margin-handle[data-margin="${side}"]`);
+  input.value=String(printMargins[side]);handle.setAttribute('aria-valuenow',String(printMargins[side]));
+  $('printable-area').style.setProperty('--margin-'+side+'-offset',(printMargins[side]/(side==='top'||side==='bottom'?210:297)*100)+'%');
+}
+function toggleProductListPrintSettings() {
+  const button=$('toggle-print-settings'),settings=$('product-list-print-settings');
+  settings.hidden=!settings.hidden;button.setAttribute('aria-expanded',String(!settings.hidden));
+}
+function applyProductListPrintSettings() {
+  const scale=Number($('product-list-print-scale').value)/100;
+  let style=document.getElementById('product-list-print-page-style');
+  if(!style){style=document.createElement('style');style.id='product-list-print-page-style';document.head.append(style);}
+  style.textContent=`@page{size:A4 landscape;margin:${printMargins.top}mm ${printMargins.right}mm ${printMargins.bottom}mm ${printMargins.left}mm}@media print{#product-list-dialog .product-list-table table{zoom:${scale};width:${100/scale}%}}`;
+}
+function startProductListPrintSettings() {
+  const scale=$('product-list-print-scale');
+  scale.addEventListener('input',()=>{$('product-list-print-scale-value').value=scale.value+'%';});
+  document.querySelectorAll('.margin-handle').forEach(handle=>{
+    handle.addEventListener('pointerdown',event=>{
+      const side=handle.dataset.margin;
+      printMarginDrag={side,x:event.clientX,y:event.clientY,value:printMargins[side]};
+      handle.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    });
+    handle.addEventListener('keydown',event=>{
+      if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key))return;
+      event.preventDefault();
+      const direction=['ArrowRight','ArrowDown'].includes(event.key)?1:-1;
+      setProductListPrintMargin(handle.dataset.margin,printMargins[handle.dataset.margin]+direction*(event.shiftKey?5:1));
+    });
+  });
+  document.addEventListener('pointermove',event=>{
+    if(!printMarginDrag)return;
+    const paper=$('product-list-print-preview').getBoundingClientRect(),{side,x,y,value}=printMarginDrag;
+    const vertical=side==='top'||side==='bottom';
+    const delta=vertical?(event.clientY-y)*210/paper.height:(event.clientX-x)*297/paper.width;
+    const direction=side==='bottom'||side==='right'?-1:1;
+    setProductListPrintMargin(side,value+delta*direction);
+  });
+  document.addEventListener('pointerup',()=>{printMarginDrag=null;});
+  document.addEventListener('pointercancel',()=>{printMarginDrag=null;});
+  ['top','right','bottom','left'].forEach(side=>{
+    const input=$('print-margin-'+side);
+    input.addEventListener('input',()=>setProductListPrintMargin(side,input.value));
+    input.addEventListener('change',()=>setProductListPrintMargin(side,input.value||10));
+  });
+  $('toggle-print-settings').addEventListener('click',toggleProductListPrintSettings);
+  $('product-list-print-scale').addEventListener('input',()=>applyProductListPrintSettings());
 }
 function closeMovement() { if (!busy) {lotsGeneration++; $('movement-dialog').close();} }
 async function saveMovement(event) {
@@ -358,6 +414,7 @@ async function startApp(){
   $('search-product-list').addEventListener('click',searchProductList);
   $('clear-product-list-search').addEventListener('click',clearProductListSearch);
   $('print-product-list').addEventListener('click',printProductList);
+  startProductListPrintSettings();
   $('search').addEventListener('input',render);$('filter').addEventListener('change',render);$('export').addEventListener('click',exportExcel);
   $('movement-kind-filter').addEventListener('change',()=>{$('supplier-filter-wrap').hidden=$('movement-kind-filter').value!=='supplier';});
   $('apply-search').addEventListener('click',applyInventorySearch);$('clear-search').addEventListener('click',clearInventorySearch);

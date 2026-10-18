@@ -21,3 +21,20 @@ test('product list dialog searches all stock fields and prints the displayed lis
   assert.match(style,/@media print/);
   assert.match(style,/#product-list-dialog \.product-list-search,#product-list-dialog \.product-list-status/);
 });
+
+test('print settings expose scale and four adjustable margins and apply them to page output',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const script=readFileSync('inventory-app.js','utf8');
+  const style=readFileSync('inventory.css','utf8');
+  assert.match(html,/id="product-list-print-scale" type="range" min="50" max="100" step="5"/);
+  for(const side of ['top','right','bottom','left']){
+    assert.match(html,new RegExp(`id="print-margin-${side}" type="number" min="2" max="40"`));
+    assert.match(html,new RegExp(`class="margin-handle margin-${side}" data-margin="${side}" role="slider"`));
+  }
+  assert.match(script,/setPointerCapture\(event\.pointerId\)/);
+  assert.match(script,/event\.clientY-y\)\*210\/paper\.height/);
+  assert.match(script,/event\.clientX-x\)\*297\/paper\.width/);
+  assert.match(script,/@page\{size:A4 landscape;margin:/);
+  assert.match(script,/zoom:\$\{scale\};width:\$\{100\/scale\}%/);
+  assert.match(style,/@page\{size:A4 landscape\}/);
+});

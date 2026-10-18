@@ -238,8 +238,9 @@ async function saveMovement(event) {
     if (error) throw error;
     if (generation!==authGeneration) return;
     $('movement-dialog').close(); requestId=null;
-    const text=MODE_LABELS[mode][0]+' 저장 완료 · '+number(data.quantity)+'개 / '+money(data.amount)+'원';
-    try {await loadStock();notify(text);} catch {notify(text+' · 목록 새로고침은 다시 시도해 주세요.',true);}
+    const hasSerial=data?.sequence_id!=null;
+    const text=MODE_LABELS[mode][0]+' 저장 완료 · 일련번호 '+(hasSerial?number(data.sequence_id):'확인 필요')+' · '+number(data.quantity)+'개 / '+money(data.amount)+'원';
+    try {await loadStock();notify(text,!hasSerial);} catch {notify(text+' · 목록 새로고침은 다시 시도해 주세요.',true);}
   } catch (error) {if (generation===authGeneration) $('form-message').textContent=errorText(error);}
   finally {busy=false;$('movement-editor').disabled=false;$('close-dialog').disabled=false;}
 }

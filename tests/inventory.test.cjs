@@ -13,6 +13,11 @@ test('current stock includes every positive balance and excludes exhausted produ
   assert.deepEqual(currentStockRows(rows).map(row=>row.id),[1,3]);
   assert.equal(rows.length,5);
 });
+test('movement history displays the database-generated serial number',()=>{
+  const html=fs.readFileSync('inventory.html','utf8'),renderer=fs.readFileSync('inventory-render.js','utf8');
+  assert.match(html,/<th class="numeric">일련번호<\/th><th>일자<\/th>/);
+  assert.match(renderer,/movement\.sequence_id==null\?'':number\(movement\.sequence_id\)/);
+});
 test('optional inventory search conditions combine without changing defaults',()=>{
   const rows=[
     {id:1,product_code:'A-1',product_name:'Pouch',supplier:'Seoul Trading',stock_quantity:3},

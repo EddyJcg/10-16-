@@ -45,6 +45,12 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       const issue = await post('TIE','issue',1,0,'2020-01-01');
       assert.equal(Number(issue.amount),30);
     });
+    await t.test('each saved movement receives an increasing serial number',async () => {
+      const opening = await post('SERIAL','opening',2,100,'2020-01-01');
+      const receipt = await post('SERIAL','receipt',3,120,'2020-01-02');
+      assert.ok(Number(opening.sequence_id)>0);
+      assert.ok(Number(receipt.sequence_id)>Number(opening.sequence_id));
+    });
     await t.test('insufficient stock rolls back all movement and allocation changes',async () => {
       const before = await summary('MULTI');
       const count = await db.query('select count(*) as count from public.stock_movements');
@@ -57,6 +63,7 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       const first = await post('RETRY','receipt',2,50,'2020-01-01',id);
       const second = await post('RETRY','receipt',2,50,'2020-01-01',id);
       assert.equal(first.id,second.id);
+      assert.equal(first.sequence_id,second.sequence_id);
       assert.equal(Number((await summary('RETRY')).stock_quantity),2);
       await assert.rejects(post('RETRY','receipt',3,50,'2020-01-01',id),/REQUEST_CONFLICT/);
     });

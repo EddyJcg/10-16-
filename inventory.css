@@ -30,10 +30,7 @@
 #current-stock-dialog{width:min(1400px,calc(100% - 32px))}
 #product-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}
 .product-list-toolbar,.product-list-actions,.product-list-dates{display:flex;align-items:center;gap:8px}
-.product-list-toolbar{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;gap:4px 8px;align-items:start}
-.product-list-toolbar #print-product-list{grid-column:1;grid-row:1}
-.product-list-toolbar #toggle-print-settings{grid-column:1;grid-row:2}
-.product-list-toolbar #close-product-list{grid-column:2;grid-row:1;align-self:start}
+.product-list-toolbar #close-product-list{margin-left:8px}
 .product-list-body{max-height:calc(92vh - 90px)}
 .print-settings{padding:16px;margin-bottom:18px;border:1px solid #dfe7df;border-radius:10px;background:#f7faf7}
 .print-scale-control{max-width:420px}

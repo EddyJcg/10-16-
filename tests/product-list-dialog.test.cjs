@@ -39,9 +39,8 @@ test('print settings expose scale and four adjustable margins and apply them to 
   assert.match(style,/@page\{size:A4 landscape\}/);
 });
 
-test('print settings button is visually stacked below the print button',()=>{
-  const style=readFileSync('inventory.css','utf8');
-  assert.match(style,/#print-product-list\{grid-column:1;grid-row:1\}/);
-  assert.match(style,/#toggle-print-settings\{grid-column:1;grid-row:2\}/);
-  assert.match(style,/#close-product-list\{grid-column:2;grid-row:1/);
+test('print settings button is positioned to the left of print',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const toolbar=html.match(/<div class="product-list-toolbar">([\s\S]*?)<\/div>/)?.[1]||'';
+  assert.ok(toolbar.indexOf('id="toggle-print-settings"')<toolbar.indexOf('id="print-product-list"'));
 });

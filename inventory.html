@@ -13,7 +13,7 @@
         <details id="opening-folder" class="menu-folder" data-sidebar-folder open><summary>기초재고</summary><div class="folder-children"><button type="button" class="sidebar-action" data-mode="opening" aria-haspopup="dialog">기초재고 등록</button></div></details>
         <details id="receipt-folder" class="menu-folder" data-sidebar-folder><summary>입고관리</summary><div class="folder-children"><button type="button" class="sidebar-action" data-mode="receipt" aria-haspopup="dialog">입고 등록</button></div></details>
         <details id="issue-folder" class="menu-folder" data-sidebar-folder><summary>출고관리</summary><div class="folder-children"><button type="button" class="sidebar-action" data-mode="issue" aria-haspopup="dialog">출고 등록 · 선입선출</button></div></details>
-        <details id="stock-folder" class="menu-folder" data-sidebar-folder open><summary>재고현황</summary><div class="folder-children"><button type="button" class="sidebar-action" id="current-stock-button" aria-haspopup="dialog">재고 조회</button><button type="button" class="sidebar-action" id="movement-list-button" aria-haspopup="dialog">입출고 내역</button><button type="button" class="sidebar-action" id="product-list-button" aria-haspopup="dialog">품목 목록</button></div></details>
+        <details id="stock-folder" class="menu-folder" data-sidebar-folder open><summary>재고현황</summary><div class="folder-children"><button type="button" class="sidebar-action" id="current-stock-button" aria-haspopup="dialog">재고 조회</button><button type="button" class="sidebar-action" id="receipt-list-button" aria-haspopup="dialog">입고 내역</button><button type="button" class="sidebar-action" id="issue-list-button" aria-haspopup="dialog">출고내역</button><button type="button" class="sidebar-action" id="product-list-button" aria-haspopup="dialog">품목 목록</button></div></details>
       </div></details>
       <details id="admin-folder" class="menu-folder" data-sidebar-folder hidden><summary>관리자</summary><div class="folder-children"><a id="admin-link" class="sidebar-action" href="/admin.html" hidden>사용자 관리 ↗</a></div></details>
     </nav>
@@ -49,7 +49,7 @@
   </dialog>
   <dialog id="movement-list-dialog" aria-labelledby="movement-list-title">
     <div class="dialog-header">
-      <div><h2 id="movement-list-title">입출고 내역 <span id="movement-list-count" class="count">0건</span></h2><p>기간, 업체, 품번·품명·규격·저장위치로 검색하고 인쇄할 수 있습니다. 열 경계선을 드래그하거나 방향키로 너비를 조절할 수 있습니다.</p></div>
+      <div><h2 id="movement-list-title"><span id="movement-list-heading">입출고 내역</span> <span id="movement-list-count" class="count">0건</span></h2><p>기간, 업체, 품번·품명·규격·저장위치로 검색하고 인쇄할 수 있습니다. 열 경계선을 드래그하거나 방향키로 너비를 조절할 수 있습니다.</p></div>
       <div class="product-list-toolbar"><button id="export-movement-list" class="secondary" type="button">↓ Excel 다운로드</button><button class="secondary" type="button" data-print-settings="movement-list">인쇄 설정</button><button class="secondary" type="button" data-print="movement-list">인쇄</button><button type="button" class="close" id="close-movement-list" aria-label="입출고 내역 창 닫기">×</button></div>
     </div>
     <div class="dialog-body product-list-body">

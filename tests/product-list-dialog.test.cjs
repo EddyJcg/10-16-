@@ -1,6 +1,36 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
+const vm=require('node:vm');
+
+test('separate receipt and issue histories preserve their kind through reset and export',async()=>{
+  const elements=new Map();
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false,open:false,setAttribute(){},showModal(){this.open=true;}});
+    return elements.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:element}});
+  vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`currentUser={id:'test'};items=[];
+    loadStock=async()=>{};updateMovementListSuppliers=()=>{};renderMovementList=()=>{};
+    readAll=async()=>[{id:'r',sequence_id:1,kind:'receipt',movement_date:'2026-10-01'},{id:'i',sequence_id:2,kind:'issue',movement_date:'2026-10-02'},{id:'o',sequence_id:3,kind:'opening',movement_date:'2026-10-03'}];
+    downloadDataWorkbook=(...args)=>args;`,context);
+  for(const [kind,title] of [['receipt','입고 내역'],['issue','출고내역']]){
+    await vm.runInContext(`showMovementList('${kind}')`,context);
+    assert.equal(element('movement-list-heading').textContent,title);
+    assert.equal(element('movement-list-kind').value,kind);
+    assert.equal(element('movement-list-kind').disabled,true);
+    element('movement-list-start-date').value='2026-10-10';
+    vm.runInContext('clearMovementListSearch()',context);
+    assert.equal(element('movement-list-start-date').value,'');
+    assert.equal(element('movement-list-kind').value,kind);
+    assert.deepEqual(Array.from(vm.runInContext('filteredMovementListRows().map(row=>row.kind)',context)),[kind]);
+    const exported=vm.runInContext('exportMovementListExcel()',context);
+    assert.equal(exported[1],title);
+    assert.equal(exported[4].length,1);
+    assert.equal(exported[4][0][2],kind==='receipt'?'입고':'출고');
+  }
+});
 
 test('sidebar opens the searchable full product list in a modal dialog',()=>{
   const html=readFileSync('inventory.html','utf8');
@@ -129,7 +159,11 @@ test('movement history opens a searchable full-history dialog and preserves FIFO
   const html=readFileSync('inventory.html','utf8');
   const script=readFileSync('inventory-app.js','utf8');
   const style=readFileSync('inventory.css','utf8');
-  assert.match(html,/<button type="button" class="sidebar-action" id="movement-list-button" aria-haspopup="dialog">입출고 내역<\/button>/);
+  assert.match(html,/<button type="button" class="sidebar-action" id="receipt-list-button" aria-haspopup="dialog">입고 내역<\/button>/);
+  assert.match(html,/<button type="button" class="sidebar-action" id="issue-list-button" aria-haspopup="dialog">출고내역<\/button>/);
+  assert.doesNotMatch(html,/id="movement-list-button"/);
+  assert.ok(html.indexOf('id="receipt-list-button"')<html.indexOf('id="issue-list-button"'));
+  assert.ok(html.indexOf('id="issue-list-button"')<html.indexOf('id="product-list-button"'));
   assert.match(html,/<dialog id="movement-list-dialog" aria-labelledby="movement-list-title">/);
   for(const id of ['movement-list-start-date','movement-list-end-date','movement-list-supplier','movement-list-query','movement-list-kind','movement-list-items'])
     assert.match(html,new RegExp(`id="${id}"`));

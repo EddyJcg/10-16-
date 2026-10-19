@@ -92,13 +92,15 @@
 .stat-action{display:block;width:100%;text-align:left;cursor:pointer}
 .stat-action:hover{border-color:#b95b49;box-shadow:0 5px 16px #7c2d2012}
 .stat-action>span:first-child{display:block;font-size:12px;color:#8a544a}
-.stat-action .stat-description{display:block;margin-top:2px;font-size:11px;color:#8a776f}
+.stat-action .stat-description{display:block;margin-top:2px;font-size:14.3px;color:#8a776f}
 .stat-action strong{color:#a63b2c}
 .stat-action.long-stock>span:first-child,.stat-action.long-stock strong{color:#8d6328}
 .stat-action.long-stock strong{font-size:19px;line-height:1.35;overflow-wrap:anywhere}
 .sales-backlog-stat>span:first-child,.sales-backlog-stat strong{color:#24634b}
 .sales-backlog-stat strong{font-size:23px;font-variant-numeric:tabular-nums}
-.sales-backlog-stat .stat-description{font-size:12px;color:#718278}
+.sales-backlog-stat .stat-description{display:block;margin-top:2px;font-size:15.6px;color:#718278}
+.stats .stat>span:first-child{display:block;font-size:18px;font-weight:700}
+.stats .stat strong{font-size:18px;line-height:1.5;overflow-wrap:anywhere}
 .sales-order-dialog{width:min(1280px,calc(100% - 32px))}
 .sales-order-dialog .dialog-body{max-height:calc(90vh - 150px)}
 .sales-order-dialog textarea{width:100%;padding:10px 11px;border:1px solid #d3dfd5;border-radius:7px;background:white;color:#294638;font:inherit;resize:vertical}

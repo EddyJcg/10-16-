@@ -272,3 +272,10 @@
 @media print{
   dialog[style*="height:"]{width:100%!important;height:auto!important}
 }
+
+@media screen{
+  .sidebar .sidebar-heading{font-size:22.23px}
+  .sidebar .sidebar-heading span,.sidebar .sidebar-hint{font-size:17.784px}
+  .sidebar .menu-folder summary{font-size:23.256px}
+  .sidebar .sidebar-action{font-size:21.888px}
+}

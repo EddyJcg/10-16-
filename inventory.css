@@ -251,3 +251,23 @@
 @media screen and (max-width:500px){
   #workspace .search-conditions{grid-template-columns:1fr}
 }
+
+/* Native corner grip resizes every popup without changing its contents. */
+@media screen{
+  dialog{
+    resize:both;overflow:auto;
+    min-width:min(320px,calc(100vw - 32px));
+    min-height:min(200px,calc(100dvh - 32px));
+    max-width:calc(100vw - 32px);
+  }
+  dialog.search-calendar{max-width:calc(100vw - 24px)}
+  dialog[open][style*="height:"]:not(.search-calendar){display:flex;flex-direction:column;overflow:hidden}
+  dialog[open][style*="height:"]:not(.search-calendar)>form{display:flex;flex-direction:column;flex:1;min-height:0;height:100%;overflow:hidden}
+  dialog[open][style*="height:"]:not(.search-calendar)>form>fieldset{display:contents}
+  dialog[open][style*="height:"]:not(.search-calendar) .dialog-header,
+  dialog[open][style*="height:"]:not(.search-calendar) .dialog-footer{flex-shrink:0}
+  dialog[open][style*="height:"]:not(.search-calendar) .dialog-body{flex:1;min-height:0;max-height:none!important;overflow:auto}
+}
+@media print{
+  dialog[style*="height:"]{width:100%!important;height:auto!important}
+}

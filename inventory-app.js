@@ -558,13 +558,13 @@ async function showProductList() {
   if(!currentUser||busy)return;
   const generation=authGeneration;
   renderProductListHeaders();
-  $('product-list-status').textContent='최신 품목목록을 불러오는 중…';$('product-list-dialog').showModal();
+  $('product-list-status').textContent='최신 품목 목록을 불러오는 중…';$('product-list-dialog').showModal();
   try {
     await loadStock();
     if(generation!==authGeneration||!$('product-list-dialog').open)return;
     updateProductListSuppliers();renderProductList();$('product-list-status').textContent='';
   } catch(error) {
-    if(generation===authGeneration)$('product-list-status').textContent='최신 품목목록을 불러오지 못했습니다. 표시된 목록은 마지막 조회 결과입니다. '+errorText(error);
+    if(generation===authGeneration)$('product-list-status').textContent='최신 품목 목록을 불러오지 못했습니다. 표시된 목록은 마지막 조회 결과입니다. '+errorText(error);
   }
 }
 function updateMovementListSuppliers() {
@@ -865,7 +865,7 @@ function exportCurrentStockExcel(){
 }
 function exportProductListExcel(){
   const fields=productListFields(),rows=filterInventoryItems(items,{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds});
-  return downloadDataWorkbook('export-product-list','품목목록','품목목록',
+  return downloadDataWorkbook('export-product-list','품목 목록','품목 목록',
     ['일련번호',...fields.map(field=>field.label)],
     rows.map((item,index)=>[index+1,...fields.map(field=>field.numeric?Number(item[field.key]||0):item[field.key]||'')]),
     [0,...fields.flatMap((field,index)=>field.numeric?[index+1]:[])],'내보낼 품목이 없습니다.');

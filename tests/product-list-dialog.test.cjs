@@ -4,7 +4,7 @@ const {readFileSync}=require('node:fs');
 
 test('sidebar opens the searchable full product list in a modal dialog',()=>{
   const html=readFileSync('inventory.html','utf8');
-  assert.match(html,/<button type="button" class="sidebar-action" id="product-list-button" aria-haspopup="dialog">품목목록<\/button>/);
+  assert.match(html,/<button type="button" class="sidebar-action" id="product-list-button" aria-haspopup="dialog">품목 목록<\/button>/);
   assert.match(html,/<dialog id="product-list-dialog" aria-labelledby="product-list-title">/);
   for(const id of ['product-list-start-date','product-list-end-date','product-list-supplier','product-list-query','product-list-head','product-list-items'])
     assert.match(html,new RegExp(`id="${id}"`));

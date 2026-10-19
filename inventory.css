@@ -16,6 +16,7 @@
 #basic-info-folder>summary::before{content:'';display:inline-block;flex:0 0 26px;width:26px;height:26px;background:currentColor;-webkit-mask:url('/basic-info-tools.svg') center/contain no-repeat;mask:url('/basic-info-tools.svg') center/contain no-repeat}
 #sales-folder>summary::before{content:'';display:inline-block;flex:0 0 28.6px;width:28.6px;height:28.6px;background:currentColor;-webkit-mask:url('/sales-money-bag.svg') center/contain no-repeat;mask:url('/sales-money-bag.svg') center/contain no-repeat}
 #inventory-folder>summary::before{content:'';display:inline-block;flex:0 0 26px;width:26px;height:26px;background:currentColor;-webkit-mask:url('/inventory-cart.svg') center/contain no-repeat;mask:url('/inventory-cart.svg') center/contain no-repeat}
+#admin-folder>summary::before{content:'';display:inline-block;flex:0 0 26px;width:26px;height:26px;background:currentColor;-webkit-mask:url('/admin-briefcase.svg') center/contain no-repeat;mask:url('/admin-briefcase.svg') center/contain no-repeat}
 .menu-folder summary::after{content:'›';margin-left:auto;font-size:19px;color:#80978a;transition:transform .15s}
 .menu-folder[open]>summary{background:#edf4ef;color:#24634b}
 .menu-folder[open]>summary::after{transform:rotate(90deg)}

@@ -6,7 +6,7 @@
 .app-layout:not(.signed-in) .sidebar,.app-layout:not(.signed-in) .sidebar-resizer,.app-layout:not(.sidebar-open) .sidebar,.app-layout:not(.sidebar-open) .sidebar-resizer{display:none}
 .app-layout.signed-in.sidebar-open{display:grid;grid-template-columns:var(--sidebar-width) 8px minmax(0,1fr);align-items:start}
 .sidebar{position:sticky;top:16px;align-self:start;height:calc(100dvh - 110px);min-height:300px;overflow-y:auto;padding:26px 16px;background:#fff;border-right:1px solid #dfe7df}
-.sidebar-heading{padding:0 12px 22px;font-weight:750;font-size:18px;color:#244c3b}
+.sidebar-heading{padding:0 12px 22px;font-weight:750;font-size:23.4px;color:#244c3b}
 .sidebar-heading span{display:block;font-size:13px;font-weight:400;color:#819488;margin-top:6px}
 .menu-folder{margin-bottom:8px}
 .menu-folder summary{display:flex;gap:9px;align-items:center;list-style:none;cursor:pointer;padding:12px;border-radius:8px;font-size:17px;font-weight:650;color:#355f4b;user-select:none}

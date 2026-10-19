@@ -48,7 +48,7 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
 });
 test('sidebar text sizes are increased by approximately twenty percent',()=>{
   const style=fs.readFileSync('inventory.css','utf8');
-  assert.match(style,/\.sidebar-heading\{[^}]*font-size:18px/);
+  assert.match(style,/\.sidebar-heading\{[^}]*font-size:23\.4px/);
   assert.match(style,/\.sidebar-heading span\{[^}]*font-size:13px/);
   assert.match(style,/\.menu-folder summary\{[^}]*font-size:17px/);
   assert.match(style,/\.sidebar-action\{[^}]*font-size:16px/);

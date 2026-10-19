@@ -157,6 +157,7 @@
   #current-stock-table th,#current-stock-table td,#movement-list-table th,#movement-list-table td{overflow:visible;text-overflow:clip}
 }
 .intro h1{display:flex;align-items:center;gap:12px}
+#today{font-weight:700}
 .brand-logo{width:72.072px;height:72.072px;object-fit:contain;vertical-align:middle;margin-right:9.6px}
 .intro h1 img{width:56px;height:56px;flex:0 0 56px;object-fit:contain}
 @media(max-width:700px){.intro h1 img{width:48px;height:48px;flex-basis:48px}}

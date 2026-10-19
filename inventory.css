@@ -283,5 +283,7 @@
 
 #product-list .company-signature{margin-top:1.7em;text-align:center;font-size:20.736px}
 
-.stats>#stock-risk-button{order:3}
+.stats>.sales-backlog-stat{order:1}
 .stats>.stat:nth-child(3){order:2}
+.stats>#stock-risk-button{order:3}
+.stats>#long-stock-button{order:4}

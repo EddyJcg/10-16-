@@ -124,8 +124,10 @@ test('dashboard replaces registered-item card with live sales backlog count and 
   const html=fs.readFileSync('inventory.html','utf8'),app=fs.readFileSync('inventory-app.js','utf8'),renderer=fs.readFileSync('inventory-render.js','utf8'),style=fs.readFileSync('inventory.css','utf8');
   const stats=html.match(/<section class="stats"[^>]*>([\s\S]*?)<\/section>/)?.[1]||'';
   assert.match(stats,/<span>수주잔고 현황<\/span><strong id="total-sales-backlog-amount">합계 0원<\/strong><span id="total-sales-backlog-count" class="stat-description">0건<\/span>/);
-  assert.match(style,/\.stats>#stock-risk-button\{order:3\}/);
+  assert.match(style,/\.stats>\.sales-backlog-stat\{order:1\}/);
   assert.match(style,/\.stats>\.stat:nth-child\(3\)\{order:2\}/);
+  assert.match(style,/\.stats>#stock-risk-button\{order:3\}/);
+  assert.match(style,/\.stats>#long-stock-button\{order:4\}/);
   assert.doesNotMatch(html,/id="total-items"/);
   assert.match(app,/\$\('total-sales-backlog-count'\)\.textContent=outstanding\.length\.toLocaleString\('ko-KR'\)\+'건'/);
   assert.match(app,/\$\('total-sales-backlog-amount'\)\.textContent='합계 '\+money\(totalCents\/100\)\+'원'/);

@@ -186,6 +186,7 @@ test('supplier selection is nested under an optional transaction search',()=>{
   assert.match(transactionFilter,/<select id="movement-kind-filter"[^>]*>/);
   for(const condition of ['opening','receipt','issue','supplier'])
     assert.match(transactionFilter,new RegExp(`<option value="${condition}">`));
+  assert.match(transactionFilter,/<option value="supplier">거래처별 입고품목<\/option>/);
   assert.match(transactionFilter,/<select id="supplier-filter"[^>]*>/);
   assert.doesNotMatch(transactionFilter,/<input id="supplier-filter"/);
   assert.doesNotMatch(html,/movement-month-filter/);

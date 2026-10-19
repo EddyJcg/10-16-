@@ -175,6 +175,9 @@
 .search-actions button{white-space:nowrap}
 .search-hint{grid-column:1/-1;margin:0;font-size:12px}
 @media screen{
+  #workspace .stats .stat>span:first-child,
+  #workspace #sales-balance h2,
+  #workspace #product-list h2{font-size:21.6px}
   #workspace #sales-balance-summary,
   #workspace .date-range-filter>span,
   #workspace .search-conditions label,

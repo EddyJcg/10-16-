@@ -219,3 +219,29 @@
   #sidebar-toggle{font-size:18.72px;padding:10.4px 15.6px;border-width:1.3px;border-radius:9.1px}
   #apply-search,#apply-sales-balance-search,#apply-sales-status-search{font-size:19.2px}
 }
+
+/* Keep dashboard search controls aligned with matching field widths. */
+@media screen{
+  #workspace .search-conditions{grid-template-columns:repeat(3,minmax(0,1fr)) auto}
+  #workspace .date-range-filter{grid-column:span 2}
+  #workspace .date-range-filter>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));position:relative;gap:10px}
+  #workspace .date-range-filter>div>span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:18.432px}
+  #workspace .search-conditions input,
+  #workspace .search-conditions select,
+  #workspace .search-actions button{height:44px;padding:8px 11px;border-radius:7px;line-height:1.5;box-sizing:border-box}
+  #workspace .search-conditions input,
+  #workspace .search-conditions select{font-size:18.432px}
+  #workspace .date-range-filter input{margin-top:0}
+  #workspace .search-actions .primary{font-size:15.36px}
+  #workspace .search-actions .secondary{font-size:14.976px}
+  #workspace .date-range-filter>span,
+  #workspace .search-conditions label{font-size:16.5888px}
+}
+@media screen and (max-width:850px){
+  #workspace .search-conditions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #workspace .date-range-filter{grid-column:1/-1}
+  #workspace .search-actions{grid-column:auto;flex-wrap:wrap}
+}
+@media screen and (max-width:500px){
+  #workspace .search-conditions{grid-template-columns:1fr}
+}

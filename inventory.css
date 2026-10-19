@@ -13,7 +13,7 @@
 .menu-folder summary::-webkit-details-marker{display:none}
 .menu-folder summary::before{content:'📁';font-size:17px}
 .menu-folder[open]>summary::before{content:'📂'}
-#basic-info-folder>summary::before{content:'';display:inline-block;flex:0 0 29.9px;width:29.9px;height:29.9px;background:currentColor;-webkit-mask:url('/basic-info-tools.svg') center/contain no-repeat;mask:url('/basic-info-tools.svg') center/contain no-repeat}
+#basic-info-folder>summary::before{content:'';display:inline-block;flex:0 0 26.91px;width:26.91px;height:26.91px;background:currentColor;-webkit-mask:url('/basic-info-tools.svg') center/contain no-repeat;mask:url('/basic-info-tools.svg') center/contain no-repeat}
 #sales-folder>summary::before{content:'';display:inline-block;flex:0 0 32.89px;width:32.89px;height:32.89px;background:currentColor;-webkit-mask:url('/sales-money-bag.svg') center/contain no-repeat;mask:url('/sales-money-bag.svg') center/contain no-repeat}
 #inventory-folder>summary::before{content:'';display:inline-block;flex:0 0 29.9px;width:29.9px;height:29.9px;background:currentColor;-webkit-mask:url('/inventory-cart.svg') center/contain no-repeat;mask:url('/inventory-cart.svg') center/contain no-repeat}
 #admin-folder>summary::before{content:'';display:inline-block;flex:0 0 29.9px;width:29.9px;height:29.9px;background:currentColor;-webkit-mask:url('/admin-user-check.svg') center/contain no-repeat;mask:url('/admin-user-check.svg') center/contain no-repeat}

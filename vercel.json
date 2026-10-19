@@ -3,6 +3,6 @@
   "rewrites": [
     { "source": "/", "destination": "/inventory.html" },
     { "source": "/index.html", "destination": "/inventory.html" },
-    { "source": "/favicon.ico", "destination": "/favicon.svg" }
+    { "source": "/favicon.ico", "destination": "/isummerly-logo.png" }
   ]
 }

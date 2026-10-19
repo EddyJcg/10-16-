@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isummerly 매출/재고관리</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/inventory.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isummerly 매출/재고관리</title><link rel="icon" type="image/png" href="/isummerly-logo.png"><link rel="stylesheet" href="/inventory.css"></head>
 <body>
-  <header><div class="brand">▦ ISUMMERLY<span>기초부터 입출고까지, 한눈에.</span></div><button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true" hidden>☰ 메뉴 숨기기</button></header>
+  <header><div class="brand"><img class="brand-logo" src="/isummerly-logo.png" alt="Isummerly 로고"> ISUMMERLY<span>기초부터 입출고까지, 한눈에.</span></div><button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true" hidden>☰ 메뉴 숨기기</button></header>
   <div id="app-layout" class="app-layout">
   <aside id="sidebar" class="sidebar" aria-label="재고관리 사이드바">
     <div class="sidebar-heading">업무 메뉴<span>폴더를 눌러 메뉴를 펼치세요.</span></div>
@@ -21,7 +21,7 @@
   </aside>
   <div id="sidebar-resizer" class="sidebar-resizer" role="separator" aria-label="사이드바 너비 조절" aria-orientation="vertical" aria-controls="sidebar" aria-valuemin="200" aria-valuemax="420" aria-valuenow="250" tabindex="0"></div>
   <main>
-    <div class="intro"><div><h1><img src="/회사로고.png" alt="회사 로고">Isummerly 매출/재고관리</h1><p>품목별 흐름을 기록하고, 선입선출로 정확하게 관리하세요.</p></div><span id="today" class="date"></span></div>
+    <div class="intro"><div><h1><img src="/isummerly-logo.png" alt="회사 로고">Isummerly 매출/재고관리</h1><p>품목별 흐름을 기록하고, 선입선출로 정확하게 관리하세요.</p></div><span id="today" class="date"></span></div>
     <div id="message" class="message" role="status" aria-live="polite"></div>
     <section id="login-panel" class="panel login"><h2>재고관리 로그인</h2><p>관리자가 등록한 이메일 계정으로 로그인하세요.</p><form id="login-form"><div class="field"><label for="email">아이디 (이메일)</label><input id="email" type="email" required autocomplete="username"></div><div class="field"><label for="password">비밀번호</label><input id="password" type="password" required autocomplete="current-password"></div><button id="login-button" class="primary">로그인</button></form></section>
     <section id="workspace" hidden>

@@ -27,7 +27,7 @@ test('sales order dialog contains all requested fields and choices',()=>{
 test('sales status view includes every order field and completion control after order number',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const table=html.match(/<table aria-label="전체 수주현황">([\s\S]*?)<\/table>/)?.[1]||'';
-  assert.match(html,/id="sales-status-button"[^>]*>수주현황<\/button>/);
+  assert.match(html,/id="sales-status-button"[^>]*>수주 현황<\/button>/);
   assert.match(table,/<th>수주번호<\/th><th>매출 상태<\/th><th>수주형태<\/th>/);
   for(const label of ['일련번호','수주일자','수주번호','매출 상태','수주형태','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
     assert.ok(table.includes(`<th>${label}</th>`),label);

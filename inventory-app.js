@@ -9,7 +9,7 @@ let appliedDateProductIds = null,appliedSupplier = '',searching = false;
 let productListDateIds = null,productListSupplier = '',productListQuery = '',productListSearching = false;
 let movementListRows = [],movementListLoading = false;
 let movementListKind='';
-function movementListLabel(){return movementListKind==='receipt'?'입고 내역':movementListKind==='issue'?'출고내역':'입출고 내역';}
+function movementListLabel(){return movementListKind==='receipt'?'입고 내역':movementListKind==='issue'?'출고 내역':'입출고 내역';}
 let salesOrders = [],salesOrdersLoading = false,salesOrderSaving = false;
 let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:''},salesStatusUpdating=false;
 let appliedSalesBalanceFilters={startDate:'',endDate:'',orderType:''};

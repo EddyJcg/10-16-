@@ -15,7 +15,7 @@ test('separate receipt and issue histories preserve their kind through reset and
     loadStock=async()=>{};updateMovementListSuppliers=()=>{};renderMovementList=()=>{};
     readAll=async()=>[{id:'r',sequence_id:1,kind:'receipt',movement_date:'2026-10-01'},{id:'i',sequence_id:2,kind:'issue',movement_date:'2026-10-02'},{id:'o',sequence_id:3,kind:'opening',movement_date:'2026-10-03'}];
     downloadDataWorkbook=(...args)=>args;`,context);
-  for(const [kind,title] of [['receipt','입고 내역'],['issue','출고내역']]){
+  for(const [kind,title] of [['receipt','입고 내역'],['issue','출고 내역']]){
     await vm.runInContext(`showMovementList('${kind}')`,context);
     assert.equal(element('movement-list-heading').textContent,title);
     assert.equal(element('movement-list-kind').value,kind);
@@ -160,7 +160,7 @@ test('movement history opens a searchable full-history dialog and preserves FIFO
   const script=readFileSync('inventory-app.js','utf8');
   const style=readFileSync('inventory.css','utf8');
   assert.match(html,/<button type="button" class="sidebar-action" id="receipt-list-button" aria-haspopup="dialog">입고 내역<\/button>/);
-  assert.match(html,/<button type="button" class="sidebar-action" id="issue-list-button" aria-haspopup="dialog">출고내역<\/button>/);
+  assert.match(html,/<button type="button" class="sidebar-action" id="issue-list-button" aria-haspopup="dialog">출고 내역<\/button>/);
   assert.doesNotMatch(html,/id="movement-list-button"/);
   assert.ok(html.indexOf('id="receipt-list-button"')<html.indexOf('id="issue-list-button"'));
   assert.ok(html.indexOf('id="issue-list-button"')<html.indexOf('id="product-list-button"'));

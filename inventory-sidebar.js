@@ -4,9 +4,10 @@ function startSidebar() {
   const handle=document.getElementById('sidebar-resizer'),toggle=document.getElementById('sidebar-toggle');
   const read=key=>{try{return window.localStorage.getItem(key);}catch{return null;}};
   const save=(key,value)=>{try{window.localStorage.setItem(key,value);}catch{/* 설정 저장이 제한되어도 메뉴를 사용할 수 있습니다. */}};
+  const maxWidth=546;
   let width=250,dragging=null;
   function setWidth(value,persist=false){
-    const max=Math.max(200,Math.min(420,window.innerWidth-360));
+    const max=Math.max(200,Math.min(maxWidth,window.innerWidth-360));
     width=Math.round(Math.max(200,Math.min(max,Number.isFinite(value)?value:250)));
     layout.style.setProperty('--sidebar-width',width+'px');
     handle.setAttribute('aria-valuemin',200);handle.setAttribute('aria-valuemax',max);handle.setAttribute('aria-valuenow',width);
@@ -31,7 +32,7 @@ function startSidebar() {
   }
   ['pointerup','pointercancel','lostpointercapture'].forEach(event=>handle.addEventListener(event,finish));
   handle.addEventListener('keydown',event=>{
-    const next={ArrowLeft:width-20,ArrowRight:width+20,Home:200,End:420}[event.key];
+    const next={ArrowLeft:width-20,ArrowRight:width+20,Home:200,End:maxWidth}[event.key];
     if(next===undefined)return;
     event.preventDefault();setWidth(next,true);
   });

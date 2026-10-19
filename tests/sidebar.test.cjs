@@ -21,11 +21,25 @@ test('sidebar width restores safely, clamps limits and supports keyboard resizin
   resizer.handlers.keydown({key:'ArrowRight',preventDefault(){}});
   assert.equal(app.values.get('inventory-sidebar-width'),'320');
   resizer.handlers.keydown({key:'End',preventDefault(){}});
-  assert.equal(resizer.attributes['aria-valuenow'],'420');
+  assert.equal(resizer.attributes['aria-valuenow'],'546');
   resizer.handlers.keydown({key:'Home',preventDefault(){}});
   assert.equal(resizer.attributes['aria-valuenow'],'200');
   assert.equal(boot({'inventory-sidebar-width':'invalid'}).elements.get('sidebar-resizer').attributes['aria-valuenow'],'250');
 });
+test('sidebar width supports the extended maximum, persists pointer resizing and respects viewport limits',()=>{
+  const app=boot(),resizer=app.elements.get('sidebar-resizer');
+  assert.equal(resizer.attributes['aria-valuemax'],'546');
+  resizer.handlers.pointerdown({button:0,pointerId:1,preventDefault(){}});
+  resizer.handlers.pointermove({pointerId:1,clientX:600});
+  resizer.handlers.pointerup({pointerId:1});
+  assert.equal(app.values.get('inventory-sidebar-width'),'546');
+  assert.equal(boot(Object.fromEntries(app.values)).elements.get('sidebar-resizer').attributes['aria-valuenow'],'546');
+  app.context.window.innerWidth=800;
+  resizer.handlers.keydown({key:'End',preventDefault(){}});
+  assert.equal(resizer.attributes['aria-valuemax'],'440');
+  assert.equal(resizer.attributes['aria-valuenow'],'440');
+});
+
 test('existing menu folders stay under the new inventory parent folder',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),nav=html.match(/<nav aria-label="재고관리 메뉴">([\s\S]*?)<\/nav>/)[1];
   assert.ok(nav.indexOf('id="basic-info-folder"')<nav.indexOf('id="sales-folder"'),'기본정보 should appear before 매출관리');

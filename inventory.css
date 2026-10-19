@@ -237,6 +237,7 @@
   #workspace .search-actions button{height:44px;padding:8px 11px;border-radius:7px;line-height:1.5;box-sizing:border-box}
   #workspace .search-conditions input,
   #workspace .search-conditions select{font-size:18.432px}
+  #workspace .filters input,#workspace .filters select{font-size:18.432px}
   #workspace .date-range-filter input{margin-top:0}
   #workspace .search-actions .primary{font-size:15.36px}
   #workspace .search-actions .secondary{font-size:14.976px}

@@ -53,6 +53,7 @@ alter table public.stock_product_classifications add column if not exists value_
 alter table public.stock_product_classifications add column if not exists shortage_control_enabled boolean not null default false;
 alter table public.stock_product_classifications add column if not exists is_set_item boolean not null default false;
 alter table public.stock_product_classifications add column if not exists lot_management_default boolean not null default false;
+alter table public.stock_product_classifications add column if not exists is_active boolean not null default true;
 alter table public.stock_product_classifications add column if not exists notes text not null default '';
 alter table public.stock_product_classifications add column if not exists sort_order integer not null default 1000;
 alter table public.stock_product_classifications add column if not exists created_by uuid;

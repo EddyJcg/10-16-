@@ -326,3 +326,5 @@ dialog .dialog-body .print-scale-control>label{font-size:14.4px}
 dialog .dialog-body input:not([type=checkbox]):not([type=radio]):not([type=range]),
 dialog .dialog-body select,
 dialog .dialog-body textarea{font-size:14.4px}
+
+#asset-classification-button::before,#product-info-button::before,#product-info-status-button::before{content:none!important;display:none!important}

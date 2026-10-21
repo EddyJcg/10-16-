@@ -6,16 +6,26 @@ function startSidebar() {
   const save=(key,value)=>{try{window.localStorage.setItem(key,value);}catch{/* 설정 저장이 제한되어도 메뉴를 사용할 수 있습니다. */}};
   const maxWidth=546;
   let width=250,dragging=null;
+  function updatePopupArea(){
+    const offset=window.innerWidth>700&&layout.classList.contains('sidebar-open')?width+8:0;
+    const availableWidth=Math.max(0,window.innerWidth-offset-32),availableHeight=Math.max(0,window.innerHeight-32);
+    const popupWidth=Math.min(availableWidth,availableHeight*16/9);
+    document.documentElement?.style.setProperty('--popup-left-offset',offset+'px');
+    document.documentElement?.style.setProperty('--popup-center-x',(offset+(window.innerWidth-offset)/2)+'px');
+    document.documentElement?.style.setProperty('--popup-width',popupWidth+'px');
+  }
   function setWidth(value,persist=false){
     const max=Math.max(200,Math.min(maxWidth,window.innerWidth-360));
     width=Math.round(Math.max(200,Math.min(max,Number.isFinite(value)?value:250)));
     layout.style.setProperty('--sidebar-width',width+'px');
     handle.setAttribute('aria-valuemin',200);handle.setAttribute('aria-valuemax',max);handle.setAttribute('aria-valuenow',width);
+    updatePopupArea();
     if(persist)save('inventory-sidebar-width',String(width));
   }
   function setOpen(open){
     layout.classList.toggle('sidebar-open',open);toggle.setAttribute('aria-expanded',open);
     toggle.textContent=open?'☰ 메뉴 숨기기':'☰ 메뉴 열기';
+    updatePopupArea();
   }
   const savedWidth=read('inventory-sidebar-width');setWidth(savedWidth===null?250:Number(savedWidth));
   setOpen(window.innerWidth>700);

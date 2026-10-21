@@ -329,3 +329,11 @@ dialog .dialog-body textarea{font-size:14.4px}
 
 #asset-classification-button::before,#product-info-button::before,#product-info-status-button::before{content:none!important;display:none!important}
 #sales-order-button::before,#sales-status-button::before{content:none!important;display:none!important}
+
+@media screen{
+  dialog:not(.search-calendar){
+    position:fixed;top:50%;left:var(--popup-center-x,50%);transform:translate(-50%,-50%);margin:0;
+    width:var(--popup-width,calc(100vw - 32px))!important;height:auto!important;aspect-ratio:16/9;
+    min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;resize:none;
+  }
+}

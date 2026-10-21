@@ -14,7 +14,7 @@
 .menu-folder summary::before{content:'📁';font-size:17px}
 .menu-folder[open]>summary::before{content:'📂'}
 #basic-info-folder>summary::before{content:'';display:inline-block;flex:0 0 26.91px;width:26.91px;height:26.91px;background:currentColor;-webkit-mask:url('/basic-info-tools.svg') center/contain no-repeat;mask:url('/basic-info-tools.svg') center/contain no-repeat}
-#product-info-button::before{content:'';display:inline-block;width:24px;height:24px;margin-right:2px;vertical-align:middle;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
+#product-info-button::before,#product-info-status-button::before{content:'';display:inline-block;width:24px;height:24px;margin-right:2px;vertical-align:middle;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
 #product-info-folder>summary::before{content:'';display:inline-block;flex:0 0 26px;width:26px;height:26px;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
 #sales-order-button::before,#sales-status-button::before{content:'';display:inline-block;width:24px;height:24px;margin-right:8px;vertical-align:middle;background:currentColor;-webkit-mask:url('/sales-order-form.svg') center/contain no-repeat;mask:url('/sales-order-form.svg') center/contain no-repeat}
 #sales-folder>summary::before{content:'';display:inline-block;flex:0 0 32.89px;width:32.89px;height:32.89px;background:currentColor;-webkit-mask:url('/sales-money-bag.svg') center/contain no-repeat;mask:url('/sales-money-bag.svg') center/contain no-repeat}

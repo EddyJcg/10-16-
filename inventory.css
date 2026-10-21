@@ -309,3 +309,6 @@
 
 /* 모든 팝업 제목을 현재 기본 크기의 2배로 표시 */
 dialog .dialog-header h2{font-size:36px}
+
+/* 팝업 제목 아래의 안내 문구 숨김 */
+dialog .dialog-header p{display:none}

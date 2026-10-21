@@ -79,7 +79,6 @@
             <div class="field"><label for="info_unit">단위</label><select id="info_unit" required><option>EA(개)</option><option>벌</option><option>Set(세트)</option><option>M</option><option>Cm</option><option>mm</option><option>Box</option><option>Kg</option><option>g</option><option>L</option><option>mL</option><option>봉</option><option>식</option></select></div>
             <div class="field"><label for="info_standard_stock_quantity">적정재고 수량</label><input id="info_standard_stock_quantity" type="number" required min="1" max="1000000" step="1" placeholder="1~1,000,000"></div>
           </div>
-          <div id="info-classification-policy" class="classification-policy" aria-live="polite"><strong id="info-classification-type">재고자산종류: 선택 전</strong><label><input id="info-quantity-disabled" type="checkbox" disabled> 재고수량관리 안함</label><label><input id="info-value-disabled" type="checkbox" disabled> 재고금액관리 안함</label><label><input id="info-shortage-control" type="checkbox" disabled> 재고부족통제</label><label><input id="info-set-item" type="checkbox" disabled> 세트품목</label><label><input id="info-lot-default" type="checkbox" disabled> Lot관리기본값</label></div>
           <p id="product-info-status" class="product-list-status" role="status" aria-live="polite"></p>
           <div class="table-wrap product-list-table"><table aria-label="등록된 품목정보"><thead><tr><th>품목자산분류</th><th>재고자산종류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th></tr></thead><tbody id="product-info-items"></tbody></table></div>
         </div>

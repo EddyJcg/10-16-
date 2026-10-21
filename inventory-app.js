@@ -415,7 +415,6 @@ function populateProductInfo(source) {
     if(item)$('info_'+key).value=item[key]??(key==='unit'?'EA(개)':'');
     else if(previous&&source!=='info_'+key)$('info_'+key).value=key==='unit'?'EA(개)':'';
   });
-  updateProductInfoClassification();
 }
 function populateProduct(source='product_code') {
   const found = productForLookup(source),item=found?.quantity_management_disabled===true?null:found;
@@ -516,16 +515,6 @@ function updateProductClassificationOptions() {
   const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='품목자산분류를 선택하세요';select.append(placeholder);
   assetClassifications.forEach(classification=>{const option=document.createElement('option');option.value=classification.id;option.disabled=!classification.inventory_asset_type;option.textContent=classification.name+(classification.inventory_asset_type?' · '+classification.inventory_asset_type:' · 재고자산종류 미설정');select.append(option);});
   if([...select.options].some(option=>option.value===selected))select.value=selected;
-  updateProductInfoClassification();
-}
-function updateProductInfoClassification() {
-  const classification=assetClassifications.find(row=>row.id===$('info_product_category').value);
-  $('info-classification-type').textContent='재고자산종류: '+(classification?.inventory_asset_type||'미지정');
-  $('info-quantity-disabled').checked=!!classification?.quantity_management_disabled;
-  $('info-value-disabled').checked=!!classification?.value_management_disabled;
-  $('info-shortage-control').checked=!!classification?.shortage_control_enabled;
-  $('info-set-item').checked=!!classification?.is_set_item;
-  $('info-lot-default').checked=!!classification?.lot_management_default;
 }
 function resetAssetClassificationForm() {
   editingAssetClassificationId='';$('asset-classification-form').reset();$('asset-classification-id').value='';
@@ -1061,7 +1050,6 @@ async function startApp(){
   $('clear-product-info-status-search').addEventListener('click',()=>{$('product-info-status-query').value='';renderProductInfoStatus();$('product-info-status-query').focus();});
   $('cancel-product-info').addEventListener('click',()=>$('product-info-dialog').close());
   $('product-info-form').addEventListener('submit',saveProductInfo);
-  $('info_product_category').addEventListener('change',updateProductInfoClassification);
   $('info_product_code').addEventListener('input',()=>populateProductInfo('info_product_code'));
   $('info_specification').addEventListener('input',()=>populateProductInfo('info_specification'));
   document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>openMovement(button.dataset.mode)));

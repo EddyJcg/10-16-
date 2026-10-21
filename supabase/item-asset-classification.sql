@@ -207,7 +207,12 @@ drop trigger if exists stock_allocation_classification_policy on public.stock_al
 create trigger stock_allocation_classification_policy before insert or update of issue_id,unit_cost,amount
   on public.stock_allocations for each row execute function public.apply_stock_allocation_value_policy();
 
-create or replace view public.stock_summary with (security_invoker = true) as
+-- Recreate these views so prior attempted migrations with extra trailing columns
+-- or incompatible numeric column types do not make CREATE OR REPLACE fail.
+drop view if exists public.stock_aging;
+drop view if exists public.stock_summary;
+
+create view public.stock_summary with (security_invoker = true) as
 with movements as (
   select product_id,
     coalesce(sum(quantity) filter(where kind='opening'),0) as opening_quantity,
@@ -239,7 +244,7 @@ from public.stock_products p left join movements m on m.product_id=p.id
 revoke all on public.stock_summary from anon;
 grant select on public.stock_summary to authenticated;
 
-create or replace view public.stock_aging with (security_invoker = true) as
+create view public.stock_aging with (security_invoker = true) as
 select l.id as lot_id,l.product_id,l.movement_id,m.sequence_id,m.movement_date::text as received_date,
   m.created_at as received_at,l.remaining_quantity,l.unit_cost,
   l.remaining_quantity*l.unit_cost as amount,p.product_category,p.product_code,p.product_name,

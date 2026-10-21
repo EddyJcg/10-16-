@@ -13,7 +13,7 @@
         <details id="opening-folder" class="menu-folder" data-sidebar-folder open><summary>기초재고</summary><div class="folder-children"><button type="button" class="sidebar-action" data-mode="opening" aria-haspopup="dialog">기초재고 등록</button></div></details>
         <details id="receipt-folder" class="menu-folder" data-sidebar-folder><summary>입고관리</summary><div class="folder-children"><button type="button" class="sidebar-action" data-mode="receipt" aria-haspopup="dialog">입고 등록</button></div></details>
         <details id="issue-folder" class="menu-folder" data-sidebar-folder><summary>출고관리</summary><div class="folder-children"><button type="button" class="sidebar-action" data-mode="issue" aria-haspopup="dialog">출고 등록 · 선입선출</button></div></details>
-        <details id="stock-folder" class="menu-folder" data-sidebar-folder open><summary>재고현황</summary><div class="folder-children"><button type="button" class="sidebar-action" id="current-stock-button" aria-haspopup="dialog">재고 조회</button><button type="button" class="sidebar-action" id="receipt-list-button" aria-haspopup="dialog">입고 내역</button><button type="button" class="sidebar-action" id="issue-list-button" aria-haspopup="dialog">출고 내역</button><button type="button" class="sidebar-action" id="raw-material-ledger-button" aria-haspopup="dialog">원자재 수불부</button><button type="button" class="sidebar-action" id="product-list-button" aria-haspopup="dialog">품목 목록</button></div></details>
+        <details id="stock-folder" class="menu-folder" data-sidebar-folder open><summary>재고현황</summary><div class="folder-children"><button type="button" class="sidebar-action" id="current-stock-button" aria-haspopup="dialog">재고 조회</button><button type="button" class="sidebar-action" id="receipt-list-button" aria-haspopup="dialog">입고 내역</button><button type="button" class="sidebar-action" id="issue-list-button" aria-haspopup="dialog">출고 내역</button><button type="button" class="sidebar-action" id="product-list-button" aria-haspopup="dialog">품목 목록</button></div></details>
       </div></details>
       <details id="admin-folder" class="menu-folder" data-sidebar-folder hidden><summary>관리자</summary><div class="folder-children"><a id="admin-link" class="sidebar-action" href="/admin.html" hidden>사용자 관리 ↗</a></div></details>
     </nav>
@@ -47,7 +47,6 @@
       <div class="table-wrap product-list-table"><table aria-label="전체 품목 목록"><thead><tr id="product-list-head"></tr></thead><tbody id="product-list-items"></tbody></table></div>
     </div>
   </dialog>
-  <dialog id="raw-material-ledger-dialog" aria-labelledby="raw-material-ledger-title" class="wide-dialog"><div class="dialog-header"><div><h2 id="raw-material-ledger-title">원자재 수불부</h2><p>재고자산종류가 원자재로 설정된 품목의 수불 내역입니다. 관리하지 않는 수량·금액은 0으로 표시합니다.</p></div><button type="button" class="close" id="close-raw-material-ledger" aria-label="원자재 수불부 창 닫기">×</button></div><div class="dialog-body product-list-body"><p id="raw-material-ledger-status" class="product-list-status" role="status" aria-live="polite"></p><div class="table-wrap product-list-table"><table><thead><tr><th>일련번호</th><th>일자</th><th>구분</th><th>품번</th><th>품명</th><th>규격</th><th>수량</th><th>단위</th><th>단가</th><th>금액</th><th>비고</th></tr></thead><tbody id="raw-material-ledger-items"></tbody></table></div></div></dialog>
   <dialog id="movement-list-dialog" aria-labelledby="movement-list-title">
     <div class="dialog-header">
       <div><h2 id="movement-list-title"><span id="movement-list-heading">입출고 내역</span> <span id="movement-list-count" class="count">0건</span></h2><p>기간, 업체, 품번·품명·규격·저장위치로 검색하고 인쇄할 수 있습니다. 열 경계선을 드래그하거나 방향키로 너비를 조절할 수 있습니다.</p></div>
@@ -71,7 +70,7 @@
       <fieldset id="product-info-editor">
         <div class="dialog-body">
           <div class="form-grid">
-            <div class="field"><label for="info_product_category">품목자산분류</label><select id="info_product_category" required><option value="">분류를 선택하세요</option></select></div>
+            <div class="field"><label for="info_product_category">품목분류</label><input id="info_product_category" required maxlength="80"></div>
             <div class="field"><label for="info_product_code">품번</label><input id="info_product_code" required maxlength="80" list="product-info-codes" autocomplete="off"><datalist id="product-info-codes"></datalist><datalist id="product-info-specifications"></datalist></div>
             <div class="field"><label for="info_product_name">품명</label><input id="info_product_name" required maxlength="120"></div>
             <div class="field"><label for="info_specification">규격</label><input id="info_specification" maxlength="200" list="product-info-specifications" autocomplete="off"></div>

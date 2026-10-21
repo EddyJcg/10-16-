@@ -21,7 +21,6 @@ const columnWidthDefaults={
 };
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0,productLotsReady = false;
 let selectedProductInfoCode = '';
-let productClassifications=[];
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function errorText(error) {
   const message = error?.message || '';
@@ -37,12 +36,11 @@ function errorText(error) {
     REQUEST_CONFLICT:'같은 요청번호에 다른 내용이 들어 있습니다. 창을 다시 열어 확인하세요.',
     INVALID_INPUT:'날짜, 수량과 단가를 확인하세요. 미래 일자와 소수 수량은 사용할 수 없습니다.',
     INVALID_PRODUCT_DETAILS:'품목분류·품명 등 품목 정보를 확인하세요.',
-    INVALID_PRODUCT_CLASSIFICATION:'품목 분류 설정을 확인하세요.',
     INVALID_PRODUCT_CODE:'품번을 입력하세요.',
     INVALID_SALES_ORDER:'수주번호, 수주형태, 품명, 단위, 수량, 단가와 납기일자를 확인하세요.'
   };
   for (const [key,text] of Object.entries(errors)) if (message.includes(key)) return text;
-  if (['PGRST205','PGRST202','42P01','42703','42501'].includes(error?.code)) return '재고 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql과 supabase/item-classification-and-procurement.sql을 실행하세요. 로그인·권한 설정은 기존 schema.sql을 사용합니다.';
+  if (['PGRST205','PGRST202','42P01','42703','42501'].includes(error?.code)) return '재고 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql과 supabase/procurement-schema.sql을 실행하세요. 로그인·권한 설정은 기존 schema.sql을 사용합니다.';
   return '요청을 완료하지 못했습니다. 네트워크와 로그인 상태를 확인하세요. 저장 응답이 끊겼다면 내역을 확인하거나 같은 내용으로 다시 저장하세요.';
 }
 async function showLongStock() {
@@ -373,7 +371,7 @@ async function updateSession(session) {
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
-    $('movement-dialog').close(); $('product-info-dialog').close(); $('raw-material-ledger-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('product-info-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try { await loadStock(); if (currentUser) {await loadSalesOrders();subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
   catch (error) { notify(errorText(error),true); }
@@ -491,35 +489,10 @@ function renderProductInfoItems() {
     if(item.specification){const specOption=document.createElement('option');specOption.value=item.specification;specOption.label=item.product_code+' · '+item.product_name;$('product-info-specifications').append(specOption);}
   });
 }
-async function loadProductClassifications(){
-  const rows=await readAll('stock_product_classifications','sort_order');
-  productClassifications=rows.sort((a,b)=>Number(a.sort_order)-Number(b.sort_order)||a.product_asset_class.localeCompare(b.product_asset_class,'ko'));
-  const select=$('info_product_category'),selected=select.value;select.replaceChildren();
-  const empty=document.createElement('option');empty.value='';empty.textContent='분류를 선택하세요';select.append(empty);
-  productClassifications.forEach(item=>{const option=document.createElement('option');option.value=item.product_asset_class;option.textContent=item.product_asset_class;select.append(option);});
-  select.value=selected;
-  return productClassifications;
-}
-async function showRawMaterialLedger(){
-  if(!currentUser||busy)return;
-  const body=$('raw-material-ledger-items');body.replaceChildren();$('raw-material-ledger-status').textContent='원자재 수불 내역을 불러오는 중…';$('raw-material-ledger-dialog').showModal();
-  try{
-    const rows=await readAll('raw_material_ledger','sequence_id');body.replaceChildren();
-    if(!rows.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=11;cell.className='empty';cell.textContent='등록된 원자재 수불 내역이 없습니다.';row.append(cell);body.append(row);}
-    rows.sort((a,b)=>Number(b.sequence_id)-Number(a.sequence_id)).forEach(item=>{
-      const row=document.createElement('tr');
-      [number(item.sequence_id),String(item.movement_date).slice(0,10),({opening:'기초',receipt:'입고',issue:'출고'})[item.kind]||item.kind,item.product_code,item.product_name,item.specification,number(item.quantity),item.unit,money(item.unit_cost),money(item.amount),item.notes||''].forEach((value,index)=>row.append(makeCell(value,index===0||index===6||index===8||index===9)));
-      body.append(row);
-    });
-    $('raw-material-ledger-status').textContent=rows.length.toLocaleString('ko-KR')+'건';
-  }catch(error){$('raw-material-ledger-status').textContent=errorText(error);}
-}
 async function showProductInfo() {
   if(!currentUser||busy)return;
   selectedProductInfoCode='';
-  renderProductInfoItems();$('product-info-status').textContent='분류 기준을 불러오는 중…';
-  try{await loadProductClassifications();}catch(error){$('product-info-status').textContent=errorText(error);return;}
-  $('product-info-status').textContent='';
+  renderProductInfoItems();$('product-info-status').textContent='';
   $('product-info-dialog').showModal();
 }
 async function saveProductInfo(event) {
@@ -955,8 +928,6 @@ async function startApp(){
   $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
   $('logout').addEventListener('click',async()=>{if(busy)return;const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);});
   $('product-info-button').addEventListener('click',showProductInfo);
-  $('raw-material-ledger-button').addEventListener('click',showRawMaterialLedger);
-  $('close-raw-material-ledger').addEventListener('click',()=>$('raw-material-ledger-dialog').close());
   $('sales-order-button').addEventListener('click',showSalesOrder);
   $('sales-status-button').addEventListener('click',showSalesStatus);
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());

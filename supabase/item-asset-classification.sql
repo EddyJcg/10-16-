@@ -18,10 +18,78 @@ create table if not exists public.stock_product_classifications (
   created_at timestamptz not null default clock_timestamp(),
   updated_at timestamptz not null default clock_timestamp()
 );
-alter table public.stock_product_classifications
-  add column if not exists lot_management_default boolean not null default false;
-alter table public.stock_product_classifications
-  add column if not exists is_active boolean not null default true;
+
+-- Upgrade the earlier version of this table if the previous classification
+-- migration was already run. Keep its rows and translate its column names.
+do $$
+begin
+  if exists(select 1 from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='product_asset_class')
+     and not exists(select 1 from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='name') then
+    alter table public.stock_product_classifications rename column product_asset_class to name;
+  end if;
+  if exists(select 1 from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='stock_quantity_unmanaged')
+     and not exists(select 1 from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='quantity_management_disabled') then
+    alter table public.stock_product_classifications rename column stock_quantity_unmanaged to quantity_management_disabled;
+  end if;
+  if exists(select 1 from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='stock_amount_unmanaged')
+     and not exists(select 1 from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='value_management_disabled') then
+    alter table public.stock_product_classifications rename column stock_amount_unmanaged to value_management_disabled;
+  end if;
+  if exists(select 1 from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='stock_shortage_control')
+     and not exists(select 1 from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='shortage_control_enabled') then
+    alter table public.stock_product_classifications rename column stock_shortage_control to shortage_control_enabled;
+  end if;
+  if exists(select 1 from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='is_set_product')
+     and not exists(select 1 from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='is_set_item') then
+    alter table public.stock_product_classifications rename column is_set_product to is_set_item;
+  end if;
+end $$;
+
+alter table public.stock_product_classifications add column if not exists id uuid default gen_random_uuid();
+alter table public.stock_product_classifications add column if not exists name text;
+alter table public.stock_product_classifications add column if not exists inventory_asset_type text;
+alter table public.stock_product_classifications add column if not exists quantity_management_disabled boolean not null default false;
+alter table public.stock_product_classifications add column if not exists value_management_disabled boolean not null default false;
+alter table public.stock_product_classifications add column if not exists shortage_control_enabled boolean not null default false;
+alter table public.stock_product_classifications add column if not exists is_set_item boolean not null default false;
+alter table public.stock_product_classifications add column if not exists lot_management_default boolean not null default false;
+alter table public.stock_product_classifications add column if not exists notes text not null default '';
+alter table public.stock_product_classifications add column if not exists sort_order integer not null default 1000;
+alter table public.stock_product_classifications add column if not exists created_by uuid;
+alter table public.stock_product_classifications add column if not exists created_at timestamptz not null default clock_timestamp();
+alter table public.stock_product_classifications add column if not exists updated_at timestamptz not null default clock_timestamp();
+update public.stock_product_classifications set id=gen_random_uuid() where id is null;
+update public.stock_product_classifications set name='기존분류_'||id::text where name is null or trim(name)='';
+update public.stock_product_classifications set inventory_asset_type='제품' where inventory_asset_type='프로젝트 제품';
+alter table public.stock_product_classifications alter column id set not null;
+alter table public.stock_product_classifications alter column name set not null;
+alter table public.stock_product_classifications alter column inventory_asset_type drop not null;
+
+do $$
+declare v_constraint record; v_type text;
+begin
+  for v_constraint in
+    select conname from pg_constraint where conrelid='public.stock_product_classifications'::regclass and contype='c'
+      and pg_get_constraintdef(oid) ilike '%inventory_asset_type%'
+  loop execute format('alter table public.stock_product_classifications drop constraint %I',v_constraint.conname); end loop;
+  for v_constraint in
+    select conname from pg_constraint where conrelid='public.stock_product_classifications'::regclass and contype='c'
+      and pg_get_constraintdef(oid) ilike '%lot_management_default%'
+  loop execute format('alter table public.stock_product_classifications drop constraint %I',v_constraint.conname); end loop;
+  select data_type into v_type from information_schema.columns where table_schema='public' and table_name='stock_product_classifications' and column_name='lot_management_default';
+  if v_type in ('smallint','integer','bigint','numeric','decimal') then
+    alter table public.stock_product_classifications alter column lot_management_default drop default;
+    alter table public.stock_product_classifications alter column lot_management_default type boolean using coalesce(lot_management_default::numeric,0)>0;
+  end if;
+end $$;
+alter table public.stock_product_classifications alter column lot_management_default set default false;
+create unique index if not exists stock_product_classifications_id_key on public.stock_product_classifications(id);
+create unique index if not exists stock_product_classifications_name_key on public.stock_product_classifications(name);
+alter table public.stock_product_classifications drop constraint if exists stock_product_classifications_name_length_check;
+alter table public.stock_product_classifications add constraint stock_product_classifications_inventory_asset_type_check
+  check (inventory_asset_type is null or inventory_asset_type in ('원자재','상품','제품','서비스','부자재','소모자재','포장재','sample','재공품','반제품','저장품'));
+alter table public.stock_product_classifications add constraint stock_product_classifications_name_length_check
+  check (char_length(trim(name)) between 1 and 80);
 
 insert into public.stock_product_classifications
   (name,inventory_asset_type,quantity_management_disabled,value_management_disabled,shortage_control_enabled,is_set_item,sort_order)

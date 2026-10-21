@@ -171,7 +171,7 @@ grant select on public.stock_summary to authenticated;
 
 create or replace view public.stock_aging with (security_invoker=true) as
 select l.id as lot_id,l.product_id,l.movement_id,m.sequence_id,m.movement_date::text as received_date,m.created_at as received_at,
-  l.remaining_quantity,case when p.stock_amount_unmanaged then 0 else l.unit_cost end as unit_cost,
+  l.remaining_quantity,(case when p.stock_amount_unmanaged then 0 else l.unit_cost end)::numeric(18,2) as unit_cost,
   case when p.stock_amount_unmanaged then 0 else l.remaining_quantity*l.unit_cost end as amount,
   p.product_category,p.product_code,p.product_name,p.specification,p.material,p.color,p.unit,p.storage_location,p.supplier,
   p.product_category as product_asset_class,p.inventory_asset_type,p.stock_quantity_unmanaged,p.stock_amount_unmanaged,

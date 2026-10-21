@@ -373,7 +373,7 @@ async function updateSession(session) {
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
-    $('movement-dialog').close(); $('product-info-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('product-info-dialog').close(); $('raw-material-ledger-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try { await loadStock(); if (currentUser) {await loadSalesOrders();subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
   catch (error) { notify(errorText(error),true); }
@@ -491,8 +491,6 @@ function renderProductInfoItems() {
     if(item.specification){const specOption=document.createElement('option');specOption.value=item.specification;specOption.label=item.product_code+' · '+item.product_name;$('product-info-specifications').append(specOption);}
   });
 }
-const PRODUCT_CLASSIFICATION_TYPES=['프로젝트 제품','원자재','소모자재','저장품','제품','상품'];
-const PRODUCT_CLASSIFICATION_FLAGS=[['stock_quantity_unmanaged','재고수량관리 안함'],['stock_amount_unmanaged','재고금액관리 안함'],['stock_shortage_control','재고부족통제'],['is_set_product','세트품목']];
 async function loadProductClassifications(){
   const rows=await readAll('stock_product_classifications','sort_order');
   productClassifications=rows.sort((a,b)=>Number(a.sort_order)-Number(b.sort_order)||a.product_asset_class.localeCompare(b.product_asset_class,'ko'));
@@ -502,47 +500,7 @@ async function loadProductClassifications(){
   select.value=selected;
   return productClassifications;
 }
-function classificationInput(item,key,type='text'){
-  const input=document.createElement(type==='checkbox'?'input':type==='select'?'select':'input');
-  input.dataset.key=key;input.dataset.className=item.product_asset_class;
-  if(type==='checkbox'){input.type='checkbox';input.checked=Boolean(item[key]);input.setAttribute('aria-label',item.product_asset_class+' '+PRODUCT_CLASSIFICATION_FLAGS.find(([name])=>name===key)?.[1]);}
-  else if(type==='select'){
-    input.setAttribute('aria-label',item.product_asset_class+' 재고자산종류');
-    PRODUCT_CLASSIFICATION_TYPES.forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;input.append(option);});input.value=item.inventory_asset_type;
-  }else{input.type='number';input.min='0';input.max='999999';input.step='1';input.value=String(item.lot_management_default??0);input.setAttribute('aria-label',item.product_asset_class+' Lot관리기본값');}
-  return input;
-}
-function renderProductClassificationItems(){
-  const body=$('product-classification-items');body.replaceChildren();
-  if(!productClassifications.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=10;cell.className='empty';cell.textContent='분류 설정을 불러오지 못했습니다.';row.append(cell);body.append(row);return;}
-  productClassifications.forEach(item=>{
-    const row=document.createElement('tr');row.append(makeCell(item.product_asset_class));
-    row.append(classificationInput(item,'inventory_asset_type','select'));
-    PRODUCT_CLASSIFICATION_FLAGS.forEach(([key])=>row.append(classificationInput(item,key,'checkbox')));
-    row.append(classificationInput(item,'lot_management_default'));
-    const order=document.createElement('input');order.type='number';order.min='0';order.max='999999';order.step='1';order.value=String(item.sort_order);order.dataset.key='sort_order';order.dataset.className=item.product_asset_class;order.setAttribute('aria-label',item.product_asset_class+' 순서');row.append(order);
-    const notes=document.createElement('input');notes.type='text';notes.maxLength=2000;notes.value=item.notes||'';notes.dataset.key='notes';notes.dataset.className=item.product_asset_class;notes.setAttribute('aria-label',item.product_asset_class+' 비고');row.append(notes);
-    const cell=document.createElement('td'),button=document.createElement('button');button.type='button';button.className='secondary';button.dataset.saveClassification=item.product_asset_class;button.textContent='저장';cell.append(button);row.append(cell);body.append(row);
-  });
-}
-async function saveProductClassification(className,button){
-  if(!currentUser||busy)return;
-  const row=button.closest('tr'),settings={product_asset_class:className};
-  row.querySelectorAll('[data-key]').forEach(input=>settings[input.dataset.key]=input.type==='checkbox'?input.checked:input.type==='number'?Number(input.value):input.value.trim());
-  const status=$('product-classification-status');busy=true;button.disabled=true;status.textContent=className+' 분류 설정을 저장하는 중…';
-  try{
-    const {data,error}=await client.rpc('set_stock_product_classification_settings',{p_settings:settings});if(error)throw error;
-    productClassifications=productClassifications.map(item=>item.product_asset_class===data.product_asset_class?data:item);
-    items=items.map(item=>item.product_category===data.product_asset_class?{...item,...data}:item);render();renderProductClassificationItems();status.textContent=className+' 분류 설정을 저장했습니다.';
-  }catch(error){status.textContent=errorText(error);}
-  finally{busy=false;button.disabled=false;}
-}
-async function showProductClassification(){
-  if(!currentUser||busy)return;
-  $('product-classification-status').textContent='분류 기준을 불러오는 중…';$('product-classification-dialog').showModal();
-  try{await loadProductClassifications();renderProductClassificationItems();$('product-classification-status').textContent='';}
-  catch(error){$('product-classification-status').textContent=errorText(error);}
-}async function showRawMaterialLedger(){
+async function showRawMaterialLedger(){
   if(!currentUser||busy)return;
   const body=$('raw-material-ledger-items');body.replaceChildren();$('raw-material-ledger-status').textContent='원자재 수불 내역을 불러오는 중…';$('raw-material-ledger-dialog').showModal();
   try{
@@ -997,9 +955,6 @@ async function startApp(){
   $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
   $('logout').addEventListener('click',async()=>{if(busy)return;const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);});
   $('product-info-button').addEventListener('click',showProductInfo);
-  $('product-classification-button').addEventListener('click',showProductClassification);
-  $('close-product-classification').addEventListener('click',()=>$('product-classification-dialog').close());
-  $('product-classification-items').addEventListener('click',event=>{const button=event.target.closest('[data-save-classification]');if(button)saveProductClassification(button.dataset.saveClassification,button);});
   $('raw-material-ledger-button').addEventListener('click',showRawMaterialLedger);
   $('close-raw-material-ledger').addEventListener('click',()=>$('raw-material-ledger-dialog').close());
   $('sales-order-button').addEventListener('click',showSalesOrder);

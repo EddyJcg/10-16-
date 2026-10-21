@@ -75,6 +75,10 @@ create table if not exists public.sales_orders (
   created_at timestamptz not null default clock_timestamp()
 );
 alter table public.sales_orders add column if not exists order_date date;
+alter table public.sales_orders add column if not exists shipped_date date check (shipped_date >= date '1900-01-01');
+alter table public.sales_orders add column if not exists shipped_quantity integer not null default 0 check (shipped_quantity >= 0);
+alter table public.stock_movements add column if not exists sales_order_id uuid references public.sales_orders(id);
+create index if not exists stock_movements_sales_order on public.stock_movements(sales_order_id) where sales_order_id is not null;
 update public.sales_orders set order_date=(created_at at time zone 'Asia/Seoul')::date where order_date is null;
 alter table public.sales_orders alter column order_date set default ((now() at time zone 'Asia/Seoul')::date);
 alter table public.sales_orders alter column order_date set not null;
@@ -97,9 +101,11 @@ begin
 end;
 $$;
 
+drop function if exists public.register_sales_order(text,text,text,text,text,integer,numeric,date,text,text,text);
 create or replace function public.register_sales_order(
   p_order_number text,p_order_type text,p_product_name text,p_specification text,p_unit text,
-  p_quantity integer,p_unit_price numeric,p_due_date date,p_delivery_method text,p_address text,p_notes text
+  p_quantity integer,p_unit_price numeric,p_due_date date,p_delivery_method text,p_address text,p_notes text,
+  p_order_date date default null
 ) returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
   v_order public.sales_orders%rowtype;
@@ -113,20 +119,21 @@ begin
     or p_quantity is null or p_quantity not between 1 and 1000000
     or p_unit_price is null or p_unit_price not between 0 and 1000000000 or p_unit_price <> round(p_unit_price,2)
     or p_due_date is null or p_due_date < date '1900-01-01'
+    or p_order_date < date '1900-01-01'
     or char_length(coalesce(p_delivery_method,'')) > 120
     or char_length(coalesce(p_address,'')) > 1000
     or char_length(coalesce(p_notes,'')) > 2000 then
     raise exception 'INVALID_SALES_ORDER' using errcode='22023';
   end if;
-  insert into public.sales_orders(order_number,order_type,product_name,specification,unit,quantity,unit_price,amount,due_date,delivery_method,address,notes,created_by)
+  insert into public.sales_orders(order_number,order_type,product_name,specification,unit,quantity,unit_price,amount,due_date,delivery_method,address,notes,order_date,created_by)
   values(trim(p_order_number),p_order_type,trim(p_product_name),coalesce(p_specification,''),p_unit,p_quantity,p_unit_price,
-    p_quantity*p_unit_price,p_due_date,coalesce(p_delivery_method,''),coalesce(p_address,''),coalesce(p_notes,''),auth.uid())
+    p_quantity*p_unit_price,p_due_date,coalesce(p_delivery_method,''),coalesce(p_address,''),coalesce(p_notes,''),coalesce(p_order_date,(now() at time zone 'Asia/Seoul')::date),auth.uid())
   returning * into v_order;
   return to_jsonb(v_order);
 end;
 $$;
-revoke all on function public.register_sales_order(text,text,text,text,text,integer,numeric,date,text,text,text) from public, anon;
-grant execute on function public.register_sales_order(text,text,text,text,text,integer,numeric,date,text,text,text) to authenticated;
+revoke all on function public.register_sales_order(text,text,text,text,text,integer,numeric,date,text,text,text,date) from public, anon;
+grant execute on function public.register_sales_order(text,text,text,text,text,integer,numeric,date,text,text,text,date) to authenticated;
 
 create or replace function public.set_sales_order_status(p_order_id uuid,p_sales_status text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
@@ -136,6 +143,11 @@ begin
   if not public.inventory_access_allowed() then raise exception 'ACCOUNT_DISABLED' using errcode='42501'; end if;
   if p_sales_status is null or p_sales_status not in ('매출완료','매출미완료') then
     raise exception 'INVALID_SALES_STATUS' using errcode='22023';
+  end if;
+  select * into v_order from public.sales_orders where id=p_order_id for update;
+  if not found then raise exception 'SALES_ORDER_NOT_FOUND' using errcode='P0002'; end if;
+  if v_order.shipped_quantity>0 and p_sales_status <> (case when v_order.shipped_quantity>=v_order.quantity then '매출완료' else '매출미완료' end) then
+    raise exception 'SHIPMENT_STATUS_LOCKED' using errcode='22023';
   end if;
   update public.sales_orders set sales_status=p_sales_status
     where id=p_order_id returning * into v_order;
@@ -259,6 +271,8 @@ declare
   v_take integer;
   v_amount numeric(24,2) := 0;
   v_last_date date;
+  v_sales_order_id uuid;
+  v_sales_order public.sales_orders%rowtype;
 begin
   if not public.inventory_access_allowed() then raise exception 'ACCOUNT_DISABLED' using errcode='42501'; end if;
   if p_request_id is null or p_kind is null or p_kind not in ('opening','receipt','issue') or p_date is null
@@ -270,6 +284,12 @@ begin
   end if;
   v_code := upper(trim(p_details->>'product_code'));
   if v_code is null or char_length(v_code) not between 1 and 80 then raise exception 'INVALID_PRODUCT_CODE'; end if;
+  begin
+    v_sales_order_id := nullif(p_details->>'sales_order_id','')::uuid;
+  exception when invalid_text_representation then
+    raise exception 'INVALID_SALES_ORDER_LINK' using errcode='22023';
+  end;
+  if v_sales_order_id is not null and p_kind<>'issue' then raise exception 'INVALID_SALES_ORDER_LINK' using errcode='22023'; end if;
   v_payload := jsonb_build_object('kind',p_kind,'date',p_date,'details',p_details,'quantity',p_quantity,'unit_cost',p_unit_cost);
   select * into v_existing from public.stock_movements where request_id=p_request_id;
   if found then
@@ -305,6 +325,15 @@ begin
     or (v_product.supplier <> '' and v_product.supplier <> coalesce(p_details->>'supplier',''))
   ) then raise exception 'PRODUCT_DETAILS_CONFLICT'; end if;
   if v_product.unit <> coalesce(p_details->>'unit','') then raise exception 'PRODUCT_DETAILS_CONFLICT'; end if;
+  if v_sales_order_id is not null then
+    select * into v_sales_order from public.sales_orders where id=v_sales_order_id for update;
+    if not found then raise exception 'SALES_ORDER_NOT_FOUND' using errcode='P0002'; end if;
+    if trim(v_sales_order.product_name)<>trim(v_product.product_name)
+      or trim(v_sales_order.specification)<>trim(v_product.specification)
+      or v_sales_order.unit<>v_product.unit then raise exception 'SALES_ORDER_PRODUCT_MISMATCH' using errcode='22023'; end if;
+    if v_sales_order.shipped_quantity+p_quantity>v_sales_order.quantity
+      or v_sales_order.sales_status='매출완료' then raise exception 'SALES_ORDER_QUANTITY_EXCEEDED' using errcode='22023'; end if;
+  end if;
   if p_kind <> 'issue' then
     update public.stock_products
     set storage_location=case when storage_location='' then coalesce(p_details->>'storage_location','') else storage_location end,
@@ -316,26 +345,37 @@ begin
   select max(movement_date) into v_last_date from public.stock_movements
     where product_id=v_product.id and (p_kind='issue' or kind='issue');
   if p_date < v_last_date then raise exception 'BACKDATE_CONFLICT'; end if;
-  if p_kind='issue' and coalesce((select sum(remaining_quantity) from public.stock_lots where product_id=v_product.id and received_date<=p_date),0) < p_quantity then
+  if p_kind='issue'
+    and coalesce((select sum(remaining_quantity) from public.stock_lots where product_id=v_product.id and received_date<=p_date),0) < p_quantity then
     raise exception 'INSUFFICIENT_STOCK';
   end if;
-  insert into public.stock_movements(request_id,request_payload,product_id,kind,movement_date,quantity,unit_cost,amount,created_by)
-  values(p_request_id,v_payload,v_product.id,p_kind,p_date,p_quantity,case when p_kind='issue' then 0 else p_unit_cost end,case when p_kind='issue' then 0 else p_quantity*p_unit_cost end,auth.uid()) returning id into v_id;
+  insert into public.stock_movements(request_id,request_payload,product_id,kind,movement_date,quantity,unit_cost,amount,sales_order_id,created_by)
+  values(p_request_id,v_payload,v_product.id,p_kind,p_date,p_quantity,
+    case when p_kind='issue' then 0 else p_unit_cost end,
+    case when p_kind='issue' then 0 else p_quantity*p_unit_cost end,
+    v_sales_order_id,auth.uid()) returning id into v_id;
   if p_kind in ('opening','receipt') then
     insert into public.stock_lots(product_id,movement_id,received_date,quantity,remaining_quantity,unit_cost)
     values(v_product.id,v_id,p_date,p_quantity,p_quantity,p_unit_cost);
-  else
+  elsif p_kind='issue' then
     v_left := p_quantity;
     for v_lot in select * from public.stock_lots where product_id=v_product.id and remaining_quantity>0 and received_date<=p_date order by received_date,id for update loop
       v_take := least(v_left,v_lot.remaining_quantity);
       update public.stock_lots set remaining_quantity=remaining_quantity-v_take where id=v_lot.id;
-      insert into public.stock_allocations(issue_id,lot_id,quantity,unit_cost,amount) values(v_id,v_lot.id,v_take,v_lot.unit_cost,v_take*v_lot.unit_cost);
+      insert into public.stock_allocations(issue_id,lot_id,quantity,unit_cost,amount)
+      values(v_id,v_lot.id,v_take,v_lot.unit_cost,v_take*v_lot.unit_cost);
       v_amount := v_amount + v_take*v_lot.unit_cost;
       v_left := v_left-v_take;
       exit when v_left=0;
     end loop;
     if v_left<>0 then raise exception 'INSUFFICIENT_STOCK'; end if;
     update public.stock_movements set amount=v_amount,unit_cost=round(v_amount/p_quantity,2) where id=v_id;
+  end if;
+  if p_kind='issue' and v_sales_order_id is not null then
+    update public.sales_orders set shipped_quantity=shipped_quantity+p_quantity,
+      shipped_date=greatest(shipped_date,p_date),
+      sales_status=case when shipped_quantity+p_quantity>=quantity then '매출완료' else '매출미완료' end
+      where id=v_sales_order_id;
   end if;
   select * into v_existing from public.stock_movements where id=v_id;
   return to_jsonb(v_existing);

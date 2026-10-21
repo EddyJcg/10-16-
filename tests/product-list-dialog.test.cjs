@@ -151,7 +151,7 @@ test('long-stock card displays aged quantities and opens printable lot details',
   assert.match(script,/'long-stock':'#long-stock-dialog table'/);
   assert.match(renderer,/formatStockQuantityTotals\(rows\.map\(row=>\(\{stock_quantity:row\.remaining_quantity,unit:row\.unit\}\)\)\)/);
   assert.match(renderer,/receivedAt\.toLocaleString\('ko-KR'/);
-  assert.match(sql,/create or replace view public\.stock_aging with \(security_invoker = true\)/);
+  assert.match(sql,/create view public\.stock_aging with \(security_invoker = true\)/);
   assert.match(style,/body\[data-print-target="long-stock"\] #long-stock-dialog/);
 });
 

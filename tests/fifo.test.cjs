@@ -53,6 +53,49 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
         ['SO-BAD','방문','Item','','EA(개)',1,100,'2026-12-31','','','']),/INVALID_SALES_ORDER/);
     });
 
+    await t.test('sales registration stores the selected order date and preserves legacy defaults',async()=>{
+      const args=['SO-DATED','온라인 수주','Item','','EA(개)',1,100,'2026-12-31','','','','2020-02-29'];
+      const query='select public.register_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) as result';
+      const order=(await db.query(query,args)).rows[0].result;
+      assert.equal(String(order.order_date).slice(0,10),'2020-02-29');
+      const legacy=(await db.query('select order_date::text as order_date from public.sales_orders where order_number=$1',['SO-2026-001'])).rows[0];
+      assert.match(String(legacy.order_date),/^\d{4}-\d{2}-\d{2}/);
+      await assert.rejects(db.query(query,[...args.slice(0,11),'1899-12-31']),/INVALID_SALES_ORDER/);
+    });
+
+    await t.test('linked issues update shipped dates and complete orders only at the full cumulative quantity',async()=>{
+      const product=details('LINKED');
+      await post('LINKED','opening',10,100,'2020-01-01');
+      const registerOrder=async(number,quantity)=> (await db.query('select public.register_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) as result',
+        [number,'온라인 수주',product.product_name,product.specification,product.unit,quantity,200,'2020-12-31','','','','2020-01-01'])).rows[0].result;
+      const order=await registerOrder('SO-LINKED',3),linked={...product,sales_order_id:order.id};
+      const state=async id=>(await db.query('select to_jsonb(s) as result from public.sales_orders s where id=$1',[id])).rows[0].result;
+      const request=randomUUID();
+      const first=await post('LINKED','issue',1,0,'2020-02-01',request,linked);
+      assert.equal(first.sales_order_id,order.id);
+      assert.equal((await state(order.id)).shipped_quantity,1);
+      assert.equal((await state(order.id)).shipped_date,'2020-02-01');
+      assert.equal((await state(order.id)).sales_status,'매출미완료');
+      await post('LINKED','issue',1,0,'2020-02-01',request,linked);
+      assert.equal((await state(order.id)).shipped_quantity,1,'retry must not double count');
+      await assert.rejects(db.query('select public.set_sales_order_status($1,$2)',[order.id,'매출완료']),/SHIPMENT_STATUS_LOCKED/);
+      await assert.rejects(post('LINKED','issue',3,0,'2020-02-02',randomUUID(),linked),/SALES_ORDER_QUANTITY_EXCEEDED/);
+      await post('LINKED','issue',2,0,'2020-02-02',randomUUID(),linked);
+      assert.equal((await state(order.id)).shipped_quantity,3);
+      assert.equal((await state(order.id)).shipped_date,'2020-02-02');
+      assert.equal((await state(order.id)).sales_status,'매출완료');
+      await db.exec(migration);
+      assert.equal((await state(order.id)).shipped_quantity,3,'migration preserves shipping history');
+      const tooLarge=await registerOrder('SO-SHORTAGE',20);
+      await assert.rejects(post('LINKED','issue',15,0,'2020-02-03',randomUUID(),{...product,sales_order_id:tooLarge.id}),/INSUFFICIENT_STOCK/);
+      assert.equal((await state(tooLarge.id)).shipped_quantity,0,'failed issue must roll back the order update');
+      assert.equal((await state(tooLarge.id)).shipped_date,null);
+      assert.equal(Number((await summary('LINKED')).stock_quantity),7);
+      const unrelated=(await db.query('select id from public.sales_orders where order_number=$1',['SO-DATED'])).rows[0];
+      await assert.rejects(post('LINKED','issue',1,0,'2020-02-03',randomUUID(),{...product,sales_order_id:unrelated.id}),/SALES_ORDER_PRODUCT_MISMATCH/);
+      await assert.rejects(post('LINKED','receipt',1,100,'2020-02-03',randomUUID(),linked),/INVALID_SALES_ORDER_LINK/);
+    });
+
     await t.test('product master must be registered before opening stock or receipt',async () => {
       const product=details('UNREGISTERED');
       await assert.rejects(db.query('select public.post_stock_movement($1,$2,$3,$4,$5,$6)',[randomUUID(),'receipt','2020-01-01',product,1,100]),/PRODUCT_INFO_REQUIRED/);

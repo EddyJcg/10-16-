@@ -43,7 +43,7 @@ test('sidebar width supports the extended maximum, persists pointer resizing and
 test('existing menu folders stay under the new inventory parent folder',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),nav=html.match(/<nav aria-label="재고관리 메뉴">([\s\S]*?)<\/nav>/)[1];
   assert.ok(nav.indexOf('id="basic-info-folder"')<nav.indexOf('id="sales-folder"'),'기본정보 should appear before 매출관리');
-  assert.match(nav,/<details id="basic-info-folder"[^>]*data-sidebar-folder><summary>기본정보<\/summary><div class="folder-children"><button[^>]*id="product-info-button"[^>]*>품목 정보<\/button><\/div><\/details>/);
+  assert.match(nav,/<details id="product-info-folder"[^>]*data-sidebar-folder><summary>품목정보 입력<\/summary><div class="folder-children"><button[^>]*id="product-info-button"[^>]*>품목정보 등록<\/button><button[^>]*id="product-info-status-button"[^>]*>품목정보 현황<\/button><\/div><\/details>/);
   assert.ok(nav.indexOf('id="sales-folder"')<nav.indexOf('id="inventory-folder"'),'매출관리 should appear above 재고관리');
   assert.match(nav,/<details id="sales-folder"[^>]*data-sidebar-folder><summary>매출관리<\/summary><div class="folder-children"><button[^>]*id="sales-order-button"[^>]*>수주 입력<\/button><button[^>]*id="sales-status-button"[^>]*>수주 현황<\/button><\/div><\/details>/);
   const parentStart=nav.indexOf('<details id="inventory-folder"');

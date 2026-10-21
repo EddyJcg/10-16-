@@ -57,7 +57,7 @@ test('movement product selectors offer SKU and specification lookups',()=>{
   assert.match(html,/<datalist id="product-specifications"><\/datalist>/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
-  const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:''});return nodes.get(id);}}});
+  const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext('items=[{product_code:"SKU",product_category:"RAW",product_name:"Material",specification:"10 x 20",material:"Steel",color:"Silver",unit:"Kg",standard_stock_quantity:50}]',context);
   vm.runInContext('$("info_product_code").value="SKU";populateProductInfo("info_product_code")',context);

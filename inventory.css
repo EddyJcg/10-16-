@@ -16,6 +16,17 @@
 #basic-info-folder>summary::before{content:'';display:inline-block;flex:0 0 26.91px;width:26.91px;height:26.91px;background:currentColor;-webkit-mask:url('/basic-info-tools.svg') center/contain no-repeat;mask:url('/basic-info-tools.svg') center/contain no-repeat}
 #product-info-button::before,#product-info-status-button::before{content:'';display:inline-block;width:26.4px;height:26.4px;margin-right:2px;vertical-align:middle;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
 #product-info-folder>summary::before{content:'';display:inline-block;flex:0 0 28.6px;width:28.6px;height:28.6px;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
+#asset-classification-dialog{width:min(1400px,calc(100% - 32px));max-height:92vh}
+.asset-classification-body{max-height:calc(92vh - 90px)}
+.asset-classification-form{padding:18px;background:#f7faf7;border:1px solid #dfe7df;border-radius:10px}
+.classification-checkboxes{display:flex;flex-wrap:wrap;gap:10px 22px;padding:6px 0 12px}
+.classification-checkboxes label{display:flex;align-items:center;gap:7px;margin:0;font-size:13px}
+.classification-checkboxes input,.classification-policy input{width:auto;margin:0;accent-color:#23654e}
+.classification-checkboxes small{font-weight:400;color:#718278}
+.classification-policy{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;margin:0 0 16px;padding:12px 14px;background:#f2f6f1;border-radius:8px;font-size:12px}
+.classification-policy strong{color:#355f4b}
+.classification-policy label{display:flex;align-items:center;gap:5px;margin:0;font-weight:500}
+.asset-classification-form>.dialog-footer{padding:14px 0 0;border-top:0}
 #sales-order-button::before,#sales-status-button::before{content:'';display:inline-block;width:26.4px;height:26.4px;margin-right:8px;vertical-align:middle;background:currentColor;-webkit-mask:url('/sales-order-form.svg') center/contain no-repeat;mask:url('/sales-order-form.svg') center/contain no-repeat}
 #sales-folder>summary::before{content:'';display:inline-block;flex:0 0 32.89px;width:32.89px;height:32.89px;background:currentColor;-webkit-mask:url('/sales-money-bag.svg') center/contain no-repeat;mask:url('/sales-money-bag.svg') center/contain no-repeat}
 #inventory-folder>summary::before{content:'';display:inline-block;flex:0 0 29.9px;width:29.9px;height:29.9px;background:currentColor;-webkit-mask:url('/inventory-cart.svg') center/contain no-repeat;mask:url('/inventory-cart.svg') center/contain no-repeat}
@@ -41,17 +52,6 @@
 #workspace>.stats{gap:16px}
 #sales-balance+#product-list{margin-top:0}
 #current-stock-dialog{width:min(1400px,calc(100% - 32px))}
-#asset-classification-dialog{width:min(1400px,calc(100% - 32px));max-height:92vh}
-.asset-classification-body{max-height:calc(92vh - 90px)}
-.asset-classification-form{padding:18px;background:#f7faf7;border:1px solid #dfe7df;border-radius:10px}
-.classification-checkboxes{display:flex;flex-wrap:wrap;gap:10px 22px;padding:6px 0 12px}
-.classification-checkboxes label{display:flex;align-items:center;gap:7px;margin:0;font-size:13px}
-.classification-checkboxes input,.classification-policy input{width:auto;margin:0;accent-color:#23654e}
-.classification-checkboxes small{font-weight:400;color:#718278}
-.classification-policy{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;margin:0 0 16px;padding:12px 14px;background:#f2f6f1;border-radius:8px;font-size:12px}
-.classification-policy strong{color:#355f4b}
-.classification-policy label{display:flex;align-items:center;gap:5px;margin:0;font-weight:500}
-.asset-classification-form>.dialog-footer{padding:14px 0 0;border-top:0}
 #product-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}
 #product-info-status-dialog{width:min(1200px,calc(100% - 32px));max-height:92vh}
 #movement-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}
@@ -122,6 +122,10 @@
 .sales-backlog-stat .stat-description{display:block;margin-top:2px;font-size:15.6px;color:#718278}
 .stats .stat>span:first-child{display:block;font-size:18px;font-weight:700}
 .stats .stat strong{font-size:18px;line-height:1.5;overflow-wrap:anywhere}
+.stats>.sales-backlog-stat{order:1}
+.stats>.stat:nth-child(3){order:2}
+.stats>#stock-risk-button{order:3}
+.stats>#long-stock-button{order:4}
 .sales-order-dialog{width:min(1280px,calc(100% - 32px))}
 .sales-order-dialog .dialog-body{max-height:calc(90vh - 150px)}
 .sales-order-dialog textarea{width:100%;padding:10px 11px;border:1px solid #d3dfd5;border-radius:7px;background:white;color:#294638;font:inherit;resize:vertical}
@@ -298,24 +302,39 @@
 
 #product-list .company-signature{margin-top:1.7em;text-align:center;font-size:20.736px}
 
-.stats>.sales-backlog-stat{order:1}
-.stats>.stat:nth-child(3){order:2}
-.stats>#stock-risk-button{order:3}
-.stats>#long-stock-button{order:4}
+@media screen{
+  #sales-status-title,#sales-order-title{font-size:36px}
+}
 
+@media print{
+  body[data-print-target="sales-status"] #sales-status-dialog,
+  body[data-print-target="sales-status"] #sales-status-dialog *{visibility:visible!important}
+  body[data-print-target="sales-status"] #sales-status-dialog{display:block;position:absolute;inset:0 auto auto 0;width:100%;height:auto;min-width:0;min-height:0;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;overflow:visible;background:#fff}
+  #sales-status-dialog::backdrop{display:none}
+  #sales-status-dialog .dialog-header{padding:0 0 12px;border:0}
+  #sales-status-dialog .dialog-body{max-height:none;padding:0;overflow:visible}
+  #sales-status-dialog .sales-status-filters,
+  #sales-status-dialog .product-list-status,
+  #sales-status-dialog .product-list-toolbar{display:none!important}
+  #sales-status-dialog table{font-size:9px;white-space:normal;width:100%}
+  #sales-status-dialog thead{display:table-header-group}
+  #sales-status-dialog tr{break-inside:avoid}
+  #sales-status-dialog th,#sales-status-dialog td{position:static;padding:5px 4px;white-space:normal;word-break:break-word}
+  #sales-status-dialog td select{appearance:none;border:0;padding:0;min-width:0;background:transparent;color:inherit;font:inherit}
+  #sales-status-dialog .sales-order-totals{gap:8px;margin:8px 0 12px}
+  #sales-status-dialog .sales-order-totals>div{padding:8px}
+  #sales-status-dialog .sales-order-totals span{font-size:9px}
+  #sales-status-dialog .sales-order-totals strong{font-size:11px}
+}
 /* 품목 자산 분류 창 체크 항목과 안내 글자 크기 2배 */
 .classification-checkboxes label{font-size:18.2px}
 .classification-checkboxes small{font-size:15.4px}
-
 /* 모든 팝업 제목을 현재 기본 크기의 2배로 표시 */
 dialog .dialog-header h2{font-size:36px}
-
 /* 팝업 제목 아래의 안내 문구 숨김 */
 dialog .dialog-header p{display:none}
-
 #asset-classification-button::before{content:'';display:inline-block;width:26.4px;height:26.4px;margin-right:2px;vertical-align:middle;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
 #asset-classification-folder>summary::before{content:'';display:inline-block;flex:0 0 28.6px;width:28.6px;height:28.6px;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
-
 /* 모든 팝업의 입력 항목 제목은 20% 확대하고 입력 글자는 같은 크기로 맞춤 */
 dialog .dialog-body .field>label,
 dialog .dialog-body .product-list-search>label,
@@ -337,3 +356,5 @@ dialog .dialog-body textarea{font-size:14.4px}
     min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;resize:none;
   }
 }
+
+@media(min-width:851px){.login{width:546px;max-width:none;transform:scale(1.1,1.3);transform-origin:top center}}

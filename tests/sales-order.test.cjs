@@ -4,6 +4,36 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const {PRODUCT_UNITS,filterSalesOrders,summarizeSalesOrders,validOrderDueDate}=require('../inventory-model.js');
 
+test('sales entry provides an editable order date before the order number',()=>{
+  const form=fs.readFileSync('inventory.html','utf8').match(/<form id="sales-order-form" novalidate>([\s\S]*?)<\/form>/)[1];
+  assert.match(form,/for="sales_order_date">수주일자<\/label><input id="sales_order_date" type="date" required/);
+  assert.ok(form.indexOf('id="sales_order_date"')<form.indexOf('id="sales_order_number"'));
+});
+
+test('sales status prints with shared settings and places print controls after Excel export',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  const toolbar=html.match(/<dialog id="sales-status-dialog"[\s\S]*?<div class="product-list-toolbar">([\s\S]*?)<\/div>/)[1];
+  assert.ok(toolbar.indexOf('export-sales-status')<toolbar.indexOf('data-print-settings="sales-status"'));
+  assert.ok(toolbar.indexOf('data-print-settings="sales-status"')<toolbar.indexOf('data-print="sales-status"'));
+  const elements=new Map();
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{open:false,value:'100',textContent:'',close(){this.open=false;}});
+    return elements.get(id);
+  };
+  const body={dataset:{},append(){}},calls=[];
+  const context=vm.createContext({document:{getElementById:element,body,createElement:()=>({textContent:''})},window:{print(){calls.push('print');},addEventListener(type,handler){if(type==='afterprint')calls.push(handler);}}});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext("printInventoryList('sales-status')",context);
+  assert.equal(calls.length,0,'closed sales status dialog cannot print');
+  element('sales-status-dialog').open=true;
+  vm.runInContext("printInventoryList('sales-status')",context);
+  assert.equal(body.dataset.printTarget,'sales-status');
+  assert.match(element('product-list-print-page-style').textContent,/#sales-status-dialog table/);
+  assert.ok(calls.includes('print'));
+  calls.find(call=>typeof call==='function')();
+  assert.equal(body.dataset.printTarget,undefined);
+});
+
 test('sales order dialog contains all requested fields and choices',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const form=html.match(/<form id="sales-order-form" novalidate>([\s\S]*?)<\/form>/)?.[1]||'';
@@ -28,8 +58,8 @@ test('sales status view includes every order field and completion control after 
   const html=fs.readFileSync('inventory.html','utf8');
   const table=html.match(/<table aria-label="전체 수주현황">([\s\S]*?)<\/table>/)?.[1]||'';
   assert.match(html,/id="sales-status-button"[^>]*>수주 현황<\/button>/);
-  assert.match(table,/<th>수주번호<\/th><th>매출 상태<\/th><th>수주형태<\/th>/);
-  for(const label of ['일련번호','수주일자','수주번호','매출 상태','수주형태','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
+  assert.match(table,/<th>수주번호<\/th><th>수주형태<\/th><th>출고일자<\/th><th>매출 상태<\/th>/);
+  for(const label of ['일련번호','수주일자','수주번호','매출 상태','수주형태','출고일자','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
     assert.ok(table.includes(`<th>${label}</th>`),label);
   for(const id of ['sales-status-start-date','sales-status-end-date','sales-status-type-filter','sales-status-filter','sales-status-total','sales-status-completed-total','sales-status-outstanding-total'])
     assert.match(html,new RegExp(`id="${id}"`),id);
@@ -41,7 +71,7 @@ test('dashboard sales balance uses the same sales-order columns and status selec
   const balanceHeaders=html.match(/<table aria-label="수주잔고 현황"><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
   assert.equal(balanceHeaders,statusHeaders);
   assert.match(html,/id="sales-balance-items"/);
-  assert.match(fs.readFileSync('inventory-app.js','utf8'),/select\.value='매출미완료';select\.disabled=salesStatusUpdating/);
+  assert.match(fs.readFileSync('inventory-app.js','utf8'),/select\.value='매출미완료';select\.disabled=salesStatusUpdating\|\|Number\(order\.shipped_quantity\|\|0\)>0/);
 });
 
 test('dashboard backlog card shows live outstanding order count and exact total',()=>{

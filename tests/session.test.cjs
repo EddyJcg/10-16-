@@ -44,7 +44,7 @@ test('inventory screen omits the manual stock refresh button',async()=>{
 test('main screen title identifies sales and inventory management',()=>{
   const html=readFileSync('inventory.html','utf8');
   assert.match(html,/<title>Isummerly 매출\/재고관리<\/title>/);
-  assert.match(html,/<h1><img src="\/회사로고\.png" alt="회사 로고">Isummerly 매출\/재고관리<\/h1>/);
+  assert.match(html,/<h1><img src="\/isummerly-logo\.png" alt="회사 로고">Isummerly 매출\/재고관리<\/h1>/);
 });
 
 test('unknown receipt item displays the required product information alert',async()=>{

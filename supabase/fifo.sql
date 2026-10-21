@@ -204,7 +204,12 @@ $$;
 revoke all on function public.set_stock_product_standard_stock_quantity(text,integer) from public, anon;
 grant execute on function public.set_stock_product_standard_stock_quantity(text,integer) to authenticated;
 
-create or replace view public.stock_summary with (security_invoker = true) as
+-- Recreate these views to recover cleanly if an earlier migration left a
+-- different trailing-column layout or numeric type in place.
+drop view if exists public.stock_aging;
+drop view if exists public.stock_summary;
+
+create view public.stock_summary with (security_invoker = true) as
 with movements as (
   select product_id,
     coalesce(sum(quantity) filter(where kind='opening'),0) as opening_quantity,
@@ -228,7 +233,7 @@ from public.stock_products p left join movements m on m.product_id=p.id left joi
 revoke all on public.stock_summary from anon;
 grant select on public.stock_summary to authenticated;
 
-create or replace view public.stock_aging with (security_invoker = true) as
+create view public.stock_aging with (security_invoker = true) as
 select l.id as lot_id,l.product_id,l.movement_id,m.sequence_id,m.movement_date::text as received_date,
   m.created_at as received_at,l.remaining_quantity,l.unit_cost,
   l.remaining_quantity*l.unit_cost as amount,p.product_category,p.product_code,p.product_name,

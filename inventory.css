@@ -312,3 +312,6 @@ dialog .dialog-header h2{font-size:36px}
 
 /* 팝업 제목 아래의 안내 문구 숨김 */
 dialog .dialog-header p{display:none}
+
+#asset-classification-button::before{content:'';display:inline-block;width:26.4px;height:26.4px;margin-right:2px;vertical-align:middle;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
+#asset-classification-folder>summary::before{content:'';display:inline-block;flex:0 0 28.6px;width:28.6px;height:28.6px;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}

@@ -43,6 +43,7 @@ function errorText(error) {
     QUANTITY_MANAGEMENT_DISABLED:'이 분류는 재고수량을 관리하지 않아 원자재 수불부에 등록할 수 없습니다.',
     CLASSIFICATION_TYPE_REQUIRED:'재고자산종류를 선택하세요.',
     CLASSIFICATION_NAME_EXISTS:'같은 품목자산분류가 이미 등록되어 있습니다.',
+    CLASSIFICATION_PARENTHESES_NOT_ALLOWED:'품목자산분류 이름에는 괄호로 묶은 항목을 사용할 수 없습니다.',
     CLASSIFICATION_HAS_LEDGER_HISTORY:'거래 이력이 있는 분류의 수량·금액 관리 방식은 변경할 수 없습니다.',
     INVALID_SALES_ORDER:'수주번호, 수주형태, 품명, 단위, 수량, 단가와 납기일자를 확인하세요.'
   };

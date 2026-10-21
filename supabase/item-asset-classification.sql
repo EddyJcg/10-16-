@@ -112,18 +112,35 @@ values
   ('운반비_특송비',null,true,true,false,false,15),
   ('운반비_지게차',null,true,true,false,false,16),
   ('포장자재',null,true,true,false,false,17),
-  ('운반비_운송비(필름)',null,true,true,false,false,18),
-  ('수선비',null,true,true,false,false,19),
-  ('비품',null,true,true,false,false,20)
+  ('수선비',null,true,true,false,false,18),
+  ('비품',null,true,true,false,false,19)
 on conflict (name) do nothing;
-
--- This category appears in the supplied screen image and remains available for existing databases too.
-update public.stock_product_classifications set is_active=true,sort_order=18,updated_at=clock_timestamp()
-where name='운반비_운송비(필름)';
 
 alter table public.stock_products
   add column if not exists classification_id uuid references public.stock_product_classifications(id) on delete restrict;
 create index if not exists stock_products_classification on public.stock_products(classification_id);
+
+-- Hide parenthesized labels and normalized duplicate names from the selectable list.
+update public.stock_product_classifications
+set is_active=false,updated_at=clock_timestamp()
+where is_active and name ~ '[()]';
+
+with ranked as (
+  select c.id,row_number() over (
+    partition by lower(btrim(c.name))
+    order by exists(select 1 from public.stock_products p where p.classification_id=c.id) desc,c.created_at,c.id
+  ) as duplicate_rank
+  from public.stock_product_classifications c
+  where c.is_active
+)
+update public.stock_product_classifications c
+set is_active=false,updated_at=clock_timestamp()
+from ranked r
+where r.id=c.id and r.duplicate_rank>1;
+
+create unique index if not exists stock_product_classifications_active_normalized_name_key
+  on public.stock_product_classifications(lower(btrim(name))) where is_active;
+
 
 alter table public.stock_product_classifications enable row level security;
 revoke all on public.stock_product_classifications from anon,authenticated;
@@ -164,6 +181,7 @@ begin
   v_name:=trim(coalesce(p_details->>'name',''));
   v_type:=nullif(trim(coalesce(p_details->>'inventory_asset_type','')),'');
   v_notes:=coalesce(p_details->>'notes','');
+  if v_name ~ '[()]' then raise exception 'CLASSIFICATION_PARENTHESES_NOT_ALLOWED' using errcode='22023'; end if;
   if char_length(v_name) not between 1 and 80 or char_length(v_notes)>500
     or (v_type is not null and v_type not in ('원자재','상품','제품','서비스','부자재','소모자재','포장재','sample','재공품','반제품','저장품'))
     or coalesce(p_details->>'quantity_management_disabled','false') not in ('true','false')
@@ -179,6 +197,9 @@ begin
   v_lot_default:=coalesce((p_details->>'lot_management_default')::boolean,false);
   begin v_id:=nullif(p_details->>'id','')::uuid;
   exception when invalid_text_representation then raise exception 'INVALID_CLASSIFICATION' using errcode='22023'; end;
+  if exists(select 1 from public.stock_product_classifications c where lower(btrim(c.name))=lower(v_name) and c.id is distinct from v_id) then
+    raise exception 'CLASSIFICATION_NAME_EXISTS' using errcode='23505';
+  end if;
   if v_id is null then
     if v_type is null then raise exception 'CLASSIFICATION_TYPE_REQUIRED' using errcode='22023'; end if;
     insert into public.stock_product_classifications

@@ -328,3 +328,4 @@ dialog .dialog-body select,
 dialog .dialog-body textarea{font-size:14.4px}
 
 #asset-classification-button::before,#product-info-button::before,#product-info-status-button::before{content:none!important;display:none!important}
+#sales-order-button::before,#sales-status-button::before{content:none!important;display:none!important}

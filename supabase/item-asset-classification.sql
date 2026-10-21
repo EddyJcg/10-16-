@@ -112,12 +112,13 @@ values
   ('운반비_특송비',null,true,true,false,false,15),
   ('운반비_지게차',null,true,true,false,false,16),
   ('포장자재',null,true,true,false,false,17),
+  ('운반비_운송비(필름)',null,true,true,false,false,18),
   ('수선비',null,true,true,false,false,19),
   ('비품',null,true,true,false,false,20)
 on conflict (name) do nothing;
 
--- Hide this previously seeded category as well as excluding it from fresh installs.
-update public.stock_product_classifications set is_active=false,updated_at=clock_timestamp()
+-- This category appears in the supplied screen image and remains available for existing databases too.
+update public.stock_product_classifications set is_active=true,sort_order=18,updated_at=clock_timestamp()
 where name='운반비_운송비(필름)';
 
 alter table public.stock_products

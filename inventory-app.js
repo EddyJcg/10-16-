@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const number = value => Number(value || 0).toLocaleString('ko-KR',{maximumFractionDigits:2});
 const money = number;
 const MODE_LABELS = {opening:['기초재고','기초','기초일자'],receipt:['입고관리','입고','입고일자'],issue:['출고관리','출고','출고일자']};
-let client,currentUser = null,items = [],agedStock = [],authGeneration = 0;
+let client,currentUser = null,items = [],agedStock = [],assetClassifications=[],authGeneration = 0;
 let loadPromise = null,reloadQueued = false,syncTimer = null,salesSyncTimer=null,busy = false,exporting = false;
 let appliedDateProductIds = null,appliedSupplier = '',searching = false;
 let productListDateIds = null,productListSupplier = '',productListQuery = '',productListSearching = false;
@@ -21,6 +21,7 @@ const columnWidthDefaults={
 };
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0,productLotsReady = false;
 let selectedProductInfoCode = '';
+let editingAssetClassificationId='';
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function errorText(error) {
   const message = error?.message || '';
@@ -37,10 +38,16 @@ function errorText(error) {
     INVALID_INPUT:'날짜, 수량과 단가를 확인하세요. 미래 일자와 소수 수량은 사용할 수 없습니다.',
     INVALID_PRODUCT_DETAILS:'품목분류·품명 등 품목 정보를 확인하세요.',
     INVALID_PRODUCT_CODE:'품번을 입력하세요.',
+    PRODUCT_CLASSIFICATION_REQUIRED:'품목 자산 분류를 선택하세요.',
+    PRODUCT_CLASSIFICATION_TYPE_REQUIRED:'품목 자산 분류의 재고자산종류를 먼저 설정하세요.',
+    QUANTITY_MANAGEMENT_DISABLED:'이 분류는 재고수량을 관리하지 않아 원자재 수불부에 등록할 수 없습니다.',
+    CLASSIFICATION_TYPE_REQUIRED:'재고자산종류를 선택하세요.',
+    CLASSIFICATION_NAME_EXISTS:'같은 품목자산분류가 이미 등록되어 있습니다.',
+    CLASSIFICATION_HAS_LEDGER_HISTORY:'거래 이력이 있는 분류의 수량·금액 관리 방식은 변경할 수 없습니다.',
     INVALID_SALES_ORDER:'수주번호, 수주형태, 품명, 단위, 수량, 단가와 납기일자를 확인하세요.'
   };
   for (const [key,text] of Object.entries(errors)) if (message.includes(key)) return text;
-  if (['PGRST205','PGRST202','42P01','42703','42501'].includes(error?.code)) return '재고 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql과 supabase/procurement-schema.sql을 실행하세요. 로그인·권한 설정은 기존 schema.sql을 사용합니다.';
+  if (['PGRST205','PGRST202','42P01','42703','42501'].includes(error?.code)) return '재고 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql과 supabase/item-asset-classification.sql을 실행하세요. 로그인·권한 설정은 기존 schema.sql을 사용합니다.';
   return '요청을 완료하지 못했습니다. 네트워크와 로그인 상태를 확인하세요. 저장 응답이 끊겼다면 내역을 확인하거나 같은 내용으로 다시 저장하세요.';
 }
 async function showLongStock() {
@@ -367,13 +374,13 @@ async function updateSession(session) {
   $('admin-folder').hidden = true;
   $('sidebar-toggle').hidden = !currentUser;
   $('app-layout').classList.toggle('signed-in',!!currentUser);
-  items = []; agedStock=[];salesOrders=[];renderSalesOrders();renderSalesStatus();renderSalesBalance();updateSupplierOptions();render();
+  items = []; agedStock=[];assetClassifications=[];editingAssetClassificationId='';salesOrders=[];renderSalesOrders();renderSalesStatus();renderSalesBalance();updateSupplierOptions();render();
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
-    $('movement-dialog').close(); $('product-info-dialog').close(); $('product-info-status-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('product-info-dialog').close(); $('product-info-status-dialog').close(); $('asset-classification-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
-  try { await loadStock(); if (currentUser) {await loadSalesOrders();subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
+  try { await loadStock(); if (currentUser) {try{await loadAssetClassifications();}catch(error){notify('품목 자산 분류 DB 설정이 필요합니다. Supabase에서 supabase/item-asset-classification.sql을 실행하세요.',true);}await loadSalesOrders();subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
   catch (error) { notify(errorText(error),true); }
 }
 function activeProduct() {
@@ -394,19 +401,25 @@ function productForLookup(source,value=$(source).value) {
 function populateProductInfo(source) {
   const previous=selectedProductInfoCode,item=productForLookup(source);
   selectedProductInfoCode=item?.product_code||'';
-  ['info_product_category','info_product_name','info_specification','info_material','info_color'].forEach(id=>$(id).readOnly=!!item);
+  ['info_product_name','info_specification','info_material','info_color'].forEach(id=>$(id).readOnly=!!item);
   $('info_product_category').disabled=!!item;
   $('info_unit').disabled=!!item;
+  if(item){
+    $('info_product_category').value=item.classification_id||'';
+    if(!item.classification_id)$('info_product_category').options[0].textContent=item.product_category+' (기존 분류)';
+  }else $('info_product_category').options[0].textContent='품목자산분류를 선택하세요';
   if(item)$('info_product_code').value=item.product_code;
   else if(source==='info_specification')$('info_product_code').value='';
   ['product_category','product_code','product_name','specification','material','color','unit','standard_stock_quantity'].forEach(key=>{
     if(item)$('info_'+key).value=item[key]??(key==='unit'?'EA(개)':'');
     else if(previous&&source!=='info_'+key)$('info_'+key).value=key==='unit'?'EA(개)':'';
   });
+  updateProductInfoClassification();
 }
 function populateProduct(source='product_code') {
-  const item = productForLookup(source);
+  const found = productForLookup(source),item=found?.quantity_management_disabled===true?null:found;
   const previous = selectedCode; selectedCode = item?.product_code || '';
+  $('form-message').textContent=found?.quantity_management_disabled===true?'이 품목은 재고수량관리 안함으로 설정되어 원자재 수불부에 반영되지 않습니다.':'';
   if(item)$('product_code').value=item.product_code;
   else if(source==='specification')$('product_code').value='';
   PRODUCT_FIELDS.filter(key=>key!=='product_code').forEach(key=>{
@@ -435,12 +448,17 @@ async function loadSelectedLots() {
 }
 function updateAmounts() {
   const quantity = Number($('movement_quantity').value), cost = Number($('movement_cost').value);
-  if (mode!=='issue') { $('movement_amount').value=money(quantity*cost); return; }
+  const selectedItem=items.find(item=>item.product_code===$('product_code').value.trim().toUpperCase()),valueDisabled=selectedItem?.value_management_disabled===true;
+  if(mode!=='issue'){
+    $('movement_cost').readOnly=valueDisabled;
+    if(valueDisabled)$('movement_cost').value='0';
+    $('movement_amount').value=money(quantity*(valueDisabled?0:cost));return;
+  }
   const unit=$('unit').value||'EA(개)';
   $('fifo-remaining-heading').textContent=`현재 잔량 (${unit})`;
   $('fifo-issue-heading').textContent=`차감수량 (${unit})`;
   const plan = planFifo(productLots,Number.isSafeInteger(quantity) && quantity>0 ? quantity : 0,$('movement_date').value);
-  $('movement_cost').value = plan.shortage>0 ? '' : plan.unitCost.toFixed(2); $('movement_amount').value = plan.shortage>0 ? '재고 부족' : money(plan.amount);
+  $('movement_cost').value = plan.shortage>0 ? '' : plan.unitCost.toFixed(2); $('movement_amount').value = plan.shortage>0 ? '재고 부족' : money(valueDisabled?0:plan.amount);
   renderFifoPreview(plan.allocations);
   $('form-message').textContent = !activeProduct() ? '출고할 기존 품번을 선택하세요.' : plan.shortage>0 ? `선택한 날짜 기준 재고가 ${number(plan.shortage)} ${unit} 부족합니다.` : '';
 }
@@ -458,7 +476,7 @@ function validateIssueQuantity(showAlert=false) {
 }
 function openMovement(kind) {
   if (!currentUser || busy) return;
-  if(kind!=='issue'&&!items.length){window.alert('품목정보를 입력해 주세요!');return;}
+  if(!items.some(item=>item.quantity_management_disabled!==true)){window.alert('재고수량관리를 하는 품목정보를 먼저 등록해 주세요.');return;}
   mode = kind; const [title,prefix,dateLabel] = MODE_LABELS[mode];
   $('movement-form').reset(); selectedCode=''; productLots=[]; productLotsReady=false; lotsGeneration++; requestId=crypto.randomUUID();
   $('dialog-title').textContent = title;
@@ -470,19 +488,88 @@ function openMovement(kind) {
   PRODUCT_FIELDS.forEach(key=>{if(key==='unit')$(key).disabled=false;else $(key).readOnly=key!=='product_code';});
   $('product-codes').replaceChildren();
   $('product-specifications').replaceChildren();
-  items.forEach(item=>{
+  items.filter(item=>item.quantity_management_disabled!==true).forEach(item=>{
     const option=document.createElement('option');option.value=item.product_code;option.label=item.product_name;$('product-codes').append(option);
     if(item.specification){const specOption=document.createElement('option');specOption.value=item.specification;specOption.label=item.product_code+' · '+item.product_name;$('product-specifications').append(specOption);}
   });
   updateAmounts(); $('movement-dialog').showModal();
 }
+async function loadAssetClassifications() {
+  const {data,error}=await client.rpc('list_stock_product_classifications');
+  if(error)throw error;
+  assetClassifications=Array.isArray(data)?data:[];
+  renderAssetClassifications();
+  updateProductClassificationOptions();
+}
+function renderAssetClassifications() {
+  const body=$('asset-classification-items');body.replaceChildren();
+  if(!assetClassifications.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=9;cell.className='empty';cell.textContent='등록된 품목자산분류가 없습니다.';row.append(cell);body.append(row);return;}
+  assetClassifications.forEach(classification=>{
+    const row=document.createElement('tr');
+    [classification.name,classification.inventory_asset_type||'선택하세요',classification.quantity_management_disabled?'✓':'',classification.value_management_disabled?'✓':'',classification.shortage_control_enabled?'✓':'',classification.is_set_item?'✓':'',classification.lot_management_default?'✓':'',classification.notes||''].forEach(value=>row.append(makeCell(value)));
+    const action=document.createElement('td'),button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='수정';button.dataset.classificationId=classification.id;action.append(button);row.append(action);body.append(row);
+  });
+}
+function updateProductClassificationOptions() {
+  const select=$('info_product_category'),selected=select.value;select.replaceChildren();
+  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='품목자산분류를 선택하세요';select.append(placeholder);
+  assetClassifications.forEach(classification=>{const option=document.createElement('option');option.value=classification.id;option.disabled=!classification.inventory_asset_type;option.textContent=classification.name+(classification.inventory_asset_type?' · '+classification.inventory_asset_type:' · 재고자산종류 미설정');select.append(option);});
+  if([...select.options].some(option=>option.value===selected))select.value=selected;
+  updateProductInfoClassification();
+}
+function updateProductInfoClassification() {
+  const classification=assetClassifications.find(row=>row.id===$('info_product_category').value);
+  $('info-classification-type').textContent='재고자산종류: '+(classification?.inventory_asset_type||'미지정');
+  $('info-quantity-disabled').checked=!!classification?.quantity_management_disabled;
+  $('info-value-disabled').checked=!!classification?.value_management_disabled;
+  $('info-shortage-control').checked=!!classification?.shortage_control_enabled;
+  $('info-set-item').checked=!!classification?.is_set_item;
+  $('info-lot-default').checked=!!classification?.lot_management_default;
+}
+function resetAssetClassificationForm() {
+  editingAssetClassificationId='';$('asset-classification-form').reset();$('asset-classification-id').value='';
+  $('save-asset-classification').textContent='분류 추가';$('cancel-asset-classification-edit').hidden=true;
+}
+function editAssetClassification(id) {
+  const row=assetClassifications.find(item=>item.id===id);if(!row)return;
+  editingAssetClassificationId=row.id;$('asset-classification-id').value=row.id;
+  $('asset-classification-name').value=row.name;$('asset-classification-type').value=row.inventory_asset_type||'';
+  $('asset-classification-notes').value=row.notes||'';
+  $('asset-quantity-disabled').checked=!!row.quantity_management_disabled;$('asset-value-disabled').checked=!!row.value_management_disabled;
+  $('asset-shortage-control').checked=!!row.shortage_control_enabled;$('asset-set-item').checked=!!row.is_set_item;
+  $('asset-lot-default').checked=!!row.lot_management_default;
+  $('save-asset-classification').textContent='분류 저장';$('cancel-asset-classification-edit').hidden=false;
+  $('asset-classification-name').focus();
+}
+async function saveAssetClassification(event) {
+  event.preventDefault();if(!currentUser||busy)return;
+  const details={id:editingAssetClassificationId||null,name:$('asset-classification-name').value.trim(),inventory_asset_type:$('asset-classification-type').value,
+    quantity_management_disabled:$('asset-quantity-disabled').checked,value_management_disabled:$('asset-value-disabled').checked,
+    shortage_control_enabled:$('asset-shortage-control').checked,is_set_item:$('asset-set-item').checked,lot_management_default:$('asset-lot-default').checked,notes:$('asset-classification-notes').value.trim()};
+  const generation=authGeneration;busy=true;$('asset-classification-form').querySelectorAll('input,select,button').forEach(el=>el.disabled=true);
+  $('asset-classification-status').textContent='분류를 저장하는 중…';
+  try{
+    const {error}=await client.rpc('save_stock_product_classification',{p_details:details});if(error)throw error;
+    if(generation!==authGeneration)return;
+    resetAssetClassificationForm();await loadAssetClassifications();
+    $('asset-classification-status').textContent='품목자산분류를 저장했습니다.';
+  }catch(error){if(generation===authGeneration)$('asset-classification-status').textContent=errorText(error);}
+  finally{busy=false;$('asset-classification-form').querySelectorAll('input,select,button').forEach(el=>el.disabled=false);$('cancel-asset-classification-edit').hidden=!editingAssetClassificationId;}
+}
+async function showAssetClassifications() {
+  if(!currentUser||busy)return;
+  resetAssetClassificationForm();$('asset-classification-status').textContent='분류를 불러오는 중…';$('asset-classification-dialog').showModal();
+  try{await loadAssetClassifications();$('asset-classification-status').textContent=`품목자산분류 ${number(assetClassifications.length)}개`}
+  catch(error){$('asset-classification-status').textContent='분류를 불러오지 못했습니다. Supabase에서 supabase/item-asset-classification.sql을 실행하세요. '+errorText(error);}
+}
 function renderProductInfoItems() {
   const body=$('product-info-items');body.replaceChildren();
   $('product-info-codes').replaceChildren();$('product-info-specifications').replaceChildren();
-  if(!items.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=8;cell.className='empty';cell.textContent='등록된 품목정보가 없습니다.';row.append(cell);body.append(row);return;}
+  if(!items.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=9;cell.className='empty';cell.textContent='등록된 품목정보가 없습니다.';row.append(cell);body.append(row);return;}
   items.forEach(item=>{
     const row=document.createElement('tr');
-    ['product_category','product_code','product_name','specification','material','color','unit'].forEach(key=>row.append(makeCell(item[key]||'')));
+    row.append(makeCell(item.classification_name||item.product_category||''),makeCell(item.inventory_asset_type||'미지정'));
+    ['product_code','product_name','specification','material','color','unit'].forEach(key=>row.append(makeCell(item[key]||'')));
     row.append(makeCell(number(item.standard_stock_quantity)+' '+(item.unit||'EA(개)')));
     body.append(row);
     const codeOption=document.createElement('option');codeOption.value=item.product_code;codeOption.label=item.product_name;$('product-info-codes').append(codeOption);
@@ -516,6 +603,8 @@ async function saveProductInfo(event) {
   if(!currentUser||busy)return;
   const fields=['product_category','product_code','product_name','specification','material','color','unit','standard_stock_quantity'];
   const details=Object.fromEntries(fields.map(key=>[key,$('info_'+key).value.trim()]));
+  const selectedClassification=assetClassifications.find(row=>row.id===$('info_product_category').value);
+  details.classification_id=selectedClassification?.id||null;details.product_category=selectedClassification?.name||'';
   details.product_code=details.product_code.toUpperCase();
   details.standard_stock_quantity=Number(details.standard_stock_quantity);
   if(!Number.isSafeInteger(details.standard_stock_quantity)||details.standard_stock_quantity<1||details.standard_stock_quantity>1000000){
@@ -523,6 +612,7 @@ async function saveProductInfo(event) {
     return;
   }
   const updatingStandard=!!selectedProductInfoCode&&details.product_code===selectedProductInfoCode;
+  if(!updatingStandard&&!details.classification_id){$('product-info-status').textContent='품목자산분류와 재고자산종류를 설정한 뒤 선택하세요.';return;}
   const generation=authGeneration;busy=true;$('product-info-editor').disabled=true;
   $('product-info-status').textContent='품목정보를 저장하는 중…';
   try {
@@ -944,6 +1034,11 @@ async function startApp(){
   $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
   $('logout').addEventListener('click',async()=>{if(busy)return;const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);});
   $('product-info-button').addEventListener('click',showProductInfo);
+  $('asset-classification-button').addEventListener('click',showAssetClassifications);
+  $('close-asset-classification').addEventListener('click',()=>$('asset-classification-dialog').close());
+  $('asset-classification-form').addEventListener('submit',saveAssetClassification);
+  $('cancel-asset-classification-edit').addEventListener('click',resetAssetClassificationForm);
+  $('asset-classification-items').addEventListener('click',event=>{const button=event.target.closest('[data-classification-id]');if(button)editAssetClassification(button.dataset.classificationId);});
   $('product-info-status-button').addEventListener('click',showProductInfoStatus);
   $('sales-order-button').addEventListener('click',showSalesOrder);
   $('sales-status-button').addEventListener('click',showSalesStatus);
@@ -964,6 +1059,7 @@ async function startApp(){
   $('clear-product-info-status-search').addEventListener('click',()=>{$('product-info-status-query').value='';renderProductInfoStatus();$('product-info-status-query').focus();});
   $('cancel-product-info').addEventListener('click',()=>$('product-info-dialog').close());
   $('product-info-form').addEventListener('submit',saveProductInfo);
+  $('info_product_category').addEventListener('change',updateProductInfoClassification);
   $('info_product_code').addEventListener('input',()=>populateProductInfo('info_product_code'));
   $('info_specification').addEventListener('input',()=>populateProductInfo('info_specification'));
   document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>openMovement(button.dataset.mode)));

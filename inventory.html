@@ -7,7 +7,7 @@
   <aside id="sidebar" class="sidebar" aria-label="재고관리 사이드바">
     <div class="sidebar-heading">업무 메뉴<span>폴더를 눌러 메뉴를 펼치세요.</span></div>
     <nav aria-label="재고관리 메뉴">
-      <details id="basic-info-folder" class="menu-folder" data-sidebar-folder><summary>기본정보</summary><div class="folder-children"><details id="product-info-folder" class="menu-folder" data-sidebar-folder><summary>품목정보 입력</summary><div class="folder-children"><button type="button" class="sidebar-action" id="product-info-button" aria-haspopup="dialog">품목정보 등록</button><button type="button" class="sidebar-action" id="product-info-status-button" aria-haspopup="dialog">품목정보 현황</button></div></details></div></details>
+      <details id="basic-info-folder" class="menu-folder" data-sidebar-folder><summary>기본정보</summary><div class="folder-children"><details id="asset-classification-folder" class="menu-folder" data-sidebar-folder><summary>품목 자산 분류</summary><div class="folder-children"><button type="button" class="sidebar-action" id="asset-classification-button" aria-haspopup="dialog">분류 설정</button></div></details><details id="product-info-folder" class="menu-folder" data-sidebar-folder><summary>품목정보 입력</summary><div class="folder-children"><button type="button" class="sidebar-action" id="product-info-button" aria-haspopup="dialog">품목정보 등록</button><button type="button" class="sidebar-action" id="product-info-status-button" aria-haspopup="dialog">품목정보 현황</button></div></details></div></details>
       <details id="sales-folder" class="menu-folder" data-sidebar-folder><summary>매출관리</summary><div class="folder-children"><button type="button" class="sidebar-action" id="sales-order-button" aria-haspopup="dialog">수주 입력</button><button type="button" class="sidebar-action" id="sales-status-button" aria-haspopup="dialog">수주 현황</button></div></details>
       <details id="inventory-folder" class="menu-folder" data-sidebar-folder open><summary>재고관리</summary><div class="folder-children">
         <details id="opening-folder" class="menu-folder" data-sidebar-folder open><summary>기초재고</summary><div class="folder-children"><button type="button" class="sidebar-action" data-mode="opening" aria-haspopup="dialog">기초재고 등록</button></div></details>
@@ -70,7 +70,7 @@
       <fieldset id="product-info-editor">
         <div class="dialog-body">
           <div class="form-grid">
-            <div class="field"><label for="info_product_category">품목분류</label><input id="info_product_category" required maxlength="80"></div>
+            <div class="field"><label for="info_product_category">품목자산분류</label><select id="info_product_category" required><option value="">품목자산분류를 선택하세요</option></select></div>
             <div class="field"><label for="info_product_code">품번</label><input id="info_product_code" required maxlength="80" list="product-info-codes" autocomplete="off"><datalist id="product-info-codes"></datalist><datalist id="product-info-specifications"></datalist></div>
             <div class="field"><label for="info_product_name">품명</label><input id="info_product_name" required maxlength="120"></div>
             <div class="field"><label for="info_specification">규격</label><input id="info_specification" maxlength="200" list="product-info-specifications" autocomplete="off"></div>
@@ -79,12 +79,36 @@
             <div class="field"><label for="info_unit">단위</label><select id="info_unit" required><option>EA(개)</option><option>벌</option><option>Set(세트)</option><option>M</option><option>Cm</option><option>mm</option><option>Box</option><option>Kg</option><option>g</option><option>L</option><option>mL</option><option>봉</option><option>식</option></select></div>
             <div class="field"><label for="info_standard_stock_quantity">적정재고 수량</label><input id="info_standard_stock_quantity" type="number" required min="1" max="1000000" step="1" placeholder="1~1,000,000"></div>
           </div>
+          <div id="info-classification-policy" class="classification-policy" aria-live="polite"><strong id="info-classification-type">재고자산종류: 선택 전</strong><label><input id="info-quantity-disabled" type="checkbox" disabled> 재고수량관리 안함</label><label><input id="info-value-disabled" type="checkbox" disabled> 재고금액관리 안함</label><label><input id="info-shortage-control" type="checkbox" disabled> 재고부족통제</label><label><input id="info-set-item" type="checkbox" disabled> 세트품목</label><label><input id="info-lot-default" type="checkbox" disabled> Lot관리기본값</label></div>
           <p id="product-info-status" class="product-list-status" role="status" aria-live="polite"></p>
-          <div class="table-wrap product-list-table"><table aria-label="등록된 품목정보"><thead><tr><th>품목분류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th></tr></thead><tbody id="product-info-items"></tbody></table></div>
+          <div class="table-wrap product-list-table"><table aria-label="등록된 품목정보"><thead><tr><th>품목자산분류</th><th>재고자산종류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th></tr></thead><tbody id="product-info-items"></tbody></table></div>
         </div>
         <div class="dialog-footer"><button type="button" id="cancel-product-info" class="secondary">닫기</button><button id="save-product-info" class="primary">품목정보 저장</button></div>
       </fieldset>
     </form>
+  </dialog>
+  <dialog id="asset-classification-dialog" aria-labelledby="asset-classification-title">
+    <div class="dialog-header"><div><h2 id="asset-classification-title">품목 자산 분류</h2><p>품목정보 등록 시 선택할 분류와 재고 관리 방식을 설정합니다.</p></div><button type="button" class="close" id="close-asset-classification" aria-label="품목 자산 분류 창 닫기">×</button></div>
+    <div class="dialog-body asset-classification-body">
+      <form id="asset-classification-form" class="asset-classification-form">
+        <input id="asset-classification-id" type="hidden">
+        <div class="form-grid">
+          <div class="field"><label for="asset-classification-name">품목자산분류</label><input id="asset-classification-name" required maxlength="80" placeholder="예: 원자재(장비)"></div>
+          <div class="field"><label for="asset-classification-type">재고자산종류</label><select id="asset-classification-type" required><option value="">선택하세요</option><option>원자재</option><option>상품</option><option>제품</option><option>서비스</option><option>부자재</option><option>소모자재</option><option>포장재</option><option>sample</option><option>재공품</option><option>반제품</option><option>저장품</option></select></div>
+          <div class="field"><label for="asset-classification-notes">비고</label><input id="asset-classification-notes" maxlength="500"></div>
+        </div>
+        <div class="classification-checkboxes">
+          <label><input id="asset-quantity-disabled" type="checkbox"> 재고수량관리 안함 <small>선택하면 원자재 수불부에 반영하지 않습니다.</small></label>
+          <label><input id="asset-value-disabled" type="checkbox"> 재고금액관리 안함</label>
+          <label><input id="asset-shortage-control" type="checkbox"> 재고부족통제 <small>선택 시 적정재고 미달 품목을 품절위험 목록에 표시합니다.</small></label>
+          <label><input id="asset-set-item" type="checkbox"> 세트품목</label>
+          <label><input id="asset-lot-default" type="checkbox"> Lot관리기본값</label>
+        </div>
+        <div class="dialog-footer"><button id="cancel-asset-classification-edit" class="secondary" type="button" hidden>수정 취소</button><button id="save-asset-classification" class="primary" type="submit">분류 추가</button></div>
+      </form>
+      <p id="asset-classification-status" class="product-list-status" role="status" aria-live="polite"></p>
+      <div class="table-wrap product-list-table"><table aria-label="품목자산분류 목록"><thead><tr><th>품목자산분류</th><th>재고자산종류</th><th>재고수량관리 안함</th><th>재고금액관리 안함</th><th>재고부족통제</th><th>세트품목</th><th>Lot관리기본값</th><th>비고</th><th>관리</th></tr></thead><tbody id="asset-classification-items"></tbody></table></div>
+    </div>
   </dialog>
   <dialog id="product-info-status-dialog" aria-labelledby="product-info-status-title">
     <div class="dialog-header"><div><h2 id="product-info-status-title">품목정보 현황 <span id="product-info-status-count" class="count">0개</span></h2><p>등록된 품목정보를 한눈에 확인하고 품목분류, 품번, 품명, 규격 등으로 검색합니다.</p></div><button type="button" class="close" id="close-product-info-status" aria-label="품목정보 현황 창 닫기">×</button></div>

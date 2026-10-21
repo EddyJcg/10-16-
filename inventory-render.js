@@ -12,13 +12,14 @@ function renderHeaders(){
   STOCK_DISPLAY_FIELDS.forEach(field=>{const cell=document.createElement('th');cell.scope='col';cell.textContent=field.label;cell.className=(field.numeric?'numeric ':'')+(field.numeric?'group-'+field.key.split('_')[0]:'');$('stock-head').append(cell);});
 }
 function render(){
-  renderCurrentStock();
+  const ledgerItems=items.filter(item=>item.quantity_management_disabled!==true);
+  renderCurrentStock(ledgerItems);
   renderStockRisk();
   renderLongStock();
   $('total-value').textContent=money(items.reduce((sum,item)=>sum+Number(item.stock_amount||0),0))+'원';
-  const shown=filterInventoryItems(items,{query:$('search').value,availability:$('filter').value,dateProductIds:appliedDateProductIds,supplier:appliedSupplier});
+  const shown=filterInventoryItems(ledgerItems,{query:$('search').value,availability:$('filter').value,dateProductIds:appliedDateProductIds,supplier:appliedSupplier});
   $('list-count').textContent=shown.length+'개';$('items').replaceChildren();
-  if(!shown.length)emptyRow($('items'),STOCK_DISPLAY_FIELDS.length+1,items.length?'검색 조건에 맞는 품목이 없습니다.':'왼쪽 기초재고 또는 입고관리 폴더에서 첫 품목을 등록하세요.');
+  if(!shown.length)emptyRow($('items'),STOCK_DISPLAY_FIELDS.length+1,ledgerItems.length?'검색 조건에 맞는 품목이 없습니다.':'재고수량관리를 하는 품목을 품목정보에 등록하세요.');
   shown.forEach((item,index)=>{const row=document.createElement('tr');row.append(makeCell(number(index+1),true));STOCK_DISPLAY_FIELDS.forEach(field=>{const cell=makeCell(field.numeric?number(item[field.key]):item[field.key]||(field.key==='unit'?'EA(개)':''),field.numeric);if(field.key==='product_code'){const button=document.createElement('button');button.className='code-button';button.textContent=item.product_code;button.setAttribute('aria-label',item.product_code+' 입고별 잔량 보기');button.addEventListener('click',()=>showLots(item));cell.replaceChildren(button);}row.append(cell);});$('items').append(row);});
 }
 function renderLongStock(){
@@ -46,8 +47,8 @@ function renderStockRisk(){
     body.append(row);
   });
 }
-function renderCurrentStock(){
-  const shown=currentStockRows(items),head=$('current-stock-head'),body=$('current-stock-items');
+function renderCurrentStock(rows=items){
+  const shown=currentStockRows(rows),head=$('current-stock-head'),body=$('current-stock-items');
   head.replaceChildren();body.replaceChildren();$('current-stock-count').textContent=shown.length+'개';
   [{label:'일련번호',numeric:true},...CURRENT_STOCK_FIELDS].forEach((field,index)=>{const cell=document.createElement('th');cell.scope='col';cell.textContent=field.label;cell.className=field.numeric?'numeric':'';const resizer=document.createElement('button');resizer.type='button';resizer.className='column-resizer';resizer.dataset.column=String(index);resizer.setAttribute('role','separator');resizer.setAttribute('aria-orientation','vertical');resizer.setAttribute('aria-valuemin','52');resizer.setAttribute('aria-valuemax','600');resizer.setAttribute('aria-valuenow',String(parseInt($('current-stock-columns').children[index]?.style.width,10)||120));resizer.setAttribute('aria-label',field.label+' 열 너비 조절');resizer.title='드래그 또는 방향키로 너비 조절';cell.append(resizer);head.append(cell);});
   if(!shown.length)emptyRow(body,CURRENT_STOCK_FIELDS.length+1,'현재 재고가 있는 품목이 없습니다.');

@@ -41,6 +41,17 @@
 #workspace>.stats{gap:16px}
 #sales-balance+#product-list{margin-top:0}
 #current-stock-dialog{width:min(1400px,calc(100% - 32px))}
+#asset-classification-dialog{width:min(1400px,calc(100% - 32px));max-height:92vh}
+.asset-classification-body{max-height:calc(92vh - 90px)}
+.asset-classification-form{padding:18px;background:#f7faf7;border:1px solid #dfe7df;border-radius:10px}
+.classification-checkboxes{display:flex;flex-wrap:wrap;gap:10px 22px;padding:6px 0 12px}
+.classification-checkboxes label{display:flex;align-items:center;gap:7px;margin:0;font-size:13px}
+.classification-checkboxes input,.classification-policy input{width:auto;margin:0;accent-color:#23654e}
+.classification-checkboxes small{font-weight:400;color:#718278}
+.classification-policy{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;margin:0 0 16px;padding:12px 14px;background:#f2f6f1;border-radius:8px;font-size:12px}
+.classification-policy strong{color:#355f4b}
+.classification-policy label{display:flex;align-items:center;gap:5px;margin:0;font-weight:500}
+.asset-classification-form>.dialog-footer{padding:14px 0 0;border-top:0}
 #product-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}
 #product-info-status-dialog{width:min(1200px,calc(100% - 32px));max-height:92vh}
 #movement-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}

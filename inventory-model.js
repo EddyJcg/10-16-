@@ -15,6 +15,7 @@ const CURRENT_STOCK_FIELDS = STOCK_FIELDS.filter(field=>! /^(opening|receipt|iss
 function currentStockRows(rows) { return rows.filter(row=>Number(row.stock_quantity)>0); }
 function stockRiskItems(rows) {
   return rows.filter(row=>{
+    if(row.shortage_control_enabled===false||row.quantity_management_disabled===true)return false;
     const standard=Number(row.standard_stock_quantity),stock=Number(row.stock_quantity)||0;
     return Number.isSafeInteger(standard)&&standard>0&&stock*5<standard;
   }).slice().sort((a,b)=>Number(a.stock_quantity)/Number(a.standard_stock_quantity)-Number(b.stock_quantity)/Number(b.standard_stock_quantity));

@@ -315,3 +315,14 @@ dialog .dialog-header p{display:none}
 
 #asset-classification-button::before{content:'';display:inline-block;width:26.4px;height:26.4px;margin-right:2px;vertical-align:middle;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
 #asset-classification-folder>summary::before{content:'';display:inline-block;flex:0 0 28.6px;width:28.6px;height:28.6px;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
+
+/* 모든 팝업의 입력 항목 제목은 20% 확대하고 입력 글자는 같은 크기로 맞춤 */
+dialog .dialog-body .field>label,
+dialog .dialog-body .product-list-search>label,
+dialog .dialog-body .date-range-filter>span,
+dialog .dialog-body .transaction-filter>label,
+dialog .dialog-body .print-margin-inputs>label,
+dialog .dialog-body .print-scale-control>label{font-size:14.4px}
+dialog .dialog-body input:not([type=checkbox]):not([type=radio]):not([type=range]),
+dialog .dialog-body select,
+dialog .dialog-body textarea{font-size:14.4px}

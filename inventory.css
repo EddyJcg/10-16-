@@ -15,6 +15,7 @@
 .menu-folder[open]>summary::before{content:'📂'}
 #basic-info-folder>summary::before{content:'';display:inline-block;flex:0 0 26.91px;width:26.91px;height:26.91px;background:currentColor;-webkit-mask:url('/basic-info-tools.svg') center/contain no-repeat;mask:url('/basic-info-tools.svg') center/contain no-repeat}
 #product-info-button::before{content:'';display:inline-block;width:24px;height:24px;margin-right:2px;vertical-align:middle;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
+#product-info-folder>summary::before{content:'';display:inline-block;flex:0 0 26px;width:26px;height:26px;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
 #sales-order-button::before,#sales-status-button::before{content:'';display:inline-block;width:24px;height:24px;margin-right:8px;vertical-align:middle;background:currentColor;-webkit-mask:url('/sales-order-form.svg') center/contain no-repeat;mask:url('/sales-order-form.svg') center/contain no-repeat}
 #sales-folder>summary::before{content:'';display:inline-block;flex:0 0 32.89px;width:32.89px;height:32.89px;background:currentColor;-webkit-mask:url('/sales-money-bag.svg') center/contain no-repeat;mask:url('/sales-money-bag.svg') center/contain no-repeat}
 #inventory-folder>summary::before{content:'';display:inline-block;flex:0 0 29.9px;width:29.9px;height:29.9px;background:currentColor;-webkit-mask:url('/inventory-cart.svg') center/contain no-repeat;mask:url('/inventory-cart.svg') center/contain no-repeat}
@@ -41,6 +42,7 @@
 #sales-balance+#product-list{margin-top:0}
 #current-stock-dialog{width:min(1400px,calc(100% - 32px))}
 #product-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}
+#product-info-status-dialog{width:min(1200px,calc(100% - 32px));max-height:92vh}
 #movement-list-dialog{width:min(1500px,calc(100% - 32px));max-height:92vh}
 #print-settings-dialog{width:min(850px,calc(100% - 32px));max-height:92vh}
 #print-settings-dialog .dialog-body{max-height:calc(92vh - 90px)}

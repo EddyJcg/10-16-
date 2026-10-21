@@ -371,7 +371,7 @@ async function updateSession(session) {
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
-    $('movement-dialog').close(); $('product-info-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('product-info-dialog').close(); $('product-info-status-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try { await loadStock(); if (currentUser) {await loadSalesOrders();subscribeToChanges();notify('재고 현황을 불러왔습니다.');await refreshAdminAccess();} }
   catch (error) { notify(errorText(error),true); }
@@ -489,11 +489,27 @@ function renderProductInfoItems() {
     if(item.specification){const specOption=document.createElement('option');specOption.value=item.specification;specOption.label=item.product_code+' · '+item.product_name;$('product-info-specifications').append(specOption);}
   });
 }
+function renderProductInfoStatus() {
+  const body=$('product-info-status-items'),query=$('product-info-status-query').value.trim().toLocaleLowerCase('ko-KR');
+  const filtered=items.filter(item=>!query||['product_category','product_code','product_name','specification','material','color','unit'].some(key=>String(item[key]||'').toLocaleLowerCase('ko-KR').includes(query)));
+  body.replaceChildren();$('product-info-status-count').textContent=`${number(filtered.length)}개`;
+  if(!filtered.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=8;cell.className='empty';cell.textContent=items.length?'검색 결과가 없습니다.':'등록된 품목정보가 없습니다.';row.append(cell);body.append(row);return;}
+  filtered.forEach(item=>{
+    const row=document.createElement('tr');
+    ['product_category','product_code','product_name','specification','material','color','unit'].forEach(key=>row.append(makeCell(item[key]||'')));
+    row.append(makeCell(number(item.standard_stock_quantity)+' '+(item.unit||'EA(개)')));body.append(row);
+  });
+}
 async function showProductInfo() {
   if(!currentUser||busy)return;
   selectedProductInfoCode='';
   renderProductInfoItems();$('product-info-status').textContent='';
   $('product-info-dialog').showModal();
+}
+function showProductInfoStatus() {
+  if(!currentUser||busy)return;
+  $('product-info-status-query').value='';renderProductInfoStatus();$('product-info-status-list-message').textContent=`등록 품목 ${number(items.length)}개`;
+  $('product-info-status-dialog').showModal();$('product-info-status-query').focus();
 }
 async function saveProductInfo(event) {
   event.preventDefault();
@@ -928,6 +944,7 @@ async function startApp(){
   $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
   $('logout').addEventListener('click',async()=>{if(busy)return;const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);});
   $('product-info-button').addEventListener('click',showProductInfo);
+  $('product-info-status-button').addEventListener('click',showProductInfoStatus);
   $('sales-order-button').addEventListener('click',showSalesOrder);
   $('sales-status-button').addEventListener('click',showSalesStatus);
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
@@ -942,6 +959,9 @@ async function startApp(){
   $('clear-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch(true));
   ['sales_quantity','sales_unit_price'].forEach(id=>$(id).addEventListener('input',updateSalesAmount));
   $('close-product-info').addEventListener('click',()=>$('product-info-dialog').close());
+  $('close-product-info-status').addEventListener('click',()=>$('product-info-status-dialog').close());
+  $('product-info-status-query').addEventListener('input',renderProductInfoStatus);
+  $('clear-product-info-status-search').addEventListener('click',()=>{$('product-info-status-query').value='';renderProductInfoStatus();$('product-info-status-query').focus();});
   $('cancel-product-info').addEventListener('click',()=>$('product-info-dialog').close());
   $('product-info-form').addEventListener('submit',saveProductInfo);
   $('info_product_code').addEventListener('input',()=>populateProductInfo('info_product_code'));

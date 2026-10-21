@@ -7,7 +7,7 @@
   <aside id="sidebar" class="sidebar" aria-label="재고관리 사이드바">
     <div class="sidebar-heading">업무 메뉴<span>폴더를 눌러 메뉴를 펼치세요.</span></div>
     <nav aria-label="재고관리 메뉴">
-      <details id="basic-info-folder" class="menu-folder" data-sidebar-folder><summary>기본정보</summary><div class="folder-children"><button type="button" class="sidebar-action" id="product-info-button" aria-haspopup="dialog">품목정보 입력</button></div></details>
+      <details id="basic-info-folder" class="menu-folder" data-sidebar-folder><summary>기본정보</summary><div class="folder-children"><details id="product-info-folder" class="menu-folder" data-sidebar-folder><summary>품목정보 입력</summary><div class="folder-children"><button type="button" class="sidebar-action" id="product-info-button" aria-haspopup="dialog">품목정보 등록</button><button type="button" class="sidebar-action" id="product-info-status-button" aria-haspopup="dialog">품목정보 현황</button></div></details></div></details>
       <details id="sales-folder" class="menu-folder" data-sidebar-folder><summary>매출관리</summary><div class="folder-children"><button type="button" class="sidebar-action" id="sales-order-button" aria-haspopup="dialog">수주 입력</button><button type="button" class="sidebar-action" id="sales-status-button" aria-haspopup="dialog">수주 현황</button></div></details>
       <details id="inventory-folder" class="menu-folder" data-sidebar-folder open><summary>재고관리</summary><div class="folder-children">
         <details id="opening-folder" class="menu-folder" data-sidebar-folder open><summary>기초재고</summary><div class="folder-children"><button type="button" class="sidebar-action" data-mode="opening" aria-haspopup="dialog">기초재고 등록</button></div></details>
@@ -85,6 +85,14 @@
         <div class="dialog-footer"><button type="button" id="cancel-product-info" class="secondary">닫기</button><button id="save-product-info" class="primary">품목정보 저장</button></div>
       </fieldset>
     </form>
+  </dialog>
+  <dialog id="product-info-status-dialog" aria-labelledby="product-info-status-title">
+    <div class="dialog-header"><div><h2 id="product-info-status-title">품목정보 현황 <span id="product-info-status-count" class="count">0개</span></h2><p>등록된 품목정보를 한눈에 확인하고 품목분류, 품번, 품명, 규격 등으로 검색합니다.</p></div><button type="button" class="close" id="close-product-info-status" aria-label="품목정보 현황 창 닫기">×</button></div>
+    <div class="dialog-body product-list-body">
+      <div class="product-list-search product-info-status-search"><label for="product-info-status-query">품목 검색 <span class="optional">(선택)</span><input id="product-info-status-query" type="search" placeholder="분류, 품번, 품명, 규격, 재질, 색상, 단위"></label><div class="product-list-actions"><button id="clear-product-info-status-search" class="secondary" type="button">초기화</button></div></div>
+      <p id="product-info-status-list-message" class="product-list-status" role="status" aria-live="polite"></p>
+      <div class="table-wrap product-list-table"><table aria-label="품목정보 현황 목록"><thead><tr><th>품목분류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th></tr></thead><tbody id="product-info-status-items"></tbody></table></div>
+    </div>
   </dialog>
   <dialog id="sales-order-dialog" aria-labelledby="sales-order-title" class="sales-order-dialog">
     <form id="sales-order-form" novalidate>

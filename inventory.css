@@ -306,3 +306,7 @@
 /* 품목 자산 분류 창 체크 항목과 안내 글자 크기 2배 */
 .classification-checkboxes label{font-size:18.2px}
 .classification-checkboxes small{font-size:15.4px}
+
+/* 모든 팝업 제목을 현재 기본 크기의 2배로 표시 */
+dialog .dialog-header h2{font-size:36px}
+#sales-status-title,#sales-order-title{font-size:72px}

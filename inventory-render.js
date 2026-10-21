@@ -26,7 +26,7 @@ function renderLongStock(){
   const rows=stockAgingRows(agedStock),body=$('long-stock-items');
   $('total-aged-qty').textContent=formatStockQuantityTotals(rows.map(row=>({stock_quantity:row.remaining_quantity,unit:row.unit})));
   $('long-stock-count').textContent='입고일 기준 6개월 이상 · '+rows.length.toLocaleString('ko-KR')+'건';
-  $('long-stock-detail-count').textContent=rows.length.toLocaleString('ko-KR')+'건';body.replaceChildren();
+  $('long-stock-detail-count').textContent=rows.length?rows.length.toLocaleString('ko-KR')+'건':'';body.replaceChildren();
   if(!rows.length){emptyRow(body,12,'입고일 기준 6개월 이상 경과한 재고가 없습니다.');return;}
   rows.forEach(item=>{
     const receivedAt=new Date(item.received_at);
@@ -39,7 +39,7 @@ function renderLongStock(){
 }
 function renderStockRisk(){
   const risky=stockRiskItems(items),body=$('stock-risk-items');
-  $('total-risk-items').textContent=number(risky.length);$('stock-risk-count').textContent=risky.length.toLocaleString('ko-KR')+'개';body.replaceChildren();
+  $('total-risk-items').textContent=number(risky.length);$('stock-risk-count').textContent=risky.length?risky.length.toLocaleString('ko-KR')+'개':'';body.replaceChildren();
   if(!risky.length){emptyRow(body,8,'현재 품절위험 품목이 없습니다.');return;}
   risky.forEach(item=>{
     const standard=Number(item.standard_stock_quantity),stock=Number(item.stock_quantity)||0,unit=item.unit||'EA(개)',row=document.createElement('tr');
@@ -49,7 +49,7 @@ function renderStockRisk(){
 }
 function renderCurrentStock(rows=items){
   const shown=currentStockRows(rows),head=$('current-stock-head'),body=$('current-stock-items');
-  head.replaceChildren();body.replaceChildren();$('current-stock-count').textContent=shown.length+'개';
+  head.replaceChildren();body.replaceChildren();$('current-stock-count').textContent=shown.length?shown.length+'개':'';
   [{label:'일련번호',numeric:true},...CURRENT_STOCK_FIELDS].forEach((field,index)=>{const cell=document.createElement('th');cell.scope='col';cell.textContent=field.label;cell.className=field.numeric?'numeric':'';const resizer=document.createElement('button');resizer.type='button';resizer.className='column-resizer';resizer.dataset.column=String(index);resizer.setAttribute('role','separator');resizer.setAttribute('aria-orientation','vertical');resizer.setAttribute('aria-valuemin','52');resizer.setAttribute('aria-valuemax','600');resizer.setAttribute('aria-valuenow',String(parseInt($('current-stock-columns').children[index]?.style.width,10)||120));resizer.setAttribute('aria-label',field.label+' 열 너비 조절');resizer.title='드래그 또는 방향키로 너비 조절';cell.append(resizer);head.append(cell);});
   if(!shown.length)emptyRow(body,CURRENT_STOCK_FIELDS.length+1,'현재 재고가 있는 품목이 없습니다.');
   shown.forEach((item,index)=>{const row=document.createElement('tr');row.append(makeCell(number(index+1),true));CURRENT_STOCK_FIELDS.forEach(field=>row.append(makeCell(field.numeric?number(item[field.key]):item[field.key]||(field.key==='unit'?'EA(개)':''),field.numeric)));body.append(row);});

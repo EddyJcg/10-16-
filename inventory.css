@@ -304,5 +304,5 @@
 .stats>#long-stock-button{order:4}
 
 /* 품목 자산 분류 창 체크 항목과 안내 글자 크기 2배 */
-.classification-checkboxes label{font-size:26px}
-.classification-checkboxes small{font-size:22px}
+.classification-checkboxes label{font-size:18.2px}
+.classification-checkboxes small{font-size:15.4px}

@@ -35,30 +35,33 @@
 .vendor-dialog .dialog-footer{flex:none}
 #vendor-list-dialog{width:min(1800px,99vw);height:min(850px,96vh);max-height:96vh;padding:0;overflow:hidden}
 #vendor-list-dialog[open]{display:flex;flex-direction:column}
-.vendor-query-toolbar{display:flex;align-items:center;gap:3px;flex:none;min-height:40px;padding:4px 8px;background:#41494e;color:#fff}
-.vendor-query-toolbar button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:5px 8px;border:0;border-radius:3px;background:transparent;color:#fff;font-size:12px}
+.vendor-query-toolbar{display:flex;align-items:center;gap:4px;flex:none;min-height:52px;padding:5px 10px;background:#41494e;color:#fff}
+.vendor-query-toolbar button{display:inline-flex;align-items:center;gap:8px;min-height:39px;padding:7px 10px;border:0;border-radius:3px;background:transparent;color:#fff;font-size:15.6px}
 .vendor-query-toolbar button:hover{background:#626c72}
-.vendor-query-toolbar button span{font-size:16px}
+.vendor-query-toolbar button span{font-size:20.8px}
 .vendor-query-toolbar .close{margin-left:auto;background:#566168}
+.vendor-query-toolbar .close{width:42px;height:42px;font-size:26px}
 .vendor-query-content{display:flex;flex:1;flex-direction:column;gap:6px;min-height:0;max-height:none;padding:5px;overflow:hidden;background:#fff}
 .vendor-query-conditions,.vendor-query-additional{flex:none;border:0;border-bottom:1px solid #c9cdd0}
-.vendor-query-conditions>summary,.vendor-query-additional>summary{list-style:none;cursor:pointer;min-height:29px;padding:4px 7px;color:#34454e;font-size:13px;font-weight:650}
+.vendor-query-conditions>summary,.vendor-query-additional>summary{list-style:none;cursor:pointer;min-height:38px;padding:5px 9px;color:#34454e;font-size:16.9px;font-weight:650}
 .vendor-query-conditions>summary::-webkit-details-marker,.vendor-query-additional>summary::-webkit-details-marker{display:none}
-.vendor-query-conditions>summary::before,.vendor-query-additional>summary::before{content:'○';margin-right:6px;color:#64747d}
+.vendor-query-conditions>summary::before,.vendor-query-additional>summary::before{content:'○';margin-right:8px;color:#64747d}
 .vendor-query-additional>summary::before{content:'⌃'}
-.vendor-query-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 12px;padding:4px 12px 9px}
-.vendor-query-grid>label{display:grid;grid-template-columns:minmax(74px,auto) minmax(0,1fr);align-items:center;gap:5px;margin:0;color:#46545a;font-size:12px;font-weight:500;white-space:nowrap}
-.vendor-query-grid input,.vendor-query-grid select{height:27px;min-width:0;padding:3px 6px;border-color:#c8d1d6;border-radius:3px;font-size:12px}
+.vendor-query-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 16px;padding:5px 16px 12px}
+.vendor-query-grid>label{display:grid;grid-template-columns:minmax(100px,auto) minmax(0,1fr);align-items:center;gap:7px;margin:0;color:#46545a;font-size:15.6px;font-weight:500;white-space:nowrap}
+.vendor-query-grid input,.vendor-query-grid select{height:36px;min-width:0;padding:4px 8px;border-color:#c8d1d6;border-radius:4px;font-size:15.6px}
 .vendor-query-grid input:disabled{background:#e8e8e8}
-.vendor-query-date-range>span{display:flex;align-items:center;gap:5px;min-width:0}
+.vendor-query-date-range>span{display:flex;align-items:center;gap:7px;min-width:0}
 .vendor-query-date-range>span>span{color:#53636b}
-.vendor-query-extra-grid{padding-top:2px}
-#vendor-list-message{flex:none;min-height:18px;margin:0;padding:0 7px;font-size:12px}
+#vendor-filter-date-from,#vendor-filter-date-to{width:calc(50% - 12px)}
+.vendor-query-extra-grid{padding-top:3px}
+#vendor-list-message{flex:none;min-height:23px;margin:0;padding:0 9px;font-size:15.6px}
 .vendor-list-table-wrap{flex:1;min-height:120px;max-height:none;border-color:#c9cdd0;border-radius:0}
-.vendor-list-dialog table{width:max-content;min-width:1780px;font-size:12px}
-.vendor-list-dialog th,.vendor-list-dialog td{height:33px;padding:6px 8px;border-color:#d6dade}
+.vendor-list-dialog table{width:max-content;min-width:2200px;font-size:15.6px}
+.vendor-list-dialog th,.vendor-list-dialog td{height:43px;padding:8px 10px;border-color:#d6dade}
 .vendor-list-dialog th{position:sticky;top:0;z-index:2;background:#eceef1;color:#424a50;font-weight:600;text-align:center}
 .vendor-list-dialog td{max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.vendor-list-dialog td button{padding:8px 13px;font-size:15.6px}
 .vendor-list-dialog th:last-child,.vendor-list-dialog td:last-child{position:sticky;right:0;background:#f7f8f9}
 .vendor-list-dialog tbody td:last-child{background:#fff}
 @media(max-width:900px){

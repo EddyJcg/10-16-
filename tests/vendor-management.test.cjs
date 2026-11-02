@@ -38,7 +38,12 @@ test('vendor lookup matches the query toolbar, conditions and wide result grid',
   assert.match(script,/profile\.classification_id===query\.category/);
   assert.match(style,/#vendor-list-dialog\[open\]\{display:flex;flex-direction:column\}/);
   assert.match(style,/\.vendor-query-grid\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
-  assert.match(style,/\.vendor-list-dialog table\{width:max-content;min-width:1780px/);
+  assert.match(style,/\.vendor-query-toolbar button\{[^}]*font-size:15\.6px/);
+  assert.match(style,/\.vendor-query-conditions>summary,.vendor-query-additional>summary\{[^}]*font-size:16\.9px/);
+  assert.match(style,/\.vendor-query-grid>label\{[^}]*font-size:15\.6px/);
+  assert.match(style,/\.vendor-query-grid input,\.vendor-query-grid select\{height:36px;[^}]*font-size:15\.6px/);
+  assert.match(style,/\.vendor-list-dialog table\{width:max-content;min-width:2200px;font-size:15\.6px/);
+  assert.match(style,/\.vendor-list-dialog th,\.vendor-list-dialog td\{height:43px/);
 });
 
 test('vendor database migration provides protected records and default vendor types',async()=>{

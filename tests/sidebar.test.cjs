@@ -71,11 +71,11 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   assert.equal(nav.slice(adminFolderStart).match(/<details\b/g).length,1,'관리자 should be the last menu folder');
   assert.match(nav,/id="inventory-folder"[^>]*data-sidebar-folder open/);
 });
-test('vendor folders display without icons',()=>{
+test('vendor information folder reuses the product information icon',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
-  assert.doesNotMatch(html,/vendor-folder-icon\.css/);
-  const styles=fs.readFileSync('inventory.css','utf8');
-  assert.doesNotMatch(styles,/#vendor-(?:info-entry|registration|status|query)-folder>summary::before/);
+  const styles=fs.readFileSync('vendor-info-icon.css','utf8');
+  assert.match(html,/href="\/vendor-info-icon\.css\?v=20261102-vendor-info-product-icon"/);
+  assert.match(styles,/#vendor-info-entry-folder>summary::before\{content:'';display:inline-block;flex:0 0 28\.6px;width:28\.6px;height:28\.6px;background:currentColor;-webkit-mask:url\('\/product-bag\.svg'\) center\/contain no-repeat;mask:url\('\/product-bag\.svg'\) center\/contain no-repeat\}/);
 });
 test('sidebar text sizes are increased by approximately twenty percent',()=>{
   const style=fs.readFileSync('inventory.css','utf8');

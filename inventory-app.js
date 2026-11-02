@@ -454,7 +454,7 @@ function addPurchaseDraftLine(){
   if(expectedDate&&!validOrderDueDate(expectedDate)){$('purchase-order-status').textContent='품목 납기예정일을 확인하세요.';return;}
   if(purchaseDraftLines.some(line=>line.product_id===productId)){$('purchase-order-status').textContent='같은 품목은 발주 목록에 이미 있습니다.';return;}
   if(purchaseDraftLines.length>=100){$('purchase-order-status').textContent='한 번에 등록할 수 있는 발주 품목은 최대 100개입니다.';return;}
-  purchaseDraftLines.push({product_id:productId,quantity,unit_cost:unitCost,expected_date:expectedDate||$('purchase-order-expected-date').value||null});
+  purchaseDraftLines.push({product_id:productId,quantity,unit_cost:unitCost,expected_date:expectedDate||null});
   $('purchase-line-product').value='';$('purchase-line-quantity').value='';$('purchase-line-unit-cost').value='';$('purchase-line-expected-date').value='';
   updatePurchaseProductDetails();
   $('purchase-order-status').textContent='';renderPurchaseDraftLines();
@@ -467,13 +467,14 @@ function renderPurchaseOrders(){
     const orderDiff=Number(ordersById.get(b.purchase_order_id)?.sequence_id||0)-Number(ordersById.get(a.purchase_order_id)?.sequence_id||0);
     return orderDiff||Number(a.line_number)-Number(b.line_number);
   });
-  if(!lines.length)emptyRow(body,13,'저장된 발주가 없습니다.');
+  if(!lines.length)emptyRow(body,14,'저장된 발주가 없습니다.');
   lines.forEach(line=>{
     const order=ordersById.get(line.purchase_order_id),item=productsById.get(line.product_id),remaining=Number(line.quantity)-Number(line.received_quantity);
     const row=document.createElement('tr');
     [number(order?.sequence_id),String(order?.order_date||'').slice(0,10),order?.order_number||'',order?.supplier||'',
       item?.product_code||'',item?.product_name||'',item?.specification||'',number(line.quantity),number(line.received_quantity),
-      number(remaining),money(line.unit_cost),order?.status||''].forEach((value,index)=>row.append(makeCell(value,index>=7&&index<=10)));
+      number(remaining),money(line.unit_cost),String(line.expected_date||'').slice(0,10),order?.status||'']
+      .forEach((value,index)=>row.append(makeCell(value,index>=7&&index<=10)));
     const action=document.createElement('td');
     if(remaining>0&&order?.status!=='취소'){
       const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='입고';button.dataset.receivePurchaseLine=line.id;action.append(button);
@@ -531,17 +532,17 @@ async function savePurchaseOrder(event){
   const orderNumber=$('purchase-order-number').value.trim(),supplierId=$('purchase-order-supplier').value;
   const selectedVendor=purchaseOrderVendors.find(vendor=>vendor.id===supplierId);
   const supplier=String(selectedVendor?.legal_name||selectedVendor?.vendor_name||'').trim();
-  const orderDate=$('purchase-order-date').value,expectedDate=$('purchase-order-expected-date').value,notes=$('purchase-order-notes').value.trim();
+  const orderDate=$('purchase-order-date').value,notes=$('purchase-order-notes').value.trim();
   if(!orderNumber){$('purchase-order-status').textContent='발주번호를 확인하세요.';return;}
   if(!selectedVendor||!supplier){$('purchase-order-status').textContent='거래처 등록 화면에서 등록된 납품업체를 선택하세요.';$('purchase-order-supplier').focus();return;}
   if(orderDate<todayDate()){$('purchase-order-status').textContent='발주일자는 오늘 날짜보다 이전으로 설정할 수 없습니다.';return;}
-  if(!validDate(orderDate)||expectedDate&&!validOrderDueDate(expectedDate)){$('purchase-order-status').textContent='발주일자와 납기예정일을 확인하세요.';return;}
+  if(!validDate(orderDate)){$('purchase-order-status').textContent='발주일자를 확인하세요.';return;}
   if(!purchaseDraftLines.length){$('purchase-order-status').textContent='발주 품목을 한 개 이상 추가하세요.';return;}
   purchaseSaving=true;$('purchase-order-editor').disabled=true;$('purchase-order-status').textContent='발주를 저장하는 중…';
   const generation=authGeneration;
   try{
     const {data,error}=await client.rpc('create_purchase_order',{
-      p_order_number:orderNumber,p_supplier:supplier,p_order_date:orderDate,p_expected_date:expectedDate||null,p_notes:notes,
+      p_order_number:orderNumber,p_supplier:supplier,p_order_date:orderDate,p_expected_date:null,p_notes:notes,
       p_lines:purchaseDraftLines.map(line=>({...line}))
     });
     if(error)throw error;

@@ -42,6 +42,8 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(html,/id="purchase-query-button"/);
   assert.match(html,/id="purchase-order-number" required maxlength="17" readonly/);
   assert.match(html,/id="purchase-order-date" type="date" required/);
+  assert.doesNotMatch(html,/id="purchase-order-expected-date"/);
+  assert.match(html,/<th>품목 납기예정일<\/th><th>상태<\/th>/);
   assert.match(html,/id="purchase-order-supplier" required><option value="">등록 거래처 선택<\/option><\/select>/);
   assert.match(html,/id="purchase-line-product" required><option value="">품목정보 등록에서 선택<\/option><\/select>/);
   assert.match(html,/<div class="dialog-footer"><button type="button" id="add-purchase-line" class="primary">품목 추가<\/button><button id="save-purchase-order" class="primary">발주 저장<\/button><\/div>/);
@@ -54,6 +56,9 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(app,/async function loadPurchaseOrderVendors\(\)[\s\S]*populatePurchaseOrderVendorOptions\(\)/);
   assert.match(app,/const supplier=String\(selectedVendor\?\.legal_name\|\|selectedVendor\?\.vendor_name\|\|''\)\.trim\(\)/);
   assert.match(app,/p_order_number:orderNumber,p_supplier:supplier/);
+  assert.match(app,/p_expected_date:null/);
+  assert.match(app,/expected_date:expectedDate\|\|null/);
+  assert.match(app,/\[number\(order\?\.sequence_id\)[\s\S]*String\(line\.expected_date\|\|''\)\.slice\(0,10\),order\?\.status/);
   assert.match(app,/async function showPurchaseOrders\(mode='entry'\)[\s\S]*purchase-order-entry'\)\.hidden=isQuery[\s\S]*purchase-order-view'\)\.hidden=!isQuery/);
   assert.match(app,/\$\('purchase-entry-button'\)\.addEventListener\('click',\(\)=>showPurchaseOrders\('entry'\)\)/);
   assert.match(app,/\$\('purchase-query-button'\)\.addEventListener\('click',\(\)=>showPurchaseOrders\('query'\)\)/);
@@ -147,21 +152,23 @@ test('purchase order receipts update stock only for fully managed products',asyn
     const quantityOff=await registerProduct('NO-QTY','수량관리안함',quantityOffId);
     const valueOff=await registerProduct('NO-VALUE','금액관리안함',valueOffId);
     const order=(await db.query(`select public.create_purchase_order($1,$2,$3,$4,$5,$6::jsonb) as result`,[
-      'IGNORED-CLIENT-NUMBER','납품업체',orderDate,orderDate,'검증',
+      'IGNORED-CLIENT-NUMBER','납품업체',orderDate,null,'검증',
       JSON.stringify([
         {product_id:managed.id,quantity:3,unit_cost:100,expected_date:'2026-01-10'},
-        {product_id:quantityOff.id,quantity:2,unit_cost:20},
+        {product_id:quantityOff.id,quantity:2,unit_cost:20,expected_date:'2026-02-20'},
         {product_id:valueOff.id,quantity:4,unit_cost:30}
       ])
     ])).rows[0].result;
     assert.equal(order.status,'발주완료');
     assert.equal(order.order_number,`ISPO${orderDate.replaceAll('-','')}-0001`);
+    assert.equal(order.expected_date,null,'there is no order-level expected date');
     const secondOrder=(await db.query(`select public.create_purchase_order($1,$2,$3,$4,$5,$6::jsonb) as result`,[
       'IGNORED-CLIENT-NUMBER','납품업체',orderDate,null,'검증',
       JSON.stringify([{product_id:managed.id,quantity:1,unit_cost:100}])
     ])).rows[0].result;
     assert.equal(secondOrder.order_number,`ISPO${orderDate.replaceAll('-','')}-0002`);
     const lines=(await db.query('select * from public.purchase_order_lines where purchase_order_id=$1 order by line_number',[order.id])).rows;
+    assert.deepEqual(lines.map(line=>line.expected_date?.toISOString().slice(0,10)||null),['2026-01-10','2026-02-20',null]);
     const receive=async(line,quantity,cost,date='2026-01-03',requestId=randomUUID())=>(
       await db.query('select public.receive_purchase_order_line($1,$2,$3,$4,$5) as result',[requestId,line.id,date,quantity,cost])
     ).rows[0].result;

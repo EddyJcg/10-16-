@@ -222,6 +222,8 @@ function errorText(error) {
     CLASSIFICATION_HAS_LEDGER_HISTORY:'거래 이력이 있는 분류는 재고수량관리 안함 설정을 변경할 수 없습니다. 기존 거래의 단가·금액은 분류를 바꿔도 수정되지 않습니다.',
     STOCK_LEDGER_DISABLED:'수량 또는 금액 관리 안함 품목은 발주 등록에서 입고 처리하세요.',
     INVALID_PURCHASE_ORDER:'발주번호·업체·발주일자·비고와 발주 품목을 확인하세요.',
+    PURCHASE_ORDER_DATE_IN_PAST:'발주일자는 오늘 날짜보다 이전으로 설정할 수 없습니다.',
+    PURCHASE_ORDER_NUMBER_EXHAUSTED:'해당 날짜의 발주번호 일련번호가 모두 사용되었습니다.',
     INVALID_PURCHASE_ORDER_LINE:'발주 품목의 품번, 수량, 단가, 납기예정일과 비고를 확인하세요.',
     PURCHASE_ORDER_NUMBER_EXISTS:'이미 사용 중인 발주번호입니다. 다른 발주번호를 입력하세요.',
     PURCHASE_ORDER_LINE_NOT_FOUND:'입고 처리할 발주 품목을 찾을 수 없습니다. 목록을 새로고침하세요.',
@@ -364,10 +366,15 @@ async function loadSalesOrders(){
 }
 function resetPurchaseOrderForm(){
   $('purchase-order-form').reset();
-  $('purchase-order-date').value=todayDate();$('purchase-order-date').max=todayDate();
-  $('purchase-order-number').value='PO-'+todayDate().replaceAll('-','')+'-'+crypto.randomUUID().slice(0,8).toUpperCase();
+  $('purchase-order-date').value=todayDate();$('purchase-order-date').min=todayDate();$('purchase-order-date').max=todayDate();
   $('purchase-order-status').textContent='';
+  updatePurchaseOrderNumber();
   purchaseDraftLines=[];renderPurchaseDraftLines();populatePurchaseProductOptions();
+}
+function updatePurchaseOrderNumber(){
+  const orderNumber=nextPurchaseOrderNumber($('purchase-order-date').value,purchaseOrders);
+  $('purchase-order-number').value=orderNumber;
+  if(!orderNumber)$('purchase-order-status').textContent='해당 날짜의 발주번호를 생성할 수 없습니다. 일련번호 상태를 확인하세요.';
 }
 function populatePurchaseProductOptions(){
   const select=$('purchase-line-product'),selected=select.value;
@@ -475,7 +482,7 @@ async function showPurchaseOrders(mode='entry'){
   $('purchase-order-view').hidden=!isQuery;
   $('save-purchase-order').parentElement.hidden=isQuery;
   resetPurchaseOrderForm();$('purchase-order-dialog').showModal();
-  try{await loadStock();populatePurchaseProductOptions();await loadPurchaseOrders();}
+  try{await loadStock();populatePurchaseProductOptions();await loadPurchaseOrders();updatePurchaseOrderNumber();}
   catch(error){if(generation===authGeneration)$('purchase-order-status').textContent='발주 기능을 준비하지 못했습니다. Supabase SQL Editor에서 README의 DB 적용 순서를 확인하세요. '+errorText(error);}
 }
 async function savePurchaseOrder(event){
@@ -484,6 +491,7 @@ async function savePurchaseOrder(event){
   const orderNumber=$('purchase-order-number').value.trim(),supplier=$('purchase-order-supplier').value.trim();
   const orderDate=$('purchase-order-date').value,expectedDate=$('purchase-order-expected-date').value,notes=$('purchase-order-notes').value.trim();
   if(!orderNumber||!supplier){$('purchase-order-status').textContent='발주번호와 납품업체를 입력하세요.';return;}
+  if(orderDate<todayDate()){$('purchase-order-status').textContent='발주일자는 오늘 날짜보다 이전으로 설정할 수 없습니다.';return;}
   if(!validDate(orderDate)||expectedDate&&!validOrderDueDate(expectedDate)){$('purchase-order-status').textContent='발주일자와 납기예정일을 확인하세요.';return;}
   if(!purchaseDraftLines.length){$('purchase-order-status').textContent='발주 품목을 한 개 이상 추가하세요.';return;}
   purchaseSaving=true;$('purchase-order-editor').disabled=true;$('purchase-order-status').textContent='발주를 저장하는 중…';
@@ -495,6 +503,7 @@ async function savePurchaseOrder(event){
     });
     if(error)throw error;
     if(generation!==authGeneration)return;
+    $('purchase-order-number').value=data.order_number;
     purchaseDraftLines=[];renderPurchaseDraftLines();
     $('purchase-order-status').textContent='발주를 저장했습니다. 일련번호 '+number(data.sequence_id)+' · '+data.order_number;
     try{await loadPurchaseOrders();}
@@ -1820,6 +1829,15 @@ async function startApp(){
   $('close-purchase-order').addEventListener('click',()=>$('purchase-order-dialog').close());
   $('purchase-order-form').addEventListener('submit',savePurchaseOrder);
   $('add-purchase-line').addEventListener('click',addPurchaseDraftLine);
+  $('purchase-order-date').addEventListener('change',()=>{
+    const today=todayDate();
+    $('purchase-order-date').min=today;$('purchase-order-date').max=today;
+    if($('purchase-order-date').value<today){
+      $('purchase-order-date').value=today;
+      $('purchase-order-status').textContent='발주일자는 오늘 날짜보다 이전으로 설정할 수 없습니다.';
+    }else $('purchase-order-status').textContent='';
+    updatePurchaseOrderNumber();
+  });
   $('purchase-line-product').addEventListener('change',updatePurchaseProductDetails);
   $('purchase-draft-items').addEventListener('click',event=>{
     const button=event.target.closest('[data-remove-purchase-line]');

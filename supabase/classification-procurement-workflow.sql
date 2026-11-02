@@ -132,11 +132,15 @@ declare
   v_quantity integer;
   v_unit_cost numeric;
   v_expected_date date;
+  v_order_number text;
+  v_next_order_number integer;
   v_user_id uuid:=auth.uid();
 begin
   if not public.inventory_access_allowed() or v_user_id is null then raise exception 'ACCESS_DENIED' using errcode='42501'; end if;
-  if nullif(trim(p_order_number),'') is null or char_length(trim(p_order_number))>80
-    or char_length(coalesce(p_supplier,''))>120 or p_order_date is null or p_order_date<date '1900-01-01'
+  if p_order_date is not null and p_order_date<(now() at time zone 'Asia/Seoul')::date then
+    raise exception 'PURCHASE_ORDER_DATE_IN_PAST' using errcode='22023';
+  end if;
+  if char_length(coalesce(p_supplier,''))>120 or p_order_date is null or p_order_date<date '1900-01-01'
     or (p_expected_date is not null and p_expected_date<date '1900-01-01')
     or char_length(coalesce(p_notes,''))>2000 then
     raise exception 'INVALID_PURCHASE_ORDER' using errcode='22023';
@@ -165,8 +169,16 @@ begin
     v_count:=v_count+1;
   end loop;
 
+  perform pg_advisory_xact_lock(hashtext('purchase-order-number'),hashtext(p_order_date::text));
+  select coalesce(max(substring(order_number from 14)::integer),0)+1 into v_next_order_number
+    from public.purchase_orders
+    where order_number ~ ('^ISPO'||to_char(p_order_date,'YYYYMMDD')||'-[0-9]{4}$');
+  if v_next_order_number>9999 then
+    raise exception 'PURCHASE_ORDER_NUMBER_EXHAUSTED' using errcode='22023';
+  end if;
+  v_order_number:='ISPO'||to_char(p_order_date,'YYYYMMDD')||'-'||lpad(v_next_order_number::text,4,'0');
   insert into public.purchase_orders(order_number,supplier,order_date,expected_date,status,notes,created_by)
-  values(trim(p_order_number),trim(coalesce(p_supplier,'')),p_order_date,p_expected_date,'발주완료',trim(coalesce(p_notes,'')),v_user_id)
+  values(v_order_number,trim(coalesce(p_supplier,'')),p_order_date,p_expected_date,'발주완료',trim(coalesce(p_notes,'')),v_user_id)
   returning * into v_order;
   v_count:=0;
   for v_line in select value from jsonb_array_elements(p_lines) loop

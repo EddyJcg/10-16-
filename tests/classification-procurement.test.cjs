@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
 const {randomUUID}=require('node:crypto');
-const {currentStockRows,isStockLedgerManaged,stockRiskItems}=require('../inventory-model.js');
+const {currentStockRows,isStockLedgerManaged,stockRiskItems,nextPurchaseOrderNumber}=require('../inventory-model.js');
 
 test('classification management flags remove items from inventory reports',()=>{
   const managed={stock_quantity:0,standard_stock_quantity:10,shortage_control_enabled:true};
@@ -17,17 +17,39 @@ test('classification management flags remove items from inventory reports',()=>{
   ]).length,1);
 });
 
+test('purchase order numbers increment by order date and reset daily',()=>{
+  const orders=[
+    {order_number:'ISPO20261102-0001'},
+    {order_number:'ISPO20261102-0003'},
+    {order_number:'ISPO20261101-0008'},
+    {order_number:'PO-LEGACY'}
+  ];
+  assert.equal(nextPurchaseOrderNumber('2026-11-02',orders),'ISPO20261102-0004');
+  assert.equal(nextPurchaseOrderNumber('2026-11-03',orders),'ISPO20261103-0001');
+  assert.equal(nextPurchaseOrderNumber('invalid',orders),'');
+  assert.equal(nextPurchaseOrderNumber('2026-11-02',[{order_number:'ISPO20261102-9999'}]),'');
+});
+
 test('classification and procurement UI permits incomplete classification selection and separates unmanaged receipts',()=>{
   const app=readFileSync('inventory-app.js','utf8'),html=readFileSync('inventory.html','utf8'),importer=readFileSync('inventory-import.js','utf8');
   const style=readFileSync('inventory.css','utf8'),purchaseStyle=readFileSync('purchase-order.css','utf8');
+  const workflow=readFileSync('supabase/classification-procurement-workflow.sql','utf8');
   assert.match(app,/option\.textContent=classification\.name\+\(classification\.inventory_asset_type\?/);
   assert.doesNotMatch(app,/option\.disabled=!classification\.inventory_asset_type/);
   assert.match(app,/if\(!selectedClassification\?\.inventory_asset_type\)/);
   assert.match(html,/id="purchase-entry-button"/);
   assert.match(html,/id="purchase-query-button"/);
+  assert.match(html,/id="purchase-order-number" required maxlength="17" readonly/);
+  assert.match(html,/id="purchase-order-date" type="date" required/);
   assert.match(app,/async function showPurchaseOrders\(mode='entry'\)[\s\S]*purchase-order-entry'\)\.hidden=isQuery[\s\S]*purchase-order-view'\)\.hidden=!isQuery/);
   assert.match(app,/\$\('purchase-entry-button'\)\.addEventListener\('click',\(\)=>showPurchaseOrders\('entry'\)\)/);
   assert.match(app,/\$\('purchase-query-button'\)\.addEventListener\('click',\(\)=>showPurchaseOrders\('query'\)\)/);
+  assert.match(app,/function updatePurchaseOrderNumber\(\)[\s\S]*nextPurchaseOrderNumber\(\$\('purchase-order-date'\)\.value,purchaseOrders\)/);
+  assert.match(app,/\$\('purchase-order-date'\)\.addEventListener\('change'/);
+  assert.match(app,/orderDate<todayDate\(\)/);
+  assert.match(workflow,/p_order_date<\(now\(\) at time zone 'Asia\/Seoul'\)::date[\s\S]*PURCHASE_ORDER_DATE_IN_PAST/);
+  assert.match(workflow,/pg_advisory_xact_lock\(hashtext\('purchase-order-number'\),hashtext\(p_order_date::text\)\)/);
+  assert.match(workflow,/v_order_number:='ISPO'\|\|to_char\(p_order_date,'YYYYMMDD'\)\|\|'-'\|\|lpad\(v_next_order_number::text,4,'0'\)/);
   assert.match(html,/id="purchase-draft-items"/);
   assert.match(html,/id="purchase-product-category" readonly/);
   assert.match(html,/id="purchase-inventory-asset-type" readonly/);
@@ -67,6 +89,7 @@ test('purchase order receipts update stock only for fully managed products',asyn
     await db.exec(readFileSync('supabase/procurement-schema.sql','utf8'));
     const workflow=readFileSync('supabase/classification-procurement-workflow.sql','utf8');
     await db.exec(workflow);await db.exec(workflow);
+    const orderDate=(await db.query("select (now() at time zone 'Asia/Seoul')::date::text as today")).rows[0].today;
 
     const registerClass=async(name,quantityDisabled,valueDisabled)=>(
       await db.query(`insert into public.stock_product_classifications
@@ -86,7 +109,7 @@ test('purchase order receipts update stock only for fully managed products',asyn
     const quantityOff=await registerProduct('NO-QTY','수량관리안함',quantityOffId);
     const valueOff=await registerProduct('NO-VALUE','금액관리안함',valueOffId);
     const order=(await db.query(`select public.create_purchase_order($1,$2,$3,$4,$5,$6::jsonb) as result`,[
-      'PO-CLASSIFICATION','납품업체','2026-01-02','2026-01-10','검증',
+      'IGNORED-CLIENT-NUMBER','납품업체',orderDate,orderDate,'검증',
       JSON.stringify([
         {product_id:managed.id,quantity:3,unit_cost:100,expected_date:'2026-01-10'},
         {product_id:quantityOff.id,quantity:2,unit_cost:20},
@@ -94,6 +117,12 @@ test('purchase order receipts update stock only for fully managed products',asyn
       ])
     ])).rows[0].result;
     assert.equal(order.status,'발주완료');
+    assert.equal(order.order_number,`ISPO${orderDate.replaceAll('-','')}-0001`);
+    const secondOrder=(await db.query(`select public.create_purchase_order($1,$2,$3,$4,$5,$6::jsonb) as result`,[
+      'IGNORED-CLIENT-NUMBER','납품업체',orderDate,null,'검증',
+      JSON.stringify([{product_id:managed.id,quantity:1,unit_cost:100}])
+    ])).rows[0].result;
+    assert.equal(secondOrder.order_number,`ISPO${orderDate.replaceAll('-','')}-0002`);
     const lines=(await db.query('select * from public.purchase_order_lines where purchase_order_id=$1 order by line_number',[order.id])).rows;
     const receive=async(line,quantity,cost,date='2026-01-03',requestId=randomUUID())=>(
       await db.query('select public.receive_purchase_order_line($1,$2,$3,$4,$5) as result',[requestId,line.id,date,quantity,cost])
@@ -148,8 +177,12 @@ test('purchase order receipts update stock only for fully managed products',asyn
     assert.equal(retry.rows[0].result.idempotent,true);
     assert.equal((await db.query('select received_quantity from public.purchase_order_lines where id=$1',[lines[0].id])).rows[0].received_quantity,3);
     await assert.rejects(db.query(`select public.create_purchase_order($1,$2,$3,$4,$5,$6::jsonb)`,[
-      'PO-INVALID','업체','2026-01-02',null,'',JSON.stringify([{product_id:randomUUID(),quantity:1,unit_cost:1}])
+      'PO-INVALID','업체',orderDate,null,'',JSON.stringify([{product_id:randomUUID(),quantity:1,unit_cost:1}])
     ]),/PRODUCT_INFO_REQUIRED/);
     assert.equal((await db.query(`select count(*)::int as count from public.purchase_orders where order_number='PO-INVALID'`)).rows[0].count,0);
+    const pastDate=(await db.query("select ((now() at time zone 'Asia/Seoul')::date-1)::text as yesterday")).rows[0].yesterday;
+    await assert.rejects(db.query(`select public.create_purchase_order($1,$2,$3,$4,$5,$6::jsonb)`,[
+      'IGNORED-CLIENT-NUMBER','업체',pastDate,null,'',JSON.stringify([{product_id:managed.id,quantity:1,unit_cost:1}])
+    ]),/PURCHASE_ORDER_DATE_IN_PAST/);
   }finally{await db.close();}
 });

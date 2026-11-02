@@ -254,28 +254,36 @@ test('product information status title remains without the item count',()=>{
   assert.doesNotMatch(html,/product-info-status-count/);
   assert.doesNotMatch(script,/product-info-status-count/);
 });
-test('product information status search matches product code, name, or specification only',()=>{
+test('product information status has separate product code, name, and specification filters',()=>{
   const html=readFileSync('inventory.html','utf8');
+  const queries={
+    'product-info-status-code-query':{value:' sku-2 '},
+    'product-info-status-name-query':{value:'backpack'},
+    'product-info-status-specification-query':{value:'spec-2'}
+  };
   const element=id=>{
-    if(id==='product-info-status-query')return query;
+    if(queries[id])return queries[id];
     if(id==='product-info-status-items')return body;
     return {textContent:'',append(...children){this.children.push(...children);},children:[]};
   };
-  const query={value:'백팩'},body={children:[],append(child){this.children.push(child);},replaceChildren(...children){this.children=children;}};
+  const body={children:[],append(child){this.children.push(child);},replaceChildren(...children){this.children=children;}};
   const context=vm.createContext({
     document:{getElementById:element,createElement:()=>({children:[],dataset:{},append(...children){this.children.push(...children);}})},
     makeCell:value=>({textContent:String(value)}),number:value=>String(value)
   });
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`items=[
-    {product_category:'백팩 분류',product_code:'SKU-1',product_name:'상품 A',specification:'규격 A'},
-    {product_category:'분류 B',product_code:'SKU-2',product_name:'백팩 상품',specification:'규격 B'},
-    {product_category:'분류 C',product_code:'SKU-3',product_name:'상품 C',specification:'백팩 규격'}
+    {product_code:'SKU-2',product_name:'Backpack Alpha',specification:'Spec-2'},
+    {product_code:'SKU-2',product_name:'Backpack Beta',specification:'Spec-3'},
+    {product_code:'SKU-3',product_name:'Backpack Gamma',specification:'Spec-2'},
+    {product_code:'SKU-4',product_name:'Other',specification:'Spec-2'}
   ]`,context);
   vm.runInContext('renderProductInfoStatus()',context);
-  assert.equal(body.children.length,2,'only product name and specification matches should be shown');
-  assert.match(html,/placeholder="품번, 품명 또는 규격"/);
-  assert.match(html,/품번, 품명 또는 규격으로 검색합니다/);
+  assert.equal(body.children.length,1,'all entered fields should match the same product');
+  assert.match(html,/for="product-info-status-code-query">품번<input id="product-info-status-code-query"/);
+  assert.match(html,/for="product-info-status-name-query">품명<input id="product-info-status-name-query"/);
+  assert.match(html,/for="product-info-status-specification-query">규격<input id="product-info-status-specification-query"/);
+  assert.match(html,/여러 조건을 입력하면 모두 일치하는 결과를 표시합니다/);
 });
 test('current stock and movement history table cell text is centered',()=>{
   const style=readFileSync('inventory.css','utf8');

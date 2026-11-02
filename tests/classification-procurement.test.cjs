@@ -19,6 +19,7 @@ test('classification management flags remove items from inventory reports',()=>{
 
 test('classification and procurement UI permits incomplete classification selection and separates unmanaged receipts',()=>{
   const app=readFileSync('inventory-app.js','utf8'),html=readFileSync('inventory.html','utf8'),importer=readFileSync('inventory-import.js','utf8');
+  const style=readFileSync('inventory.css','utf8');
   assert.match(app,/option\.textContent=classification\.name\+\(classification\.inventory_asset_type\?/);
   assert.doesNotMatch(app,/option\.disabled=!classification\.inventory_asset_type/);
   assert.match(app,/if\(!selectedClassification\?\.inventory_asset_type\)/);
@@ -30,6 +31,9 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(importer,/item\.quantity_management_disabled===true\|\|item\.value_management_disabled===true/);
   assert.match(html,/<th>재고수량관리 안함<\/th><th>재고금액관리 안함<\/th><th>재고부족통제<\/th><th>세트품목<\/th><th>Lot관리기본값<\/th>/);
   assert.match(app,/function classificationFlag\(value\)[\s\S]*value===true\|\|value===1\|\|value==='1'\|\|value==='true'/);
+  assert.match(style,/label\[for="asset-classification-name"\][\s\S]*font-size:15\.6px/);
+  assert.match(style,/classification-checkboxes input\[type="checkbox"\]\{transform:scaleX\(1\.5\) scaleY\(1\.3\)/);
+  assert.match(style,/dialog-footer>#save-asset-classification\{transform:scale\(\.9\)/);
 });
 
 test('purchase order receipts update stock only for fully managed products',async()=>{

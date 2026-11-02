@@ -28,6 +28,8 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(app,/client\.rpc\('create_purchase_order'/);
   assert.match(app,/client\.rpc\('receive_purchase_order_line'/);
   assert.match(importer,/item\.quantity_management_disabled===true\|\|item\.value_management_disabled===true/);
+  assert.match(html,/<th>재고수량관리 안함<\/th><th>재고금액관리 안함<\/th><th>재고부족통제<\/th><th>세트품목<\/th><th>Lot관리기본값<\/th>/);
+  assert.match(app,/function classificationFlag\(value\)[\s\S]*value===true\|\|value===1\|\|value==='1'\|\|value==='true'/);
 });
 
 test('purchase order receipts update stock only for fully managed products',async()=>{
@@ -40,6 +42,7 @@ test('purchase order receipts update stock only for fully managed products',asyn
       create function public.inventory_access_allowed() returns boolean language sql as $$ select true $$;`);
     await db.exec(readFileSync('supabase/fifo.sql','utf8'));
     await db.exec(readFileSync('supabase/item-asset-classification.sql','utf8'));
+    await db.exec(readFileSync('supabase/classification-value-management-edit.sql','utf8'));
     await db.exec(readFileSync('supabase/procurement-schema.sql','utf8'));
     const workflow=readFileSync('supabase/classification-procurement-workflow.sql','utf8');
     await db.exec(workflow);await db.exec(workflow);
@@ -82,6 +85,21 @@ test('purchase order receipts update stock only for fully managed products',asyn
     const trackedSummary=(await db.query(`select receipt_quantity,stock_quantity from public.stock_summary where product_code='TRACKED'`)).rows[0];
     assert.equal(Number(trackedSummary.receipt_quantity),2);
     assert.equal(Number(trackedSummary.stock_quantity),2);
+
+    const saveClassification=async(valueDisabled,quantityDisabled=false)=>(
+      await db.query('select public.save_stock_product_classification($1::jsonb) as result',[JSON.stringify({
+        id:managedId,name:'수량금액관리',inventory_asset_type:'원자재',
+        quantity_management_disabled:quantityDisabled,value_management_disabled:valueDisabled,
+        shortage_control_enabled:true,is_set_item:false,lot_management_default:false,notes:''
+      })])
+    ).rows[0].result;
+    const turnedOff=await saveClassification(true);
+    assert.equal(turnedOff.value_management_disabled,true);
+    const turnedOn=await saveClassification(false);
+    assert.equal(turnedOn.value_management_disabled,false);
+    const persistedFlags=(await db.query('select value_management_disabled from public.stock_product_classifications where id=$1',[managedId])).rows[0];
+    assert.equal(persistedFlags.value_management_disabled,false,'the table receives the value-management change after saving');
+    await assert.rejects(saveClassification(false,true),/CLASSIFICATION_HAS_LEDGER_HISTORY/);
 
     const quantityResult=await receive(lines[1],2,20);
     const valueResult=await receive(lines[2],4,30);

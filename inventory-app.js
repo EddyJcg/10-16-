@@ -219,7 +219,7 @@ function errorText(error) {
     CLASSIFICATION_TYPE_REQUIRED:'재고자산종류를 선택하세요.',
     CLASSIFICATION_NAME_EXISTS:'같은 품목자산분류가 이미 등록되어 있습니다.',
     CLASSIFICATION_PARENTHESES_NOT_ALLOWED:'품목자산분류 이름에는 괄호로 묶은 항목을 사용할 수 없습니다.',
-    CLASSIFICATION_HAS_LEDGER_HISTORY:'거래 이력이 있는 분류의 수량·금액 관리 방식은 변경할 수 없습니다.',
+    CLASSIFICATION_HAS_LEDGER_HISTORY:'거래 이력이 있는 분류는 재고수량관리 안함 설정을 변경할 수 없습니다. 기존 거래의 단가·금액은 분류를 바꿔도 수정되지 않습니다.',
     STOCK_LEDGER_DISABLED:'수량 또는 금액 관리 안함 품목은 발주 등록에서 입고 처리하세요.',
     INVALID_PURCHASE_ORDER:'발주번호·업체·발주일자·비고와 발주 품목을 확인하세요.',
     INVALID_PURCHASE_ORDER_LINE:'발주 품목의 품번, 수량, 단가, 납기예정일과 비고를 확인하세요.',
@@ -961,9 +961,12 @@ function renderAssetClassifications() {
   if(!assetClassifications.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=9;cell.className='empty';cell.textContent='등록된 품목자산분류가 없습니다.';row.append(cell);body.append(row);return;}
   assetClassifications.forEach(classification=>{
     const row=document.createElement('tr');
-    [classification.name,classification.inventory_asset_type||'선택하세요',classification.quantity_management_disabled?'✓':'',classification.value_management_disabled?'✓':'',classification.shortage_control_enabled?'✓':'',classification.is_set_item?'✓':'',classification.lot_management_default?'✓':'',classification.notes||''].forEach(value=>row.append(makeCell(value)));
+    [classification.name,classification.inventory_asset_type||'선택하세요',classificationFlag(classification.quantity_management_disabled)?'✓':'',classificationFlag(classification.value_management_disabled)?'✓':'',classificationFlag(classification.shortage_control_enabled)?'✓':'',classificationFlag(classification.is_set_item)?'✓':'',classificationFlag(classification.lot_management_default)?'✓':'',classification.notes||''].forEach(value=>row.append(makeCell(value)));
     const action=document.createElement('td'),button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='수정';button.dataset.classificationId=classification.id;action.append(button);row.append(action);body.append(row);
   });
+}
+function classificationFlag(value) {
+  return value===true||value===1||value==='1'||value==='true';
 }
 function updateProductClassificationOptions() {
   const select=$('info_product_category'),selected=select.value;select.replaceChildren();
@@ -980,9 +983,9 @@ function editAssetClassification(id) {
   editingAssetClassificationId=row.id;$('asset-classification-id').value=row.id;
   $('asset-classification-name').value=row.name;$('asset-classification-type').value=row.inventory_asset_type||'';
   $('asset-classification-notes').value=row.notes||'';
-  $('asset-quantity-disabled').checked=!!row.quantity_management_disabled;$('asset-value-disabled').checked=!!row.value_management_disabled;
-  $('asset-shortage-control').checked=!!row.shortage_control_enabled;$('asset-set-item').checked=!!row.is_set_item;
-  $('asset-lot-default').checked=!!row.lot_management_default;
+  $('asset-quantity-disabled').checked=classificationFlag(row.quantity_management_disabled);$('asset-value-disabled').checked=classificationFlag(row.value_management_disabled);
+  $('asset-shortage-control').checked=classificationFlag(row.shortage_control_enabled);$('asset-set-item').checked=classificationFlag(row.is_set_item);
+  $('asset-lot-default').checked=classificationFlag(row.lot_management_default);
   $('save-asset-classification').textContent='분류 저장';$('cancel-asset-classification-edit').hidden=false;
   $('asset-classification-name').focus();
 }
@@ -998,7 +1001,7 @@ async function saveAssetClassification(event) {
     if(generation!==authGeneration)return;
     resetAssetClassificationForm();
     await loadAssetClassifications();
-    $('asset-classification-status').textContent='품목자산분류를 저장했습니다.';
+    $('asset-classification-status').textContent='품목자산분류를 저장했습니다. 기존 거래의 단가·금액은 변경되지 않았습니다.';
   }catch(error){if(generation===authGeneration)$('asset-classification-status').textContent=errorText(error);}
   finally{busy=false;$('asset-classification-form').querySelectorAll('input,select,button').forEach(el=>el.disabled=false);$('cancel-asset-classification-edit').hidden=!editingAssetClassificationId;}
 }

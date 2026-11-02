@@ -211,10 +211,10 @@ begin
     select * into v_row from public.stock_product_classifications where id=v_id for update;
     if not found then raise exception 'CLASSIFICATION_NOT_FOUND' using errcode='P0002'; end if;
     if v_type is null then raise exception 'CLASSIFICATION_TYPE_REQUIRED' using errcode='22023'; end if;
-    if (v_row.quantity_management_disabled is distinct from v_quantity_disabled
-      or v_row.value_management_disabled is distinct from v_value_disabled)
+    if v_row.quantity_management_disabled is distinct from v_quantity_disabled
       and exists(select 1 from public.stock_products p join public.stock_movements m on m.product_id=p.id where p.classification_id=v_id) then
-      raise exception 'CLASSIFICATION_HAS_LEDGER_HISTORY' using errcode='22023';
+      raise exception 'CLASSIFICATION_HAS_LEDGER_HISTORY' using errcode='22023',
+        detail='재고수량관리 안함 설정은 거래 이력이 있는 분류에서 변경할 수 없습니다.';
     end if;
     update public.stock_product_classifications set name=v_name,inventory_asset_type=v_type,
       quantity_management_disabled=v_quantity_disabled,value_management_disabled=v_value_disabled,

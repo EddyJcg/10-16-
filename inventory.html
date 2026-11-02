@@ -100,7 +100,7 @@
         </div>
         <div class="classification-checkboxes">
           <label><input id="asset-quantity-disabled" type="checkbox"> 재고수량관리 안함 <small>선택하면 원자재 수불부에 반영하지 않습니다.</small></label>
-          <label><input id="asset-value-disabled" type="checkbox"> 재고금액관리 안함</label>
+          <label><input id="asset-value-disabled" type="checkbox"> 재고금액관리 안함 <small>변경해도 기존 거래의 단가·금액은 수정되지 않습니다.</small></label>
           <label><input id="asset-shortage-control" type="checkbox"> 재고부족통제 <small>선택 시 적정재고 미달 품목을 품절위험 목록에 표시합니다.</small></label>
           <label><input id="asset-set-item" type="checkbox"> 세트품목</label>
           <label><input id="asset-lot-default" type="checkbox"> Lot관리기본값</label>
@@ -108,7 +108,7 @@
         <div class="dialog-footer"><button id="cancel-asset-classification-edit" class="secondary" type="button" hidden>수정 취소</button><button id="save-asset-classification" class="primary" type="submit">분류 추가</button></div>
       </form>
       <p id="asset-classification-status" class="product-list-status" role="status" aria-live="polite"></p>
-      <div class="table-wrap product-list-table"><table aria-label="품목자산분류 목록"><thead><tr><th>품목자산분류</th><th>재고자산종류</th><th>수량관리 안함</th><th>금액관리 안함</th><th>재고부족통제</th><th>세트품목</th><th>Lot관리기본값</th><th>비고</th><th>관리</th></tr></thead><tbody id="asset-classification-items"></tbody></table></div>
+      <div class="table-wrap product-list-table"><table aria-label="품목자산분류 목록"><thead><tr><th>품목자산분류</th><th>재고자산종류</th><th>재고수량관리 안함</th><th>재고금액관리 안함</th><th>재고부족통제</th><th>세트품목</th><th>Lot관리기본값</th><th>비고</th><th>관리</th></tr></thead><tbody id="asset-classification-items"></tbody></table></div>
     </div>
   </dialog>
   <dialog id="product-info-status-dialog" aria-labelledby="product-info-status-title">

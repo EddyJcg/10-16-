@@ -77,8 +77,9 @@ test('procurement folder uses the supplied settings icon without a background',(
   const html=fs.readFileSync('inventory.html','utf8');
   const style=fs.readFileSync('purchase-folder-icon.css','utf8');
   const icon=fs.readFileSync('purchase-settings.svg','utf8');
-  assert.match(html,/href="\/purchase-folder-icon\.css"/);
+  assert.match(html,/href="\/purchase-folder-icon\.css\?v=20261102-hide-purchase-subfolder-icons"/);
   assert.match(style,/#purchase-folder>summary::before\{[^}]*width:29\.9px;height:29\.9px[^}]*mask:url\('\/purchase-settings\.svg'\)/);
+  assert.match(style,/#purchase-entry-folder>summary::before,#purchase-query-folder>summary::before\{content:none;display:none\}/);
   assert.doesNotMatch(icon,/<rect\b|<image\b/i);
   assert.match(icon,/<svg\b[^>]*viewBox="0 0 24 24"/);
 });

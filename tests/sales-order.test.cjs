@@ -34,32 +34,35 @@ test('sales status prints with shared settings and places print controls after E
   assert.equal(body.dataset.printTarget,undefined);
 });
 
-test('sales order dialog contains all requested fields and choices',()=>{
+test('sales order dialog separates free-text header details from repeatable order lines',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const style=fs.readFileSync('sales-order.css','utf8');
   const form=html.match(/<form id="sales-order-form" novalidate>([\s\S]*?)<\/form>/)?.[1]||'';
   assert.ok(form);
   for(const [id,label] of [
-    ['sales_vendor_id','거래처'],['sales_vendor_contact','연락처'],
-    ['sales_order_number','수주번호'],['sales_order_type','수주형태'],['sales_product_name','품명'],
+    ['sales_order_date','수주일자'],['sales_order_number','수주번호'],['sales_order_type','수주형태'],
+    ['sales_vendor_name','거래처(성명)'],['sales_vendor_contact','연락처'],['sales_delivery_method','배송방법'],
+    ['sales_product_name','품명'],
     ['sales_specification','규격'],['sales_unit','단위'],['sales_quantity','수량'],
-    ['sales_unit_price','단가'],['sales_amount','수주금액'],['sales_due_date','납기일자'],
-    ['sales_delivery_method','배송방법'],['sales_address','주소'],['sales_notes','기타사항']
+    ['sales_unit_price','단가'],['sales_amount','수주금액'],['sales_due_date','납기일자']
   ]){
     assert.match(form,new RegExp(`id="${id}"`),id);
     assert.ok(form.includes('>'+label+'</label>'),label);
   }
   assert.match(form,/id="sales_order_type" required><option value="">선택하세요<\/option><option value="온라인 수주">온라인 수주<\/option><option value="오프라인 수주">오프라인 수주<\/option>/);
-  assert.match(form,/id="sales_vendor_id" required/);
-  assert.match(form,/id="sales_vendor_contact" readonly/);
+  assert.match(form,/id="sales_vendor_name" required/);
+  assert.doesNotMatch(form,/id="sales_vendor_id"/);
+  assert.doesNotMatch(form,/id="sales_vendor_contact" readonly/);
   assert.match(form,/id="sales_amount" readonly/);
+  assert.match(form,/id="add-sales-line-footer"[^>]*>수주품목 추가<\/button>/);
+  assert.match(form,/id="sales-order-draft-items"/);
   assert.match(html,/<th>거래처<\/th><th>연락처<\/th>/);
   assert.match(html,/id="sales-order-items"/);
+  assert.match(html,/<th>배송방법<\/th><th>주소<\/th><th>기타사항<\/th><th>관리<\/th>/);
   assert.match(html,/<th>일련번호<\/th><th>수주일자<\/th><th>수주번호<\/th>/);
   assert.match(html,/<link rel="stylesheet" href="\/sales-order\.css/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);
   assert.match(style,/@media\(min-width:851px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(style,/\.sales-order-dialog \.sales-order-wide\{grid-column:span 5\}/);
   assert.match(style,/@media\(max-width:850px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(style,/@media\(max-width:520px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:1fr\}/);
 });
@@ -169,10 +172,11 @@ test('sales order dialog is connected to the authenticated database save flow',(
   assert.match(html,/<dialog id="sales-order-dialog"/);
   assert.match(script,/function showSalesOrder\(\)/);
   assert.match(script,/function saveSalesOrder\(event\)/);
-  assert.match(script,/client\.rpc\('register_sales_order'/);
-  assert.match(script,/from\('business_partners'\)[\s\S]*?p_vendor_id:p_vendor_id|p_vendor_id:vendorId/);
-  assert.match(script,/registeredVendorContact/);
-  assert.match(script,/\$\('sales_vendor_id'\)\.addEventListener\('change',updateSalesOrderVendorContact\)/);
+  assert.match(script,/client\.rpc\('register_sales_order_group'/);
+  assert.match(script,/client\.rpc\('update_sales_order_group'/);
+  assert.match(script,/function addSalesOrderLine\(\)/);
+  assert.match(script,/p_vendor_name:\$\('sales_vendor_name'\)\.value\.trim\(\)/);
+  assert.match(script,/p_lines:salesDraftLines\.map/);
   assert.match(script,/client\.rpc\('set_sales_order_status'/);
   assert.match(script,/sales-order-form'\)\.addEventListener\('submit',saveSalesOrder\)/);
   assert.match(sql,/create table if not exists public\.sales_orders/);
@@ -181,29 +185,8 @@ test('sales order dialog is connected to the authenticated database save flow',(
   const vendorSql=fs.readFileSync('supabase/sales-order-vendor.sql','utf8');
   assert.match(vendorSql,/references public\.business_partners\(id\)/);
   assert.match(vendorSql,/p_vendor_id uuid default null/);
-});
-
-test('registered vendor selection fills its contact details from vendor profile',()=>{
-  const fields=new Map([
-    ['sales_vendor_id',{value:'vendor-2'}],
-    ['sales_vendor_contact',{value:''}]
-  ]);
-  const select=fields.get('sales_vendor_id');
-  select.options=[];
-  select.replaceChildren=function(...options){this.options=options;};
-  select.add=function(option){this.options.push(option);};
-  const context=vm.createContext({
-    document:{getElementById:id=>fields.get(id)},
-    Option:function(text,value){return {textContent:text,value};}
-  });
-  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
-  vm.runInContext(`salesOrderVendors=[
-    {id:'vendor-1',legal_name:'업체 A',profile:{contact_person:'담당 A',phone:'111'}},
-    {id:'vendor-2',legal_name:'업체 B',profile:{contact_person:'',sales_manager:'담당 B',manager_phone:'222'}}
-  ];populateSalesOrderVendorOptions()`,context);
-  assert.equal(select.options.length,3);
-  assert.equal(fields.get('sales_vendor_contact').value,'담당 B / 222');
-  select.value='vendor-1';
-  vm.runInContext('updateSalesOrderVendorContact()',context);
-  assert.equal(fields.get('sales_vendor_contact').value,'담당 A / 111');
+  const groupedSql=fs.readFileSync('supabase/sales-order-groups.sql','utf8');
+  assert.match(groupedSql,/add column if not exists order_group_id uuid/);
+  assert.match(groupedSql,/create or replace function public\.register_sales_order_group/);
+  assert.match(groupedSql,/create or replace function public\.update_sales_order_group/);
 });

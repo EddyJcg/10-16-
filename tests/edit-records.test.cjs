@@ -19,6 +19,9 @@ test('record editing preserves product, sales and FIFO ledger consistency',async
     const vendorMigration=readFileSync('supabase/sales-order-vendor.sql','utf8');
     await db.exec(vendorMigration);
     await db.exec(vendorMigration);
+    const salesGroupsMigration=readFileSync('supabase/sales-order-groups.sql','utf8');
+    await db.exec(salesGroupsMigration);
+    await db.exec(salesGroupsMigration);
 
     const classification=(await db.query(`select id,name from public.stock_product_classifications
       where inventory_asset_type is not null and not quantity_management_disabled
@@ -55,6 +58,33 @@ test('record editing preserves product, sales and FIFO ledger consistency',async
     const changedVendorOrder=(await db.query(`select public.update_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) as result`,
       [order.id,'2026-01-02','SO-EDIT-2','온라인 수주','Updated item','Updated spec','EA(개)',10,75,'2026-12-31','택배','서울','변경',vendor.id])).rows[0].result;
     assert.equal(changedVendorOrder.vendor_contact,'새 담당자 / 010-5678-1234');
+
+    const groupedOrder=(await db.query(`select public.register_sales_order_group($1,$2,$3,$4,$5,$6,$7) as result`,
+      ['2026-02-01','SO-MULTI','오프라인 수주','개인 고객','010-9876-5432','택배',[
+        {product_name:'Shirt',specification:'Blue',unit:'EA(개)',quantity:2,unit_price:25.5,due_date:'2026-02-20'},
+        {product_name:'Pants',specification:'M',unit:'벌',quantity:1,unit_price:40,due_date:'2026-02-25'}
+      ]])).rows[0].result;
+    assert.equal(groupedOrder.orders.length,2);
+    assert.equal(groupedOrder.orders[0].order_group_id,groupedOrder.group_id);
+    assert.equal(groupedOrder.orders[1].order_group_id,groupedOrder.group_id);
+    assert.notEqual(groupedOrder.orders[0].id,groupedOrder.orders[1].id);
+    assert.equal(groupedOrder.orders[0].vendor_name,'개인 고객');
+    assert.equal(groupedOrder.orders[0].vendor_contact,'010-9876-5432');
+    assert.equal(groupedOrder.orders[0].vendor_id,null);
+    const updatedGroup=(await db.query(`select public.update_sales_order_group($1,$2,$3,$4,$5,$6,$7,$8) as result`,
+      [groupedOrder.group_id,'2026-02-02','SO-MULTI-2','온라인 수주','수정 고객','010-0000-0000','직접 배송',[
+        {line_id:groupedOrder.orders[0].id,product_name:'Shirt',specification:'Blue',unit:'EA(개)',quantity:3,unit_price:30,due_date:'2026-02-22'},
+        {product_name:'Hat',specification:'Free',unit:'EA(개)',quantity:2,unit_price:10,due_date:'2026-02-23'}
+      ]])).rows[0].result;
+    assert.equal(updatedGroup.orders.length,2);
+    assert.equal(updatedGroup.orders[0].id,groupedOrder.orders[0].id);
+    assert.equal(updatedGroup.orders[0].order_number,'SO-MULTI-2');
+    assert.equal(Number(updatedGroup.orders[0].amount),90);
+    assert.ok(updatedGroup.orders.every(line=>line.vendor_name==='수정 고객'&&line.vendor_id===null));
+    assert.equal((await db.query('select count(*)::int as count from public.sales_orders where id=$1',
+      [groupedOrder.orders[1].id])).rows[0].count,0,'removed, unshipped lines are deleted');
+    await assert.rejects(db.query(`select public.register_sales_order_group($1,$2,$3,$4,$5,$6,$7)`,
+      ['2026-02-01','SO-EMPTY','온라인 수주','고객','','',[]]),/INVALID_SALES_ORDER/);
 
     const post=async(kind,quantity,cost,date,link=null)=> (await db.query(
       'select public.post_stock_movement($1,$2,$3,$4,$5,$6) as result',

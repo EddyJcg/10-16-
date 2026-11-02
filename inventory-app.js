@@ -170,7 +170,7 @@ let productListDateIds = null,productListSupplier = '',productListQuery = '',pro
 let movementListRows = [],movementListLoading = false;
 let movementListKind='';
 function movementListLabel(){return movementListKind==='opening'?'기초재고 내역':movementListKind==='receipt'?'입고 내역':movementListKind==='issue'?'출고 내역':'입출고 내역';}
-let salesOrders = [],salesOrderVendors=[],salesOrdersLoading = false,salesOrderSaving = false;
+let salesOrders = [],salesDraftLines=[],salesOrdersLoading = false,salesOrderSaving = false;
 let purchaseOrders=[],purchaseOrderLines=[],purchaseReceipts=[],purchaseDraftLines=[],purchaseOrderVendors=[],purchaseOrderVendorsLoaded=false,purchaseLoading=false,purchaseSaving=false,purchaseSyncTimer=null;
 let receivingPurchaseLineId='',receivingPurchaseRequestId='';
 let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:''},salesStatusUpdating=false;
@@ -207,7 +207,10 @@ function errorText(error) {
     MOVEMENT_NOT_FOUND:'수정할 거래 내역을 찾을 수 없습니다. 목록을 새로고침하세요.',
     PRODUCT_CLASSIFICATION_TYPE_REQUIRED:'품목자산분류의 재고자산종류를 먼저 설정하세요.',
     INVALID_PRODUCT_CODE:'품번을 입력하세요.',
-    INVALID_SALES_ORDER:'수주일자, 수주번호, 수주형태, 품명, 단위, 수량, 단가와 납기일자를 확인하세요.',
+    INVALID_SALES_ORDER:'수주일자·수주번호·수주형태·거래처와 수주 품목을 확인하세요.',
+    INVALID_SALES_ORDER_LINE:'수주 품목의 품명, 단위, 수량, 단가와 납기일자를 확인하세요.',
+    SALES_ORDER_LINE_NOT_FOUND:'수정할 수주 품목을 찾을 수 없습니다. 수주 목록을 새로고침하세요.',
+    DUPLICATE_SALES_ORDER_LINE:'같은 수주 품목이 중복으로 전달되었습니다. 창을 새로고침하세요.',
     INVALID_SALES_ORDER_LINK:'출고에 연결할 수주번호를 확인하세요.',
     SALES_ORDER_NOT_FOUND:'연결할 수주를 찾을 수 없습니다. 수주 목록을 새로 확인하세요.',
     SALES_ORDER_PRODUCT_MISMATCH:'선택한 수주의 품명·규격·단위가 출고 품목과 다릅니다.',
@@ -234,7 +237,7 @@ function errorText(error) {
     ACCESS_DENIED:'발주·입고를 저장할 권한이 없습니다. 로그인 상태와 계정 권한을 확인하세요.'
   };
   for (const [key,text] of Object.entries(errors)) if (message.includes(key)) return text;
-  if (['PGRST205','PGRST202','42P01','42703'].includes(error?.code)) return '재고 DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql, supabase/item-asset-classification.sql, supabase/edit-records.sql, supabase/procurement-schema.sql, supabase/classification-procurement-workflow.sql을 순서대로 실행하세요. 로그인·권한 설정은 기존 schema.sql을 사용합니다.';
+  if (['PGRST205','PGRST202','42P01','42703'].includes(error?.code)) return 'DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql, supabase/item-asset-classification.sql, supabase/edit-records.sql, supabase/vendor-management.sql, supabase/sales-order-vendor.sql, supabase/sales-order-groups.sql, supabase/procurement-schema.sql, supabase/classification-procurement-workflow.sql을 README.md 안내 순서대로 실행하세요.';
   return '요청을 완료하지 못했습니다. 네트워크와 로그인 상태를 확인하세요. 저장 응답이 끊겼다면 내역을 확인하거나 같은 내용으로 다시 저장하세요.';
 }
 function ensureMovementEditColumn(){
@@ -278,6 +281,18 @@ function renderSalesOrders(){
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
     action.append(button);row.append(action);
     body.append(row);
+  });
+}
+function renderSalesDraftLines(){
+  const body=$('sales-order-draft-items');body.replaceChildren();
+  if(!salesDraftLines.length){emptyRow(body,8,'수주 품목을 추가하세요.');return;}
+  salesDraftLines.forEach((line,index)=>{
+    const row=document.createElement('tr');
+    [line.product_name,line.specification,line.unit,number(line.quantity),money(line.unit_price),
+      money(Number(line.quantity)*Number(line.unit_price)),line.due_date].forEach((value,col)=>row.append(makeCell(value,col===3||col===4||col===5)));
+    const action=document.createElement('td'),button=document.createElement('button');
+    button.type='button';button.className='secondary';button.textContent='삭제';button.dataset.removeSalesLine=String(index);
+    action.append(button);row.append(action);body.append(row);
   });
 }
 function renderSalesBalance(){
@@ -615,8 +630,6 @@ async function editSalesOrderFromStatus(id){
   $('sales-status-dialog').close();
   resetSalesOrderForm();$('sales-order-status').textContent='';
   $('sales-order-dialog').showModal();
-  try{await loadSalesOrderVendors();}
-  catch(error){$('sales-order-status').textContent=salesOrderVendorErrorText(error);return;}
   editSalesOrder(id);
 }
 async function openMovementHistoryForEdit(){
@@ -655,109 +668,87 @@ function updateSalesAmount(){
   $('sales_amount').value=$('sales_quantity').value&&$('sales_unit_price').value&&Number.isSafeInteger(quantity)&&quantity>0&&Number.isFinite(price)&&price>=0
     ? money(quantity*price)+'원':'';
 }
-function registeredVendorContact(vendor){
-  if(!vendor)return '';
-  const profile=vendor.profile||{};
-  const firstValue=(...values)=>values.map(value=>String(value||'').trim()).find(Boolean)||'';
-  const person=firstValue(profile.contact_person,profile.sales_manager);
-  const phone=firstValue(profile.manager_phone,profile.contact_mobile,profile.phone);
-  return [person,phone].filter(Boolean).join(' / ');
-}
-function populateSalesOrderVendorOptions(){
-  const select=$('sales_vendor_id'),selected=select.value;
-  select.replaceChildren(new Option('등록 거래처 선택',''));
-  salesOrderVendors.forEach(vendor=>{
-    const option=new Option(vendor.legal_name,vendor.id);
-    if(vendor.status&&vendor.status!=='정상')option.textContent+=` (${vendor.status})`;
-    select.add(option);
+function addSalesOrderLine(){
+  const quantity=Number($('sales_quantity').value),unitPrice=Number($('sales_unit_price').value);
+  const dueDate=$('sales_due_date').value;
+  if(!$('sales_product_name').value.trim()||!$('sales_unit').value
+    ||!Number.isSafeInteger(quantity)||quantity<1||quantity>1000000
+    ||!Number.isFinite(unitPrice)||unitPrice<0||unitPrice>1000000000
+    ||Math.abs(unitPrice*100-Math.round(unitPrice*100))>0.0001||!validOrderDueDate(dueDate)){
+    $('sales-order-status').textContent='품명·단위·수량·단가·납기일자를 올바르게 입력한 후 품목을 추가하세요.';
+    return;
+  }
+  salesDraftLines.push({
+    product_name:$('sales_product_name').value.trim(),specification:$('sales_specification').value.trim(),
+    unit:$('sales_unit').value,quantity,unit_price:unitPrice,due_date:dueDate
   });
-  if([...select.options].some(option=>option.value===selected))select.value=selected;
-  updateSalesOrderVendorContact();
-}
-function updateSalesOrderVendorContact(){
-  const vendor=salesOrderVendors.find(item=>item.id===$('sales_vendor_id').value);
-  $('sales_vendor_contact').value=registeredVendorContact(vendor);
-}
-async function loadSalesOrderVendors(){
-  const vendors=await loadRegisteredVendors();
-  if(!vendors)return;
-  salesOrderVendors=vendors;
-  populateSalesOrderVendorOptions();
-}
-function salesOrderVendorErrorText(error){
-  const message=String(error?.message||error||'');
-  const lowerMessage=message.toLowerCase();
-  if(['PGRST202','PGRST204','PGRST205','42883','42703','42P01'].some(code=>message.includes(code))||
-    ['business_partners','vendor_id','register_sales_order','update_sales_order'].some(value=>lowerMessage.includes(value)))
-    return '수주 거래처 연결 DB 설정이 필요합니다. supabase/vendor-management.sql과 supabase/sales-order-vendor.sql을 적용하세요.';
-  return '등록 거래처를 불러오지 못했습니다. '+errorText(error);
+  ['sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_amount','sales_due_date']
+    .forEach(id=>$(id).value='');
+  renderSalesDraftLines();$('sales-order-status').textContent='';
 }
 function resetSalesOrderForm(){
   editingSalesOrderId='';$('sales-order-form').reset();$('sales_order_date').value=todayDate();
-  updateSalesOrderVendorContact();
+  salesDraftLines=[];renderSalesDraftLines();
   $('sales-order-title').textContent='수주 입력';$('save-sales-order').textContent='수주 저장';
 }
 function editSalesOrder(id){
   const order=salesOrders.find(row=>row.id===id);if(!order)return;
-  editingSalesOrderId=order.id;
+  const groupId=order.order_group_id||order.id;
+  const group=salesOrders.filter(row=>(row.order_group_id||row.id)===groupId);
+  editingSalesOrderId=groupId;
   [['sales_order_date','order_date'],['sales_order_number','order_number'],['sales_order_type','order_type'],
-    ['sales_product_name','product_name'],['sales_specification','specification'],['sales_unit','unit'],
-    ['sales_quantity','quantity'],['sales_unit_price','unit_price'],['sales_due_date','due_date'],
-    ['sales_delivery_method','delivery_method'],['sales_address','address'],['sales_notes','notes']]
+    ['sales_vendor_name','vendor_name'],['sales_vendor_contact','vendor_contact'],['sales_delivery_method','delivery_method']]
     .forEach(([field,key])=>$(field).value=order[key]??'');
-  $('sales_vendor_id').value=order.vendor_id||'';
-  updateSalesOrderVendorContact();
-  if(!$('sales_vendor_id').value)$('sales_vendor_contact').value=order.vendor_contact||'';
-  $('sales-order-title').textContent='수주 수정';$('save-sales-order').textContent='변경 사항 저장';updateSalesAmount();
+  salesDraftLines=group.map(line=>({
+    line_id:line.id,product_name:line.product_name,specification:line.specification||'',unit:line.unit,
+    quantity:Number(line.quantity),unit_price:Number(line.unit_price),due_date:String(line.due_date).slice(0,10)
+  }));
+  renderSalesDraftLines();
+  $('sales-order-title').textContent='수주 수정';$('save-sales-order').textContent='변경 사항 저장';
   $('sales_order_number').focus();
 }
 async function showSalesOrder(){
   if(!currentUser||busy||salesOrderSaving)return;
-  resetSalesOrderForm();$('sales-order-status').textContent='';updateSalesAmount();renderSalesOrders();
+  resetSalesOrderForm();$('sales-order-status').textContent='';renderSalesOrders();
   $('sales-order-dialog').showModal();
-  try{await loadSalesOrderVendors();}
-  catch(error){$('sales-order-status').textContent=salesOrderVendorErrorText(error);return;}
   await loadSalesOrders();
 }
 async function saveSalesOrder(event){
   event.preventDefault();
   if(!currentUser||busy||salesOrderSaving)return;
-  const quantity=Number($('sales_quantity').value),unitPrice=Number($('sales_unit_price').value),dueDate=$('sales_due_date').value,orderDate=$('sales_order_date').value;
-  const vendorId=$('sales_vendor_id').value;
-  const selectedVendor=salesOrderVendors.find(vendor=>vendor.id===vendorId);
-  if(!selectedVendor){
-    $('sales-order-status').textContent='거래처 등록 화면에서 먼저 거래처를 등록한 뒤 선택하세요.';
-    $('sales_vendor_id').focus();return;
-  }
-  if(!Number.isSafeInteger(quantity)||quantity<1||quantity>1000000||!Number.isFinite(unitPrice)||unitPrice<0||unitPrice>1000000000
-    ||Math.abs(unitPrice*100-Math.round(unitPrice*100))>0.0001||!validOrderDueDate(dueDate)||!validOrderDueDate(orderDate)){
-    $('sales-order-status').textContent='수량은 1~1,000,000의 정수, 단가는 0~1,000,000,000원(소수 둘째 자리까지), 수주일자와 납기일자는 올바른 날짜로 입력하세요.';
+  const orderDate=$('sales_order_date').value;
+  if(!validOrderDueDate(orderDate)||!$('sales_order_number').value.trim()
+    ||!$('sales_order_type').value||!$('sales_vendor_name').value.trim()||salesDraftLines.length===0){
+    $('sales-order-status').textContent='수주일자·수주번호·수주형태·거래처를 입력하고 수주 품목을 한 개 이상 추가하세요.';
     return;
   }
-  const generation=authGeneration,fields=['sales_order_number','sales_order_type','sales_product_name','sales_specification','sales_unit','sales_delivery_method','sales_address','sales_notes'];
-  const details=Object.fromEntries(fields.map(id=>[id,$(id).value.trim()]));
+  const generation=authGeneration;
   salesOrderSaving=true;$('sales-order-editor').disabled=true;$('sales-order-status').textContent='수주를 저장하는 중…';
   const isEditing=!!editingSalesOrderId;
   try{
     const rpcArgs={
-      p_order_date:orderDate,p_order_number:details.sales_order_number,p_order_type:details.sales_order_type,p_product_name:details.sales_product_name,
-      p_specification:details.sales_specification,p_unit:details.sales_unit,p_quantity:quantity,p_unit_price:unitPrice,
-      p_due_date:dueDate,p_delivery_method:details.sales_delivery_method,p_address:details.sales_address,p_notes:details.sales_notes,
-      p_vendor_id:vendorId
+      p_order_date:orderDate,p_order_number:$('sales_order_number').value.trim(),
+      p_order_type:$('sales_order_type').value,p_vendor_name:$('sales_vendor_name').value.trim(),
+      p_vendor_contact:$('sales_vendor_contact').value.trim(),p_delivery_method:$('sales_delivery_method').value.trim(),
+      p_lines:salesDraftLines.map(({line_id,...line})=>({...line,...(line_id?{line_id}:{})}))
     };
     const {data,error}=editingSalesOrderId
-      ? await client.rpc('update_sales_order',{p_order_id:editingSalesOrderId,...rpcArgs})
-      : await client.rpc('register_sales_order',rpcArgs);
+      ? await client.rpc('update_sales_order_group',{p_group_id:editingSalesOrderId,...rpcArgs})
+      : await client.rpc('register_sales_order_group',rpcArgs);
     if(error)throw error;
     if(generation!==authGeneration)return;
-    salesOrders=[data,...salesOrders.filter(order=>order.id!==data.id)];renderSalesOrders();renderSalesStatus();renderSalesBalance();
-    resetSalesOrderForm();updateSalesAmount();
-    $('sales-order-status').textContent=(isEditing?'수주를 수정했습니다.':'수주를 저장했습니다.')+' 일련번호 '+number(data.sequence_id)+' · 수주금액 '+money(data.amount)+'원';
+    const updatedOrders=data.orders||[];
+    salesOrders=[...updatedOrders,...salesOrders.filter(order=>(order.order_group_id||order.id)!==data.group_id)]
+      .sort((a,b)=>Number(b.sequence_id)-Number(a.sequence_id));
+    renderSalesOrders();renderSalesStatus();renderSalesBalance();
+    const total=updatedOrders.reduce((sum,order)=>sum+Number(order.amount||0),0);
+    const sequence=updatedOrders.map(order=>Number(order.sequence_id)).filter(Number.isFinite).sort((a,b)=>a-b)[0];
+    resetSalesOrderForm();
+    $('sales-order-status').textContent=(isEditing?'수주를 수정했습니다.':'수주를 저장했습니다.')+' 일련번호 '+number(sequence)+' · 총수주금액 '+money(total)+'원';
   }catch(error){
-    if(generation===authGeneration){
-      const vendorMessage=salesOrderVendorErrorText(error);
-      $('sales-order-status').textContent=vendorMessage.startsWith('수주 거래처 연결 DB 설정')?vendorMessage:errorText(error);
-    }
+    if(generation===authGeneration)$('sales-order-status').textContent=String(error?.message||'').includes('register_sales_order_group')
+      ?'다품목 수주 DB 설정이 필요합니다. supabase/sales-order-groups.sql을 실행하세요.'
+      :errorText(error);
   }
   finally{salesOrderSaving=false;$('sales-order-editor').disabled=false;}
 }
@@ -917,7 +908,7 @@ async function updateSession(session) {
   $('admin-folder').hidden = true;
   $('sidebar-toggle').hidden = !currentUser;
   $('app-layout').classList.toggle('signed-in',!!currentUser);
-  items = []; agedStock=[];assetClassifications=[];editingAssetClassificationId='';salesOrders=[];salesOrderVendors=[];populateSalesOrderVendorOptions();purchaseOrders=[];purchaseOrderLines=[];purchaseReceipts=[];purchaseDraftLines=[];purchaseOrderVendors=[];purchaseOrderVendorsLoaded=false;populatePurchaseOrderVendorOptions();renderSalesOrders();renderSalesStatus();renderSalesBalance();updateSupplierOptions();render();
+  items = []; agedStock=[];assetClassifications=[];editingAssetClassificationId='';salesOrders=[];salesDraftLines=[];purchaseOrders=[];purchaseOrderLines=[];purchaseReceipts=[];purchaseDraftLines=[];purchaseOrderVendors=[];purchaseOrderVendorsLoaded=false;populatePurchaseOrderVendorOptions();renderSalesOrders();renderSalesStatus();renderSalesBalance();updateSupplierOptions();render();
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
@@ -954,7 +945,7 @@ function updateIssueSalesOrders(reset=false){
   const empty=document.createElement('option');empty.value='';empty.textContent='수주와 연결하지 않음';select.append(empty);
   orders.forEach(order=>{
     const option=document.createElement('option');option.value=order.id;
-    option.textContent=order.order_number+' · 잔여 '+number(Number(order.quantity)-Number(order.shipped_quantity||0))+' '+order.unit;
+    option.textContent=order.order_number+' · '+order.product_name+' · 잔여 '+number(Number(order.quantity)-Number(order.shipped_quantity||0))+' '+order.unit;
     select.append(option);
   });
   if(previous&&!orders.some(order=>order.id===previous)){
@@ -1961,7 +1952,12 @@ async function startApp(){
   $('sales-status-button').addEventListener('click',showSalesStatus);
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
   $('sales-order-form').addEventListener('submit',saveSalesOrder);
-  $('sales_vendor_id').addEventListener('change',updateSalesOrderVendorContact);
+  $('add-sales-line-footer').addEventListener('click',addSalesOrderLine);
+  $('sales-order-draft-items').addEventListener('click',event=>{
+    const button=event.target.closest('[data-remove-sales-line]');
+    if(!button)return;
+    salesDraftLines.splice(Number(button.dataset.removeSalesLine),1);renderSalesDraftLines();
+  });
   $('sales-order-items').addEventListener('click',event=>{const button=event.target.closest('[data-sales-order-id]');if(button)editSalesOrder(button.dataset.salesOrderId);});
   $('close-sales-status').addEventListener('click',()=>$('sales-status-dialog').close());
   $('apply-sales-status-search').addEventListener('click',()=>applySalesStatusSearch());

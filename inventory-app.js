@@ -1459,7 +1459,6 @@ async function startApp(){
   $('sales-order-button').addEventListener('click',showSalesOrder);
   $('sales-status-button').addEventListener('click',showSalesStatus);
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
-  $('cancel-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
   $('sales-order-form').addEventListener('submit',saveSalesOrder);
   $('sales-order-items').addEventListener('click',event=>{const button=event.target.closest('[data-sales-order-id]');if(button)editSalesOrder(button.dataset.salesOrderId);});
   $('close-sales-status').addEventListener('click',()=>$('sales-status-dialog').close());
@@ -1482,7 +1481,6 @@ async function startApp(){
   $('close-product-info-status').addEventListener('click',()=>$('product-info-status-dialog').close());
   $('product-info-status-query').addEventListener('input',renderProductInfoStatus);
   $('clear-product-info-status-search').addEventListener('click',()=>{$('product-info-status-query').value='';renderProductInfoStatus();$('product-info-status-query').focus();});
-  $('cancel-product-info').addEventListener('click',()=>{resetProductInfoForm();$('product-info-dialog').close();});
   $('product-info-form').addEventListener('submit',saveProductInfo);
   $('cancel-product-info-edit').addEventListener('click',resetProductInfoForm);
   $('product-info-items').addEventListener('click',event=>{const button=event.target.closest('[data-product-info-id]');if(button)editProductInfo(button.dataset.productInfoId);});
@@ -1494,10 +1492,11 @@ async function startApp(){
   $('info_specification').addEventListener('input',()=>populateProductInfo('info_specification'));
   document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>openMovement(button.dataset.mode)));
   installMovementHistoryButton();
-  $('close-dialog').addEventListener('click',closeMovement);$('cancel-dialog').addEventListener('click',closeMovement);$('movement-dialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();});
+  $('close-dialog').addEventListener('click',closeMovement);$('movement-dialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();});
   $('movement-form').addEventListener('submit',saveMovement);
   $('receipt-details-fill').addEventListener('click',focusMissingReceiptDetail);
   $('receipt-details-ignore').addEventListener('click',ignoreReceiptDetailsAndSave);
+  $('close-receipt-details').addEventListener('click',()=>$('receipt-details-dialog').close());
   $('movement-list-items').addEventListener('click',event=>{const button=event.target.closest('[data-movement-id]');if(button)editMovement(button.dataset.movementId);});
   $('movement-form').addEventListener('input',()=>{requestId=crypto.randomUUID();if(mode!=='issue')$('form-message').textContent='';});
   $('product_code').addEventListener('input',()=>populateProduct('product_code'));

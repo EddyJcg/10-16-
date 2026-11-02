@@ -52,6 +52,20 @@ test('main inventory heading does not display the item count',()=>{
   assert.doesNotMatch(renderer,/list-count/);
 });
 
+test('every popup has a text close button in its header without a duplicate footer close button',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const dialogs=[...html.matchAll(/<dialog\b[^>]*>([\s\S]*?)<\/dialog>/g)].map(match=>match[1]);
+  assert.ok(dialogs.length>0);
+  for(const dialog of dialogs){
+    const bodyStart=dialog.indexOf('<div class="dialog-body');
+    const header=bodyStart<0?'':dialog.slice(0,bodyStart);
+    assert.match(header,/<button\b[^>]*class="close"[^>]*>닫기<\/button>/);
+    assert.doesNotMatch(header,/>×<\/button>/);
+  }
+  assert.doesNotMatch(html,/id="(?:cancel-product-info|cancel-sales-order|cancel-dialog)"/);
+  assert.match(readFileSync('inventory-app.js','utf8'),/\$\('close-receipt-details'\)\.addEventListener\('click'/);
+});
+
 test('product list dialog searches all stock fields and prints the displayed list',()=>{
   const script=readFileSync('inventory-app.js','utf8');
   const style=readFileSync('inventory.css','utf8');

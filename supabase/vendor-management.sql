@@ -30,11 +30,13 @@ create table if not exists public.vendor_master_options (
   details jsonb not null default '{}'::jsonb,
   is_active boolean not null default true,
   sort_order integer not null default 0,
-  created_by uuid not null default auth.uid(),
+  created_by uuid default auth.uid(),
   created_at timestamptz not null default clock_timestamp(),
   updated_at timestamptz not null default clock_timestamp(),
   unique(category,code)
 );
+
+alter table public.vendor_master_options alter column created_by drop not null;
 
 alter table public.business_partners enable row level security;
 alter table public.vendor_master_options enable row level security;

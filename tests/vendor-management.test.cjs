@@ -25,11 +25,26 @@ test('vendor database migration provides protected records and default vendor ty
   try{
     await db.exec(`create role anon; create role authenticated; create schema auth;
       grant usage on schema public,auth to anon,authenticated;
-      create function auth.uid() returns uuid language sql as $$ select '00000000-0000-4000-8000-000000000001'::uuid $$;
+      create function auth.uid() returns uuid language sql as $$ select null::uuid $$;
       create function public.inventory_access_allowed() returns boolean language sql as $$ select true $$;`);
+    await db.exec(`create table public.vendor_master_options (
+      id uuid primary key default gen_random_uuid(),
+      category text not null,
+      code text not null,
+      name text not null,
+      details jsonb not null default '{}'::jsonb,
+      is_active boolean not null default true,
+      sort_order integer not null default 0,
+      created_by uuid not null default auth.uid(),
+      created_at timestamptz not null default clock_timestamp(),
+      updated_at timestamptz not null default clock_timestamp(),
+      unique(category,code)
+    );`);
     await db.exec(readFileSync('supabase/vendor-management.sql','utf8'));
     const seeded=(await db.query("select count(*)::int as count from public.vendor_master_options where category='vendor_type' and is_active")).rows[0].count;
     assert.equal(seeded,10);
+    assert.equal((await db.query("select count(*)::int as count from public.vendor_master_options where created_by is null")).rows[0].count,10);
+    await db.exec("create or replace function auth.uid() returns uuid language sql as $$ select '00000000-0000-4000-8000-000000000001'::uuid $$;");
     const typeId=(await db.query("select id from public.vendor_master_options where category='vendor_type' and code='domestic-sales'")).rows[0].id;
     const saved=(await db.query(`insert into public.business_partners
       (partner_number,legal_name,vendor_name,selected_type_ids,profile)

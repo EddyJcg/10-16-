@@ -209,7 +209,13 @@ test('current stock dialog has a resizable column for every displayed field',()=
   assert.match(script,/'current-stock-table','current-stock-columns','inventory-current-stock-column-widths'/);
   assert.match(style,/#current-stock-table \.column-resizer,#movement-list-table \.column-resizer\{display:none!important\}/);
 });
-
+test('current stock dialog title is shown without the item count',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const renderer=readFileSync('inventory-render.js','utf8');
+  assert.match(html,/<h2 id="current-stock-title">재고현황<\/h2>/);
+  assert.doesNotMatch(html,/id="current-stock-count"/);
+  assert.doesNotMatch(renderer,/current-stock-count/);
+});
 test('current stock and movement history table cell text is centered',()=>{
   const style=readFileSync('inventory.css','utf8');
   assert.match(style,/#current-stock-table th,#current-stock-table td,#movement-list-table th,#movement-list-table td\{text-align:center\}/);

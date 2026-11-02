@@ -273,6 +273,7 @@ test('dialogs can be minimized to the restore tray and expanded back to their or
   const header=dialog.querySelector('.dialog-header,.calendar-title');
   const controls=header.children.find(node=>node.className==='dialog-window-controls');
   const [minimizeButton,expandButton]=controls.children;
+  assert.ok(header.children.indexOf(controls)<header.children.findIndex(node=>node.className==='close'));
 
   minimizeButton.dispatch('click');
   assert.equal(dialog.classList.contains('dialog-minimizing'),true);
@@ -335,7 +336,11 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(css,/\.dialog-resize-handle\{[\s\S]*?cursor:nwse-resize/);
   assert.match(resizeCss,/\.dialog-resize-top,\.dialog-resize-bottom\{[^}]*width:auto;height:12px;cursor:ns-resize/);
   assert.match(resizeCss,/\.dialog-resize-left,\.dialog-resize-right\{[^}]*width:12px;height:auto;cursor:ew-resize/);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*four-edge-resize/);
+  assert.match(resizeCss,/\.dialog-window-controls\{[^}]*gap:3px/);
+  assert.match(resizeCss,/\.dialog-minimize-icon\{[^}]*transform:scale\(1\.5\)/);
+  assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*transform:scale\(1\.5\)/);
+  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*top:-4px;left:-4px;[^}]*border:1px solid currentColor/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*window-controls-150-double-square/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

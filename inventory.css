@@ -393,3 +393,4 @@ th[draggable="true"]:active{cursor:grabbing}
 }
 @media(max-width:850px){.dialog-header .close{font-size:24.336px}}
 .dialog-header-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.receipt-import-errors{margin-top:16px;white-space:pre-line}

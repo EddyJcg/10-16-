@@ -760,7 +760,11 @@ function openMovement(kind) {
   mode = kind;editingMovementId='';$('save-movement').textContent='저장';const [title,prefix,dateLabel] = MODE_LABELS[mode];
   $('movement-form').reset(); selectedCode=''; productLots=[]; productLotsReady=false; lotsGeneration++; requestId=crypto.randomUUID();
   $('dialog-title').textContent = mode==='opening'?'기초재고 등록':title;
-  $('dialog-description').textContent = mode==='issue' ? '먼저 들어온 입고 건부터 자동 차감합니다.' : '품목정보에 등록된 품번을 선택하세요.';
+  $('dialog-description').textContent = mode==='issue' ? '먼저 들어온 입고 건부터 자동 차감합니다.'
+    : mode==='receipt' ? '품목정보에 등록된 품번을 선택하세요. Excel 업로드에는 품목분류, 품번, 품명, 규격, 색상, 저장위치, 납품업체, 입고일자, 입고수량, 입고단가 열이 필요합니다.'
+    : '품목정보에 등록된 품번을 선택하세요.';
+  $('import-receipt-button').hidden=mode!=='receipt';
+  $('receipt-import-file').value='';
   $('date-label').textContent=dateLabel; $('quantity-label').textContent=prefix+'수량'; $('cost-label').textContent=prefix+'단가'; $('amount-label').textContent=prefix+'금액';
   $('movement_date').value=todayDate(); $('movement_date').max=todayDate();
   $('movement_cost').readOnly=mode==='issue'; $('movement_cost').required=mode!=='issue'; $('movement_cost').value='0';
@@ -974,6 +978,97 @@ async function importProductInfoFile(event){
     }
   }finally{
     busy=false;$('product-info-editor').disabled=false;$('import-product-info-button').disabled=false;$('close-product-info').disabled=false;
+  }
+}
+function showMissingReceiptProducts(missingProducts,errors){
+  const body=$('receipt-import-missing-items');body.replaceChildren();
+  missingProducts.forEach(item=>{
+    const row=document.createElement('tr');
+    [item.rowNumber,item.productCode,item.productName,item.productCategory]
+      .forEach(value=>{const cell=document.createElement('td');cell.textContent=String(value||'');row.append(cell);});
+    body.append(row);
+  });
+  $('receipt-import-missing-errors').textContent=errors.length
+    ? '다른 행 오류:\n'+errors.slice(0,30).join('\n')+(errors.length>30?`\n그 외 ${errors.length-30}건의 오류가 더 있습니다.`:'')
+    : '';
+  $('receipt-import-missing-dialog').showModal();
+}
+async function importReceiptFile(event){
+  const file=event.target.files?.[0];
+  event.target.value='';
+  if(!file||!currentUser||busy||mode!=='receipt')return;
+  if(editingMovementId){
+    window.alert('입고 내역 수정 중에는 Excel 업로드를 시작할 수 없습니다. 수정 창을 닫은 뒤 다시 시도하세요.');
+    return;
+  }
+  if(!window.ExcelJS){window.alert('Excel 도구를 불러오지 못했습니다. 새로고침한 뒤 다시 시도하세요.');return;}
+
+  const generation=authGeneration;
+  let parsed;
+  try{
+    await loadStock();
+    if(generation!==authGeneration)return;
+    const workbook=new window.ExcelJS.Workbook();
+    await workbook.xlsx.load(await file.arrayBuffer());
+    parsed=window.parseReceiptImportWorkbook(workbook,items,todayDate());
+  }catch(error){
+    window.alert('Excel 파일을 읽거나 최신 품목정보를 확인하지 못했습니다. .xlsx 파일과 네트워크 연결을 확인하세요. '+errorText(error));
+    return;
+  }
+  if(generation!==authGeneration)return;
+  if(parsed.missingProducts.length){
+    showMissingReceiptProducts(parsed.missingProducts,parsed.errors);
+    return;
+  }
+  if(parsed.errors.length){
+    const shown=parsed.errors.slice(0,30),more=parsed.errors.length-shown.length;
+    window.alert('Excel 입고 내역을 등록할 수 없습니다. 필수 열과 오류 행을 수정하세요.\n\n'
+      +shown.join('\n')+(more>0?`\n그 외 ${more}건의 오류가 더 있습니다.`:''));
+    return;
+  }
+  if(!window.confirm(`${file.name}\n입고 내역 ${parsed.rows.length}건을 일괄 등록할까요?`))return;
+
+  busy=true;$('movement-editor').disabled=true;$('import-receipt-button').disabled=true;$('close-dialog').disabled=true;
+  $('form-message').textContent=`입고 내역을 등록하는 중입니다. 0/${parsed.rows.length}건`;
+  let registered=0,failure=null;
+  try{
+    for(const row of parsed.rows){
+      if(generation!==authGeneration)return;
+      let error;
+      try{
+        ({error}=await client.rpc('post_stock_movement',{
+          p_request_id:crypto.randomUUID(),p_kind:'receipt',p_date:row.date,p_details:row.details,
+          p_quantity:row.quantity,p_unit_cost:row.unitCost
+        }));
+      }catch(requestError){error=requestError;}
+      if(error){failure={rowNumber:row.rowNumber,error};break;}
+      registered++;
+      $('form-message').textContent=`입고 내역을 등록하는 중입니다. ${registered}/${parsed.rows.length}건`;
+    }
+
+    if(generation!==authGeneration)return;
+    if(failure){
+      let refreshMessage='';
+      try{await loadStock();}
+      catch(refreshError){refreshMessage=' 최신 재고 목록을 불러오지 못했습니다. '+errorText(refreshError);}
+      const message=`Excel 입고 등록을 중단했습니다. ${registered}/${parsed.rows.length}건은 등록되었고, ${failure.rowNumber}행에서 오류가 발생했습니다. ${errorText(failure.error)}${refreshMessage}`;
+      $('form-message').textContent=message;
+      window.alert(message);
+      return;
+    }
+
+    try{
+      await loadStock();
+      if(generation!==authGeneration)return;
+      $('form-message').textContent=`Excel에서 입고 내역 ${registered}건을 등록했습니다.`;
+      window.alert(`입고 내역 ${registered}건을 등록했습니다.`);
+    }catch(error){
+      const message=`입고 내역 ${registered}건은 등록했지만 최신 재고 목록 갱신에 실패했습니다. ${errorText(error)}`;
+      $('form-message').textContent=message;
+      window.alert(message);
+    }
+  }finally{
+    busy=false;$('movement-editor').disabled=false;$('import-receipt-button').disabled=false;$('close-dialog').disabled=false;
   }
 }
 async function saveProductInfo(event) {
@@ -1326,6 +1421,7 @@ async function editMovement(id){
   openMovement(movement.kind);
   const item=items.find(row=>row.id===movement.product_id);if(!item)return;
   editingMovementId=movement.id;
+  $('import-receipt-button').hidden=true;
   $('product_code').value=item.product_code;populateProduct('product_code');
   PRODUCT_FIELDS.forEach(key=>{
     $(key).readOnly=key!=='product_code';
@@ -1565,6 +1661,9 @@ async function startApp(){
   installMovementHistoryButton();
   $('close-dialog').addEventListener('click',closeMovement);$('movement-dialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();});
   $('movement-form').addEventListener('submit',saveMovement);
+  $('import-receipt-button').addEventListener('click',()=>{$('receipt-import-file').click();});
+  $('receipt-import-file').addEventListener('change',importReceiptFile);
+  $('close-receipt-import-missing').addEventListener('click',()=>$('receipt-import-missing-dialog').close());
   $('receipt-details-fill').addEventListener('click',focusMissingReceiptDetail);
   $('receipt-details-ignore').addEventListener('click',ignoreReceiptDetailsAndSave);
   $('close-receipt-details').addEventListener('click',()=>$('receipt-details-dialog').close());

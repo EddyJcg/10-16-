@@ -6,13 +6,32 @@ function stockLedgerManaged(item) {
 function installDialogInteractions(){
   document.querySelectorAll('dialog').forEach(dialog=>{
     const header=dialog.querySelector('.dialog-header,.calendar-title');
+    const sizeStorageKey=dialog.id?'inventory-dialog-size-'+dialog.id:null;
+    if(sizeStorageKey){
+      try{
+        const saved=JSON.parse(window.localStorage.getItem(sizeStorageKey)||'null');
+        if(Number.isFinite(saved?.width)&&saved.width>0&&Number.isFinite(saved?.height)&&saved.height>0){
+          const width=Math.min(saved.width,Math.max(100,window.innerWidth-32));
+          const height=Math.min(saved.height,Math.max(100,window.innerHeight-32));
+          dialog.style.setProperty('width',width+'px','important');
+          dialog.style.setProperty('height',height+'px','important');
+        }
+      }catch{}
+    }
+    const saveSize=()=>{
+      if(!sizeStorageKey)return;
+      const rect=dialog.getBoundingClientRect();
+      try{window.localStorage.setItem(sizeStorageKey,JSON.stringify({width:rect.width,height:rect.height}));}catch{}
+    };
     let activePointerId=null,interaction=null;
     const pinToRect=rect=>{
       dialog.style.left=rect.left+'px';dialog.style.top=rect.top+'px';dialog.style.transform='none';
     };
     const finish=event=>{
       if(event.pointerId!==activePointerId)return;
+      const completed=interaction;
       activePointerId=null;interaction=null;
+      if(completed&&completed.type!=='drag')saveSize();
     };
     const move=event=>{
       if(event.pointerId!==activePointerId||!interaction)return;

@@ -128,10 +128,11 @@ test('all dialogs can be dragged by the header and resized from every edge and c
   const handlers={},header={offsetHeight:40,handlers,addEventListener(event,handler){handlers[event]=handler;},setPointerCapture(){}};
   const handles=[];
   const style={setProperty(name,value,priority){this[name]=value;this[name+'Priority']=priority;}};
-  const dialog={open:true,style,querySelector:selector=>{assert.equal(selector,'.dialog-header,.calendar-title');return header;},append(node){handles.push(node);},getBoundingClientRect:()=>({left:100,top:100,right:700,bottom:500,width:600,height:400})};
+  const sizeStore=new Map();
+  const dialog={id:'test-dialog',open:true,style,querySelector:selector=>{assert.equal(selector,'.dialog-header,.calendar-title');return header;},append(node){handles.push(node);},getBoundingClientRect:()=>{const left=parseFloat(style.left||100),top=parseFloat(style.top||100),width=parseFloat(style.width||600),height=parseFloat(style.height||400);return{left,top,right:left+width,bottom:top+height,width,height};}};
   const context=vm.createContext({
     document:{querySelectorAll:selector=>{assert.equal(selector,'dialog');return[dialog];},createElement:()=>{const handle={handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},setAttribute(name,value){this[name]=value;},setPointerCapture(){}};handles.push(handle);return handle;}},
-    window:{innerWidth:1200,innerHeight:900}
+    window:{innerWidth:1200,innerHeight:900,localStorage:{getItem:key=>sizeStore.get(key)||null,setItem:(key,value)=>sizeStore.set(key,value)}}
   });
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext('installDialogInteractions()',context);
@@ -146,31 +147,33 @@ test('all dialogs can be dragged by the header and resized from every edge and c
   assert.equal(handle['aria-label'],'창 크기 조절');
   for(const [side,label] of [['top','위쪽'],['right','오른쪽'],['bottom','아래쪽'],['left','왼쪽']])
     assert.equal(edges[side]['aria-label'],'창 '+label+' 가장자리 크기 조절');
-  handle.handlers.pointerdown(pointer(handle,700,500));
-  handle.handlers.pointermove(pointer(handle,760,560));
-  handle.handlers.pointerup(pointer(handle,760,560));
+  handle.handlers.pointerdown(pointer(handle,800,600));
+  handle.handlers.pointermove(pointer(handle,860,660));
+  handle.handlers.pointerup(pointer(handle,860,660));
   assert.equal(style.width,'660px');
   assert.equal(style.height,'460px');
   assert.equal(style.widthPriority,'important');
   assert.equal(style.heightPriority,'important');
-  edges.left.handlers.pointerdown(pointer(edges.left,100,300));
-  edges.left.handlers.pointermove(pointer(edges.left,80,300));
-  edges.left.handlers.pointerup(pointer(edges.left,80,300));
-  assert.equal(style.width,'620px');
-  assert.equal(style.left,'80px');
-  edges.right.handlers.pointerdown(pointer(edges.right,700,300));
-  edges.right.handlers.pointermove(pointer(edges.right,720,300));
-  edges.right.handlers.pointerup(pointer(edges.right,720,300));
-  assert.equal(style.width,'620px');
-  edges.top.handlers.pointerdown(pointer(edges.top,300,100));
-  edges.top.handlers.pointermove(pointer(edges.top,300,80));
-  edges.top.handlers.pointerup(pointer(edges.top,300,80));
-  assert.equal(style.height,'420px');
-  assert.equal(style.top,'80px');
-  edges.bottom.handlers.pointerdown(pointer(edges.bottom,300,500));
-  edges.bottom.handlers.pointermove(pointer(edges.bottom,300,520));
-  edges.bottom.handlers.pointerup(pointer(edges.bottom,300,520));
-  assert.equal(style.height,'420px');
+  assert.deepEqual(JSON.parse(sizeStore.get('inventory-dialog-size-test-dialog')),{width:660,height:460});
+  edges.left.handlers.pointerdown(pointer(edges.left,200,300));
+  edges.left.handlers.pointermove(pointer(edges.left,180,300));
+  edges.left.handlers.pointerup(pointer(edges.left,180,300));
+  assert.equal(style.width,'680px');
+  assert.equal(style.left,'180px');
+  edges.right.handlers.pointerdown(pointer(edges.right,860,300));
+  edges.right.handlers.pointermove(pointer(edges.right,880,300));
+  edges.right.handlers.pointerup(pointer(edges.right,880,300));
+  assert.equal(style.width,'700px');
+  edges.top.handlers.pointerdown(pointer(edges.top,300,200));
+  edges.top.handlers.pointermove(pointer(edges.top,300,180));
+  edges.top.handlers.pointerup(pointer(edges.top,300,180));
+  assert.equal(style.height,'480px');
+  assert.equal(style.top,'180px');
+  edges.bottom.handlers.pointerdown(pointer(edges.bottom,300,660));
+  edges.bottom.handlers.pointermove(pointer(edges.bottom,300,680));
+  edges.bottom.handlers.pointerup(pointer(edges.bottom,300,680));
+  assert.equal(style.height,'500px');
+  assert.deepEqual(JSON.parse(sizeStore.get('inventory-dialog-size-test-dialog')),{width:700,height:500});
 });
 test('dialogs without a header still receive all four resize edges',()=>{
   const handles=[],style={setProperty(name,value){this[name]=value;}};
@@ -186,6 +189,21 @@ test('dialogs without a header still receive all four resize edges',()=>{
     '창 위쪽 가장자리 크기 조절','창 오른쪽 가장자리 크기 조절',
     '창 아래쪽 가장자리 크기 조절','창 왼쪽 가장자리 크기 조절'
   ]);
+});
+test('dialog sizes restore from browser storage and fit the current viewport',()=>{
+  const style={setProperty(name,value,priority){this[name]=value;this[name+'Priority']=priority;}};
+  const dialog={id:'saved-dialog',style,querySelector:()=>null,append(){},getBoundingClientRect:()=>({width:400,height:300})};
+  const stored=new Map([['inventory-dialog-size-saved-dialog',JSON.stringify({width:900,height:700})]]);
+  const context=vm.createContext({
+    document:{querySelectorAll:()=>[dialog],createElement:()=>({addEventListener(){},setAttribute(){}})},
+    window:{innerWidth:600,innerHeight:500,localStorage:{getItem:key=>stored.get(key)||null,setItem:(key,value)=>stored.set(key,value)}}
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext('installDialogInteractions()',context);
+  assert.equal(style.width,'568px');
+  assert.equal(style.height,'468px');
+  assert.equal(style.widthPriority,'important');
+  assert.equal(style.heightPriority,'important');
 });
 test('popup layout keeps desktop size and mobile initial sizing while showing resize control',()=>{
   const css=fs.readFileSync('inventory.css','utf8'),resizeCss=fs.readFileSync('dialog-resize.css','utf8'),html=fs.readFileSync('inventory.html','utf8');

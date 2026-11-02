@@ -109,17 +109,13 @@ test('product import rejects every invalid row before registration',async()=>{
   assert.match(result.errors.join('\n'),/적정재고는 1~1,000,000의 정수/);
 });
 
-test('product import UI provides a local XLSX picker beside the popup close button',()=>{
+test('product import opens the native XLSX picker directly without an intermediate dialog',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
-  const style=fs.readFileSync('inventory.css','utf8');
   const dialog=html.match(/<dialog id="product-info-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
   assert.match(dialog,/id="import-product-info-button"[^>]*>Excel 업로드<\/button><button type="button" class="close" id="close-product-info"/);
   assert.match(dialog,/id="product-info-import-file" type="file" accept="[^"]*\.xlsx/);
-  assert.match(html,/<dialog id="product-info-import-dialog" class="product-import-dialog"/);
-  assert.match(html,/id="select-product-info-import-file"/);
-  assert.match(html,/id="start-product-info-import" disabled/);
-  assert.match(style,/dialog\.product-import-dialog\{[^}]*width:33\.3333vw!important;height:33\.3333vh!important/);
-  assert.match(fs.readFileSync('inventory-app.js','utf8'),/resizeHandle\.addEventListener\('pointerdown',event=>begin\(event,'resize'\)\)/);
+  assert.doesNotMatch(html,/product-info-import-dialog|product-import-dialog/);
+  assert.match(fs.readFileSync('inventory-app.js','utf8'),/function openProductInfoFilePicker\(\)/);
   assert.match(html,/src="inventory-import\.js"><\/script>/);
 });
 
@@ -132,7 +128,7 @@ test('receipt dialog provides an XLSX picker and a missing-product details windo
   assert.match(html,/id="receipt-import-missing-items"/);
 });
 
-test('confirmed product import registers every validated row and refreshes the list',async()=>{
+test('opening a selected product workbook imports every validated row and refreshes the list',async()=>{
   const nodes=new Map(),alerts=[],calls=[];
   const element=id=>{
     if(!nodes.has(id))nodes.set(id,{disabled:false,value:'',textContent:'',open:false,clicks:0,click(){this.clicks++;},showModal(){this.open=true;},close(){this.open=false;}});
@@ -141,7 +137,7 @@ test('confirmed product import registers every validated row and refreshes the l
   class Workbook{constructor(){this.xlsx={load:async()=>{}};}}
   const context=vm.createContext({
     document:{getElementById:element},
-    window:{ExcelJS:{Workbook},confirm:message=>(calls.push(['confirm',message]),true),alert:message=>alerts.push(message)},
+    window:{ExcelJS:{Workbook},confirm:()=>{throw new Error('an extra confirmation should not be shown');},alert:message=>alerts.push(message)},
     calls,PRODUCT_UNITS:units
   });
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
@@ -155,15 +151,10 @@ test('confirmed product import registers every validated row and refreshes the l
     renderProductInfoItems=()=>calls.push(['renderProductInfoItems']);`,context);
 
   const file={name:'items.xlsx',arrayBuffer:async()=>new ArrayBuffer(0)};
-  await vm.runInContext('openProductInfoImportDialog()',context);
-  assert.equal(element('product-info-import-dialog').open,true);
-  await vm.runInContext('selectProductInfoImportFile()',context);
+  await vm.runInContext('openProductInfoFilePicker()',context);
   assert.equal(element('product-info-import-file').clicks,1);
   context.productImportFile=file;
-  await vm.runInContext('updateSelectedProductImportFile({target:{files:[productImportFile]}})',context);
-  assert.equal(element('product-info-import-file-name').textContent,'items.xlsx');
-  assert.equal(element('start-product-info-import').disabled,false);
-  await vm.runInContext('startSelectedProductImport()',context);
+  await vm.runInContext('importProductInfoFile({target:{files:[productImportFile],value:"selected"}})',context,{timeout:1000});
 
   assert.equal(calls.filter(call=>call[0]==='register_stock_product').length,2);
   assert.ok(calls.some(call=>call[0]==='loadStock'));

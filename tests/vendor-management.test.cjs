@@ -19,6 +19,28 @@ test('vendor registration screen wires toolbar, type checkboxes and settings',()
   assert.match(style,/\.vendor-main-grid\{display:grid/);
 });
 
+test('vendor lookup matches the query toolbar, conditions and wide result grid',()=>{
+  const html=readFileSync('inventory.html','utf8'),script=readFileSync('vendor-management.js','utf8'),style=readFileSync('vendor-management.css','utf8');
+  for(const action of ['search','tax-history','payment-account'])
+    assert.ok(html.includes(`data-vendor-list-action="${action}"`),`${action} lookup action should exist`);
+  for(const id of ['vendor-filter-transaction','vendor-filter-type','vendor-filter-currency','vendor-filter-status',
+    'vendor-filter-name','vendor-filter-number','vendor-filter-business-number','vendor-filter-representative',
+    'vendor-filter-date-from','vendor-filter-date-to','vendor-filter-creator','vendor-filter-category',
+    'vendor-filter-category-value','vendor-filter-phone','vendor-filter-email','vendor-filter-contact','vendor-filter-manager-phone'])
+    assert.ok(html.includes(`id="${id}"`),`${id} lookup condition should exist`);
+  for(const column of ['거래처번호','상호','거래처상태','사업자번호','대표자성명','법인번호','주민등록번호',
+    '업태','종목','전화번호','세무사업자주소','팩스번호','이메일','홈페이지','첨부파일',
+    '거래처 대표담당자','담당자 연락처','담당자 핸드폰번호'])
+    assert.ok(html.includes(`<th>${column}</th>`),`${column} result column should exist`);
+  assert.match(script,/function populateVendorQueryFilters\(\)/);
+  assert.match(script,/function vendorRecordDate\(record\)/);
+  assert.match(script,/date>=query\.dateFrom/);
+  assert.match(script,/profile\.classification_id===query\.category/);
+  assert.match(style,/#vendor-list-dialog\[open\]\{display:flex;flex-direction:column\}/);
+  assert.match(style,/\.vendor-query-grid\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(style,/\.vendor-list-dialog table\{width:max-content;min-width:1780px/);
+});
+
 test('vendor database migration provides protected records and default vendor types',async()=>{
   const {PGlite}=await import('@electric-sql/pglite');
   const db=new PGlite();

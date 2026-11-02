@@ -203,9 +203,43 @@
     </form>
   </dialog>
   <dialog id="vendor-list-dialog" aria-labelledby="vendor-list-title" class="vendor-list-dialog">
-    <div class="dialog-header"><h2 id="vendor-list-title">거래처 조회</h2><button type="button" class="close" id="close-vendor-list" aria-label="거래처 조회 창 닫기">닫기</button></div>
-    <div class="dialog-body"><label class="vendor-search-label" for="vendor-list-query">거래처 검색<input id="vendor-list-query" type="search" placeholder="상호, 거래처명, 거래처번호, 사업자번호"></label><p id="vendor-list-message" class="product-list-status" role="status" aria-live="polite"></p>
-      <div class="table-wrap"><table aria-label="거래처 현황"><thead><tr><th>거래처번호</th><th>상호</th><th>거래처명</th><th>종류</th><th>상태</th><th>사업자번호</th><th>관리</th></tr></thead><tbody id="vendor-list-items"></tbody></table></div>
+    <div class="vendor-query-toolbar" role="toolbar" aria-label="거래처 조회 작업">
+      <button type="button" data-vendor-list-action="search"><span aria-hidden="true">⌕</span> 조회</button>
+      <button type="button" data-vendor-list-action="tax-history"><span aria-hidden="true">▣</span> 세무이력현황</button>
+      <button type="button" data-vendor-list-action="payment-account"><span aria-hidden="true">▣</span> 거래처별지불계정등록(일괄)</button>
+      <button type="button" class="close" id="close-vendor-list" aria-label="거래처 조회 창 닫기">닫기</button>
+    </div>
+    <div class="dialog-body vendor-query-content">
+      <details class="vendor-query-conditions" open>
+        <summary>조회조건</summary>
+        <div class="vendor-query-grid">
+          <label for="vendor-filter-transaction">거래구분<select id="vendor-filter-transaction"><option value="">전체</option><option>매출</option><option>매입</option><option>일반</option></select></label>
+          <label for="vendor-filter-type">거래처종류<select id="vendor-filter-type"><option value="">전체</option></select></label>
+          <label for="vendor-filter-currency">유통구조<select id="vendor-filter-currency"><option value="">전체</option></select></label>
+          <label for="vendor-filter-status">거래처상태<select id="vendor-filter-status"><option value="">전체</option><option value="정상" selected>정상</option><option value="거래중지">거래중지</option><option value="휴면">휴면</option></select></label>
+          <label for="vendor-filter-name">거래처<input id="vendor-filter-name" type="search"></label>
+          <label for="vendor-filter-number">거래처번호<input id="vendor-filter-number" type="search"></label>
+          <label for="vendor-filter-business-number">사업자번호<input id="vendor-filter-business-number" type="search"></label>
+          <label for="vendor-filter-representative">대표자성명<input id="vendor-filter-representative" type="search"></label>
+          <label class="vendor-query-date-range">등록일<span><input id="vendor-filter-date-from" type="date" aria-label="등록일 시작"><span>~</span><input id="vendor-filter-date-to" type="date" aria-label="등록일 종료"></span></label>
+          <label for="vendor-filter-creator">등록자<input id="vendor-filter-creator" type="search"></label>
+          <label for="vendor-filter-category">거래처기타분류<select id="vendor-filter-category"><option value="">전체</option></select></label>
+          <label for="vendor-filter-category-value">거래처기타분류값<input id="vendor-filter-category-value" type="text" disabled></label>
+        </div>
+      </details>
+      <details class="vendor-query-additional">
+        <summary>추가정보조회</summary>
+        <div class="vendor-query-grid vendor-query-extra-grid">
+          <label for="vendor-filter-phone">전화번호<input id="vendor-filter-phone" type="search"></label>
+          <label for="vendor-filter-email">이메일<input id="vendor-filter-email" type="search"></label>
+          <label for="vendor-filter-contact">거래처 대표담당자<input id="vendor-filter-contact" type="search"></label>
+          <label for="vendor-filter-manager-phone">담당자 연락처<input id="vendor-filter-manager-phone" type="search"></label>
+        </div>
+      </details>
+      <p id="vendor-list-message" class="product-list-status" role="status" aria-live="polite"></p>
+      <div class="table-wrap vendor-list-table-wrap"><table aria-label="거래처 조회 결과"><thead><tr>
+        <th>거래처번호</th><th>상호</th><th>거래처상태</th><th>사업자번호</th><th>대표자성명</th><th>법인번호</th><th>주민등록번호</th><th>업태</th><th>종목</th><th>전화번호</th><th>세무사업자주소</th><th>팩스번호</th><th>이메일</th><th>홈페이지</th><th>첨부파일</th><th>거래처 대표담당자</th><th>담당자 연락처</th><th>담당자 핸드폰번호</th><th>관리</th>
+      </tr></thead><tbody id="vendor-list-items"></tbody></table></div>
     </div>
   </dialog>
   <dialog id="vendor-option-dialog" aria-labelledby="vendor-option-title" class="vendor-option-dialog">

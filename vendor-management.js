@@ -101,6 +101,24 @@ function refreshVendorDropdowns(){
     const item=document.createElement('option');item.value=option.code;item.label=option.name;aliases.append(item);
   });
 }
+function populateVendorQueryFilters(){
+  const filters=[
+    ['vendor-filter-type','vendor_type',option=>option.name],
+    ['vendor-filter-category','vendor_category',option=>option.name]
+  ];
+  filters.forEach(([id,category,label])=>{
+    const select=vendor$(id),selected=select.value;
+    select.replaceChildren(new Option('전체',''));
+    vendorOptions.filter(option=>option.category===category&&option.is_active)
+      .forEach(option=>select.add(new Option(label(option),option.id)));
+    if([...select.options].some(option=>option.value===selected))select.value=selected;
+  });
+  const currency=vendor$('vendor-filter-currency'),selectedCurrency=currency.value;
+  currency.replaceChildren(new Option('전체',''));
+  [...new Set(vendorRecords.map(record=>record.currency).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'ko')).forEach(value=>currency.add(new Option(value,value)));
+  if([...currency.options].some(option=>option.value===selectedCurrency))currency.value=selectedCurrency;
+}
 async function loadVendorData(){
   const [vendorsResult,optionsResult]=await Promise.all([
     client.from('business_partners').select('*').order('legal_name'),
@@ -109,7 +127,7 @@ async function loadVendorData(){
   if(vendorsResult.error)throw vendorsResult.error;
   if(optionsResult.error)throw optionsResult.error;
   vendorRecords=vendorsResult.data||[];vendorOptions=optionsResult.data||[];
-  refreshVendorDropdowns();renderVendorTypeOptions();renderVendorList();renderVendorOptionsList();
+  refreshVendorDropdowns();populateVendorQueryFilters();renderVendorTypeOptions();renderVendorList();renderVendorOptionsList();
 }
 function vendorErrorText(error){
   const message=String(error?.message||error||'');
@@ -131,34 +149,82 @@ async function openVendorDialog(){
 }
 async function openVendorList(){
   if(!currentUser)return;
-  vendor$('vendor-list-query').value='';
+  resetVendorQuery();
   vendor$('vendor-list-message').textContent='거래처 목록을 불러오는 중…';
   vendor$('vendor-list-dialog').showModal();
   try{await loadVendorData();vendor$('vendor-list-message').textContent='';renderVendorList();}
   catch(error){vendor$('vendor-list-message').textContent=vendorErrorText(error);}
 }
+function resetVendorQuery(){
+  ['vendor-filter-transaction','vendor-filter-type','vendor-filter-currency','vendor-filter-name',
+    'vendor-filter-number','vendor-filter-business-number','vendor-filter-representative',
+    'vendor-filter-date-from','vendor-filter-date-to','vendor-filter-creator',
+    'vendor-filter-category','vendor-filter-category-value','vendor-filter-phone',
+    'vendor-filter-email','vendor-filter-contact','vendor-filter-manager-phone']
+    .forEach(id=>{vendor$(id).value='';});
+  vendor$('vendor-filter-status').value='정상';
+}
+function vendorRecordDate(record){
+  if(!record.created_at)return '';
+  const date=new Date(record.created_at);
+  return Number.isNaN(date.getTime())?'':date.toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});
+}
+function matchesVendorText(value,query){
+  return String(value||'').toLocaleLowerCase('ko').includes(query.toLocaleLowerCase('ko'));
+}
 function renderVendorList(){
   const body=vendor$('vendor-list-items');if(!body)return;
-  const query=(vendor$('vendor-list-query')?.value||'').trim().toLocaleLowerCase('ko');
+  const value=id=>vendor$(id).value.trim();
+  const query={
+    transaction:value('vendor-filter-transaction'),type:value('vendor-filter-type'),
+    currency:value('vendor-filter-currency'),status:value('vendor-filter-status'),
+    name:value('vendor-filter-name'),number:value('vendor-filter-number'),
+    businessNumber:value('vendor-filter-business-number'),representative:value('vendor-filter-representative'),
+    dateFrom:value('vendor-filter-date-from'),dateTo:value('vendor-filter-date-to'),
+    creator:value('vendor-filter-creator'),category:value('vendor-filter-category'),
+    phone:value('vendor-filter-phone'),email:value('vendor-filter-email'),
+    contact:value('vendor-filter-contact'),managerPhone:value('vendor-filter-manager-phone')
+  };
   const rows=vendorRecords.filter(record=>{
-    const profile=record.profile||'';
-    const text=[record.partner_number,record.legal_name,record.vendor_name,profile.business_registration_number].join(' ').toLocaleLowerCase('ko');
-    return text.includes(query);
+    const profile=record.profile||{},types=vendorOptions.filter(option=>option.category==='vendor_type'&&(record.selected_type_ids||[]).includes(option.id));
+    const date=vendorRecordDate(record);
+    return (!query.transaction||types.some(option=>(option.details?.transaction||'일반')===query.transaction))
+      &&(!query.type||(record.selected_type_ids||[]).includes(query.type))
+      &&(!query.currency||record.currency===query.currency)
+      &&(!query.status||record.status===query.status)
+      &&(!query.name||matchesVendorText(`${record.legal_name} ${record.vendor_name}`,query.name))
+      &&(!query.number||matchesVendorText(record.partner_number,query.number))
+      &&(!query.businessNumber||matchesVendorText(profile.business_registration_number,query.businessNumber))
+      &&(!query.representative||matchesVendorText(profile.representative,query.representative))
+      &&(!query.dateFrom||date>=query.dateFrom)
+      &&(!query.dateTo||date<=query.dateTo)
+      &&(!query.creator||matchesVendorText(record.created_by,query.creator))
+      &&(!query.category||profile.classification_id===query.category)
+      &&(!query.phone||matchesVendorText(profile.phone,query.phone))
+      &&(!query.email||matchesVendorText(profile.email,query.email))
+      &&(!query.contact||matchesVendorText(profile.contact_person,query.contact))
+      &&(!query.managerPhone||matchesVendorText(profile.manager_phone,query.managerPhone));
   });
   body.replaceChildren();
   if(!rows.length){
-    const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=7;cell.className='empty';
+    const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=19;cell.className='empty';
     cell.textContent=vendorRecords.length?'검색 조건에 맞는 거래처가 없습니다.':'등록된 거래처가 없습니다.';row.append(cell);body.append(row);return;
   }
   rows.forEach(record=>{
     const row=document.createElement('tr');
-    const types=(record.selected_type_ids||[]).map(id=>vendorOptions.find(option=>option.id===id)?.name).filter(Boolean).join(', ');
-    [record.partner_number||'',record.legal_name,record.vendor_name,types,record.status,record.profile?.business_registration_number||''].forEach(value=>{
+    const profile=record.profile||{};
+    [record.partner_number||'',record.legal_name,record.status,profile.business_registration_number||'',
+      profile.representative||'',profile.corporate_registration_number||'',profile.resident_registration_number||'',
+      profile.industry||'',profile.business_type||'',profile.phone||'',profile.business_address||'',
+      profile.fax_number||'',profile.email||'',profile.website||'',
+      profile.has_attachment===true?'있음':'',profile.contact_person||'',profile.manager_phone||'',
+      profile.contact_mobile||''].forEach(value=>{
       const cell=document.createElement('td');cell.textContent=value;row.append(cell);
     });
     const action=document.createElement('td'),button=document.createElement('button');
     button.type='button';button.className='secondary';button.textContent='선택';button.dataset.vendorRecordId=record.id;action.append(button);row.append(action);body.append(row);
   });
+  vendor$('vendor-list-message').textContent=`${rows.length}개 거래처가 조회되었습니다.`;
 }
 async function saveVendor(event,copy=false){
   event?.preventDefault();
@@ -339,7 +405,23 @@ function startVendorManagement(){
   vendor$('vendor-form').querySelectorAll('[data-vendor-section]').forEach(button=>button.addEventListener('click',()=>{
     vendor$(button.dataset.vendorSection).scrollIntoView({behavior:'smooth',block:'start'});
   }));
-  vendor$('vendor-list-query').addEventListener('input',renderVendorList);
+  vendor$('vendor-list-dialog').addEventListener('click',async event=>{
+    const action=event.target.closest('[data-vendor-list-action]')?.dataset.vendorListAction;
+    if(action==='search'){
+      vendor$('vendor-list-message').textContent='조회 중…';
+      try{await loadVendorData();renderVendorList();}
+      catch(error){vendor$('vendor-list-message').textContent=vendorErrorText(error);}
+    }else if(action==='tax-history'){
+      vendor$('vendor-list-message').textContent='연결된 세무 이력 데이터가 없습니다.';
+    }else if(action==='payment-account'){
+      openVendorOptions('payment_account');
+    }
+  });
+  vendor$('vendor-list-dialog').addEventListener('keydown',async event=>{
+    if(event.key!=='Enter'||event.target.tagName==='BUTTON'||event.target.tagName==='SELECT')return;
+    event.preventDefault();
+    vendor$('vendor-list-dialog').querySelector('[data-vendor-list-action="search"]').click();
+  });
   vendor$('vendor-list-items').addEventListener('click',event=>{
     const button=event.target.closest('[data-vendor-record-id]');if(!button)return;
     const record=vendorRecords.find(item=>item.id===button.dataset.vendorRecordId);if(!record)return;

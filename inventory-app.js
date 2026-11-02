@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 const number = value => Number(value || 0).toLocaleString('ko-KR',{maximumFractionDigits:2});
 const money = number;
-const MODE_LABELS = {opening:['기초재고','기초','기초일자'],receipt:['입고등록','입고','입고일자'],issue:['출고관리','출고','출고일자']};
+const MODE_LABELS = {opening:['기초재고','기초','기초일자'],receipt:['입고등록','입고','입고일자'],issue:['출고등록','출고','출고일자']};
 let client,currentUser = null,items = [],agedStock = [],assetClassifications=[],authGeneration = 0;
 let loadPromise = null,reloadQueued = false,syncTimer = null,salesSyncTimer=null,busy = false,exporting = false;
 let appliedDateProductIds = null,appliedSupplier = '',searching = false;
@@ -587,7 +587,7 @@ function openMovement(kind) {
   });
   updateAmounts(); $('movement-dialog').showModal();
   $('edit-existing-movement').textContent=MODE_LABELS[mode][0]+' 내역 수정';
-  $('edit-existing-movement').hidden=mode==='receipt';
+  $('edit-existing-movement').hidden=mode==='receipt'||mode==='issue';
   if(mode==='issue')loadSalesOrders();
 }
 async function loadAssetClassifications() {

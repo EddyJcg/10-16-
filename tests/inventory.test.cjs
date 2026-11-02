@@ -68,6 +68,11 @@ test('receipt dialog uses the registration title and hides its history edit shor
   assert.match(app,/receipt:\['입고등록','입고','입고일자'\]/);
   assert.match(app,/edit-existing-movement'\)\.hidden=mode==='receipt'/);
 });
+test('issue dialog uses the registration title and hides its history edit shortcut',()=>{
+  const app=fs.readFileSync('inventory-app.js','utf8');
+  assert.match(app,/issue:\['출고등록','출고','출고일자'\]/);
+  assert.match(app,/edit-existing-movement'\)\.hidden=mode==='receipt'\|\|mode==='issue'/);
+});
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);

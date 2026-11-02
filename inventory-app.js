@@ -1208,7 +1208,7 @@ async function showProductInfo() {
   $('product-info-dialog').showModal();
   try{
     await loadAssetClassifications();
-    $('product-info-status').textContent=assetClassifications.length?'분류 설정의 재고관리 조건은 선택한 품목자산분류에 따라 자동 적용됩니다.':'사용 가능한 품목자산분류를 먼저 등록하세요.';
+    $('product-info-status').textContent=assetClassifications.length?'':'사용 가능한 품목자산분류를 먼저 등록하세요.';
   }catch(error){
     $('product-info-status').textContent='품목자산분류를 불러오지 못했습니다. 분류 설정과 DB 적용 상태를 확인하세요. '+errorText(error);
   }

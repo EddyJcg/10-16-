@@ -806,6 +806,7 @@ async function updateSession(session) {
   const next = session?.user || null;
   if (currentUser && next?.id===currentUser.id || !currentUser && !next && authGeneration>0) return;
   authGeneration++; currentUser = next; client.removeAllChannels(); clearTimeout(syncTimer);clearTimeout(salesSyncTimer);clearTimeout(purchaseSyncTimer);lotsGeneration++;
+  if(typeof resetVendorSession==='function')resetVendorSession();
   appliedSalesBalanceFilters={startDate:'',endDate:'',orderType:''};
   $('sales-balance-start-date').value='';$('sales-balance-end-date').value='';$('sales-balance-type-filter').value='';
   appliedDateProductIds=null;appliedSupplier='';$('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';$('supplier-filter-wrap').hidden=true;
@@ -1809,6 +1810,7 @@ async function exportExcel() {
 async function startApp(){
   installDialogInteractions();
   installPopupTableTools();
+  if(typeof startVendorManagement==='function')startVendorManagement();
   $('message').textContent='로그인 상태를 확인하고 있습니다…';
   $('today').textContent=new Date().toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'long',day:'numeric',weekday:'long'});renderHeaders();render();
   if(!window.supabase){$('login-panel').hidden=false;notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}

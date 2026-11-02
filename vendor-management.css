@@ -1,0 +1,59 @@
+.vendor-dialog{width:min(1360px,96vw);max-height:94vh}
+.vendor-dialog>form{display:flex;flex-direction:column;max-height:94vh}
+.vendor-dialog .dialog-header{flex:none;padding:12px 20px}
+.vendor-dialog .dialog-header h2{font-size:24px}
+.vendor-tabbar{display:flex;align-items:center;gap:12px;padding:7px 12px;background:#37434a;color:#fff}
+.vendor-tabbar strong{padding:5px 12px;background:#536169;border-radius:4px}
+.vendor-home-mark{font-size:20px}
+.vendor-tabbar button{margin-left:auto;border:0;background:transparent;color:#fff;font-size:18px}
+.vendor-toolbar{display:flex;flex-wrap:wrap;gap:5px;padding:8px 10px;background:#454e54}
+.vendor-toolbar button{border:0;border-radius:4px;background:transparent;color:#fff;padding:6px 8px;font-size:12px}
+.vendor-toolbar button:hover{background:#65737a}
+.vendor-toolbar button[data-vendor-action="save"]{background:#176c52}
+.vendor-body{max-height:none;min-height:0;flex:1;padding:14px 18px;overflow:auto;background:#edf0f5}
+.vendor-top-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 12px;padding:10px;background:#fff;border-radius:7px}
+.vendor-top-fields .field,.vendor-fields .field{margin-bottom:8px}
+.vendor-top-fields label,.vendor-fields label,.vendor-search-label{font-size:13px}
+.vendor-top-fields input,.vendor-top-fields select,.vendor-fields input,.vendor-fields select,.vendor-fields textarea{height:36px;font-size:14px}
+.vendor-section-menu{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:5px;margin:12px 0;padding:7px;background:#fff;border:1px solid #dfe7df;border-radius:6px}
+.vendor-section-menu button{border:0;border-radius:4px;background:#eef3f1;color:#315b49;padding:7px 12px}
+.vendor-section-menu button:hover{background:#dcebe2}
+.vendor-main-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(360px,.9fr);gap:12px;align-items:start}
+.vendor-info-sections{display:grid;gap:9px}
+.vendor-card{min-width:0;padding:12px;background:#fff;border:1px solid #dce3e1;border-radius:7px}
+.vendor-card h3{margin:0 0 10px;font-size:15px;color:#294c3c}
+.vendor-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px}
+.vendor-field-wide{grid-column:1/-1}
+.vendor-check{display:flex;align-items:center;gap:7px;margin:3px 0;font-weight:500}
+.vendor-check input,.vendor-type-card input[type=checkbox],.vendor-option-form input[type=checkbox]{width:auto;margin:0;accent-color:#176c52}
+.vendor-type-card{position:sticky;top:58px}
+.vendor-type-card .table-wrap{max-height:55vh}
+.vendor-type-card table,.vendor-list-dialog table,.vendor-option-dialog table{min-width:620px}
+.vendor-type-card th,.vendor-type-card td,.vendor-list-dialog th,.vendor-list-dialog td,.vendor-option-dialog th,.vendor-option-dialog td{padding:8px}
+.vendor-type-card tbody td:first-child{text-align:center}
+.vendor-help{font-size:12px;margin:10px 0 0}
+.vendor-dialog .dialog-footer{flex:none}
+.vendor-list-dialog{width:min(1100px,94vw)}
+.vendor-search-label{display:block;max-width:520px;margin-bottom:12px}
+.vendor-search-label input{margin-top:5px}
+.vendor-option-dialog{width:min(900px,94vw)}
+.vendor-option-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 12px;margin-bottom:12px;padding:14px;background:#f6f8f6;border:1px solid #e1e8e1;border-radius:7px}
+.vendor-option-form .field{margin-bottom:8px}
+.vendor-option-form .field label{font-size:13px}
+.vendor-option-form input,.vendor-option-form select,.vendor-option-form textarea{font-size:14px}
+.vendor-option-form .vendor-option-wide{grid-column:1/-1}
+.vendor-option-form .vendor-option-checks{display:flex;align-items:center;flex-wrap:wrap;gap:14px}
+.vendor-option-form .vendor-option-checks label{display:flex;align-items:center;gap:6px}
+.vendor-option-form .vendor-option-actions{display:flex;align-items:end;gap:8px}
+@media(max-width:900px){
+  .vendor-main-grid{grid-template-columns:1fr}
+  .vendor-type-card{position:static}
+  .vendor-type-card .table-wrap{max-height:38vh}
+}
+@media(max-width:600px){
+  .vendor-top-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vendor-fields,.vendor-option-form{grid-template-columns:1fr}
+  .vendor-section-menu{position:static}
+  .vendor-toolbar{gap:2px}
+  .vendor-toolbar button{font-size:11px;padding:5px}
+}

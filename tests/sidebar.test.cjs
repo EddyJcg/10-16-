@@ -47,7 +47,7 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   const basicStart=nav.indexOf('<details id="basic-info-folder"'),salesPosition=nav.indexOf('id="sales-folder"');
   assert.ok(basicStart>=0&&salesPosition>basicStart);
   const basicMenu=nav.slice(basicStart,salesPosition);
-  assert.match(basicMenu,/<details id="vendor-info-entry-folder"[^>]*><summary>거래처정보 입력<\/summary><div class="folder-children"><details id="vendor-registration-folder"[^>]*><summary>거래처 등록<\/summary><div class="folder-children"><details id="vendor-status-folder"[^>]*><summary>거래처 현황<\/summary><\/details><\/div><\/details><\/div><\/details>/);
+  assert.match(basicMenu,/<details id="vendor-info-entry-folder"[^>]*><summary>거래처정보 입력<\/summary><div class="folder-children"><details id="vendor-registration-folder"[^>]*><summary>거래처 등록<\/summary><div class="folder-children"><button[^>]*id="vendor-entry-button"[^>]*>거래처 등록<\/button><details id="vendor-status-folder"[^>]*><summary>거래처 현황<\/summary><div class="folder-children"><button[^>]*id="vendor-status-button"[^>]*>거래처 조회<\/button><\/div><\/details><\/div><\/details><\/div><\/details>/);
   assert.ok(nav.indexOf('id="basic-info-folder"')<nav.indexOf('id="vendor-info-entry-folder"')&&nav.indexOf('id="vendor-status-folder"')<nav.indexOf('id="sales-folder"'),'vendor folders should be inside 기본정보');
   assert.ok(nav.indexOf('id="vendor-info-entry-folder"')<nav.indexOf('id="vendor-registration-folder"')&&nav.indexOf('id="vendor-registration-folder"')<nav.indexOf('id="vendor-status-folder"'),'vendor folders should follow the requested hierarchy');
   assert.ok(nav.indexOf('id="sales-folder"')<nav.indexOf('id="inventory-folder"'),'매출관리 should appear above 재고관리');

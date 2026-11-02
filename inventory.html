@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isummerly 매출/재고관리</title><link rel="icon" type="image/png" href="/isummerly-logo.png"><link rel="stylesheet" href="/inventory.css?v=20261022-login-input-font-120-targeted-classification-label-size"><link rel="stylesheet" href="/purchase-folder-icon.css?v=20261102-hide-purchase-subfolder-icons"><link rel="stylesheet" href="/purchase-order.css?v=20261102-purchase-entry-label-size"><link rel="stylesheet" href="/vendor-folder-icon.css?v=20261102-vendor-folders"><link rel="stylesheet" href="/inventory-datepicker.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isummerly 매출/재고관리</title><link rel="icon" type="image/png" href="/isummerly-logo.png"><link rel="stylesheet" href="/inventory.css?v=20261022-login-input-font-120-targeted-classification-label-size"><link rel="stylesheet" href="/purchase-folder-icon.css?v=20261102-hide-purchase-subfolder-icons"><link rel="stylesheet" href="/purchase-order.css?v=20261102-purchase-entry-label-size"><link rel="stylesheet" href="/vendor-folder-icon.css?v=20261102-vendor-folders"><link rel="stylesheet" href="/vendor-management.css?v=20261102-vendor-dialog"><link rel="stylesheet" href="/inventory-datepicker.css"></head>
 <body>
   <header><div class="brand"><img class="brand-logo" src="/isummerly-logo.png" alt="Isummerly 로고"> ISUMMERLY<span>통합관리시스템</span></div><button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true" hidden>☰ 메뉴 숨기기</button></header>
   <div id="app-layout" class="app-layout">
   <aside id="sidebar" class="sidebar" aria-label="재고관리 사이드바">
     <div class="sidebar-heading">업무 메뉴<span>폴더를 눌러 메뉴를 펼치세요.</span></div>
     <nav aria-label="재고관리 메뉴">
-      <details id="basic-info-folder" class="menu-folder" data-sidebar-folder><summary>기본정보</summary><div class="folder-children"><details id="asset-classification-folder" class="menu-folder" data-sidebar-folder><summary>품목 자산 분류</summary><div class="folder-children"><button type="button" class="sidebar-action" id="asset-classification-button" aria-haspopup="dialog">분류 설정</button></div></details><details id="product-info-folder" class="menu-folder" data-sidebar-folder><summary>품목정보 입력</summary><div class="folder-children"><button type="button" class="sidebar-action" id="product-info-button" aria-haspopup="dialog">품목정보 등록</button><button type="button" class="sidebar-action" id="product-info-status-button" aria-haspopup="dialog">품목정보 현황</button></div></details><details id="vendor-info-entry-folder" class="menu-folder" data-sidebar-folder><summary>거래처정보 입력</summary><div class="folder-children"><details id="vendor-registration-folder" class="menu-folder" data-sidebar-folder><summary>거래처 등록</summary><div class="folder-children"><details id="vendor-status-folder" class="menu-folder" data-sidebar-folder><summary>거래처 현황</summary></details></div></details></div></details></div></details>
+      <details id="basic-info-folder" class="menu-folder" data-sidebar-folder><summary>기본정보</summary><div class="folder-children"><details id="asset-classification-folder" class="menu-folder" data-sidebar-folder><summary>품목 자산 분류</summary><div class="folder-children"><button type="button" class="sidebar-action" id="asset-classification-button" aria-haspopup="dialog">분류 설정</button></div></details><details id="product-info-folder" class="menu-folder" data-sidebar-folder><summary>품목정보 입력</summary><div class="folder-children"><button type="button" class="sidebar-action" id="product-info-button" aria-haspopup="dialog">품목정보 등록</button><button type="button" class="sidebar-action" id="product-info-status-button" aria-haspopup="dialog">품목정보 현황</button></div></details><details id="vendor-info-entry-folder" class="menu-folder" data-sidebar-folder><summary>거래처정보 입력</summary><div class="folder-children"><details id="vendor-registration-folder" class="menu-folder" data-sidebar-folder><summary>거래처 등록</summary><div class="folder-children"><button type="button" class="sidebar-action" id="vendor-entry-button" aria-haspopup="dialog">거래처 등록</button><details id="vendor-status-folder" class="menu-folder" data-sidebar-folder><summary>거래처 현황</summary><div class="folder-children"><button type="button" class="sidebar-action" id="vendor-status-button" aria-haspopup="dialog">거래처 조회</button></div></details></div></details></div></details></div></details>
       <details id="sales-folder" class="menu-folder" data-sidebar-folder><summary>매출관리</summary><div class="folder-children"><button type="button" class="sidebar-action" id="sales-order-button" aria-haspopup="dialog">수주 입력</button><button type="button" class="sidebar-action" id="sales-status-button" aria-haspopup="dialog">수주 현황</button></div></details>
       <details id="purchase-folder" class="menu-folder" data-sidebar-folder><summary>발주관리</summary><div class="folder-children">
         <details id="purchase-entry-folder" class="menu-folder" data-sidebar-folder><summary>구매발주 품목입력</summary><div class="folder-children"><button type="button" class="sidebar-action" id="purchase-entry-button" aria-haspopup="dialog">품목 입력</button></div></details>
@@ -120,6 +120,98 @@
       <div class="product-list-search product-info-status-search"><label for="product-info-status-query">품목 검색 <span class="optional">(선택)</span><input id="product-info-status-query" type="search" placeholder="분류, 품번, 품명, 규격, 재질, 색상, 단위"></label><div class="product-list-actions"><button id="clear-product-info-status-search" class="secondary" type="button">초기화</button></div></div>
       <p id="product-info-status-list-message" class="product-list-status" role="status" aria-live="polite"></p>
       <div class="table-wrap product-list-table"><table aria-label="품목정보 현황 목록"><thead><tr><th>품목분류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th><th>관리</th></tr></thead><tbody id="product-info-status-items"></tbody></table></div>
+    </div>
+  </dialog>
+  <dialog id="vendor-dialog" aria-labelledby="vendor-title" class="vendor-dialog">
+    <form id="vendor-form" novalidate>
+      <div class="dialog-header"><div><h2 id="vendor-title">거래처 등록</h2></div><button type="button" class="close" id="close-vendor-dialog" aria-label="거래처 등록 창 닫기">닫기</button></div>
+      <div class="vendor-tabbar"><span class="vendor-home-mark">⌂</span><strong>거래처등록</strong><span>☆</span></div>
+      <div id="vendor-toolbar" class="vendor-toolbar" role="toolbar" aria-label="거래처 작업 메뉴">
+        <button type="button" data-vendor-action="new">＋ 신규</button><button type="button" data-vendor-action="query">⌕ 조회</button>
+        <button type="submit" data-vendor-action="save">▣ 저장</button><button type="button" data-vendor-action="copy">▧ 복사저장</button>
+        <button type="button" data-vendor-action="remove-types">✂ 행삭제</button><button type="button" data-vendor-action="delete">▤ 삭제</button>
+        <button type="button" data-vendor-option="name_alias">거래처명생략등록</button>
+        <button type="button" data-vendor-option="vendor_type">거래처종류등록</button>
+        <button type="button" data-vendor-option="vendor_category">거래처분류등록</button>
+        <button type="button" data-vendor-option="payment_account">거래처별지불계정등록(일괄)</button>
+      </div>
+      <div class="dialog-body vendor-body">
+        <input id="vendor-id" type="hidden">
+        <div class="vendor-top-fields">
+          <div class="field"><label for="vendor-legal-name">상호</label><input id="vendor-legal-name" maxlength="160" required></div>
+          <div class="field"><label for="vendor-name">거래처명</label><input id="vendor-name" maxlength="160" list="vendor-name-aliases" required><datalist id="vendor-name-aliases"></datalist></div>
+          <div class="field"><label for="vendor-status">거래처상태</label><select id="vendor-status"><option>정상</option><option>거래중지</option><option>휴면</option></select></div>
+          <div class="field"><label for="vendor-number">거래처번호</label><input id="vendor-number" maxlength="80"></div>
+          <div class="field"><label for="vendor-country-scope">국내외구분</label><select id="vendor-country-scope"><option>국내</option><option>해외</option></select></div>
+          <div class="field"><label for="vendor-credit-grade">신용등급</label><input id="vendor-credit-grade" maxlength="20" value="A"></div>
+          <div class="field"><label for="vendor-country">국가</label><input id="vendor-country" maxlength="80" value="대한민국"></div>
+          <div class="field"><label for="vendor-currency">유통구조 / 통화</label><input id="vendor-currency" maxlength="12" value="KRW"></div>
+        </div>
+        <nav class="vendor-section-menu" aria-label="거래처 정보 바로가기">
+          <button type="button" data-vendor-section="vendor-tax-section">세무정보</button><button type="button" data-vendor-section="vendor-manager-section">담당자</button>
+          <button type="button" data-vendor-section="vendor-credit-section">채권관리</button><button type="button" data-vendor-section="vendor-product-section">품목정보</button>
+          <button type="button" data-vendor-section="vendor-other-section">기타정보</button><button type="button" data-vendor-section="vendor-extra-section">추가정보</button>
+        </nav>
+        <div class="vendor-main-grid">
+          <div class="vendor-info-sections">
+            <section class="vendor-card" id="vendor-tax-section"><h3>세무정보</h3><div class="vendor-fields">
+              <div class="field"><label for="vendor-business-number">사업자번호</label><input id="vendor-business-number" maxlength="20"></div>
+              <div class="field"><label for="vendor-entity-type">법인/개인</label><select id="vendor-entity-type"><option value="">선택</option><option>법인</option><option>개인</option></select></div>
+              <div class="field"><label for="vendor-representative">대표자</label><input id="vendor-representative" maxlength="120"></div>
+              <div class="field"><label for="vendor-phone">전화번호</label><input id="vendor-phone" maxlength="40"></div>
+              <div class="field"><label for="vendor-resident-number">주민등록번호</label><input id="vendor-resident-number" maxlength="20"></div>
+              <div class="field"><label for="vendor-industry">업태</label><input id="vendor-industry" maxlength="120"></div>
+              <div class="field"><label for="vendor-business-type">종목</label><input id="vendor-business-type" maxlength="120"></div>
+              <div class="field vendor-field-wide"><label for="vendor-business-address">세무사업자주소</label><input id="vendor-business-address" maxlength="300"></div>
+              <label class="vendor-check"><input id="vendor-electronic-tax-exception" type="checkbox"> 전자세금계산서 발행 예외</label>
+            </div></section>
+            <section class="vendor-card" id="vendor-manager-section"><h3>담당자</h3><div class="vendor-fields">
+              <div class="field"><label for="vendor-contact-person">거래처 대표담당자</label><input id="vendor-contact-person" maxlength="120"></div>
+              <div class="field"><label for="vendor-sales-manager">영업담당자</label><input id="vendor-sales-manager" maxlength="120"></div>
+              <div class="field"><label for="vendor-manager-phone">담당자 전화번호</label><input id="vendor-manager-phone" maxlength="40"></div>
+            </div></section>
+            <section class="vendor-card" id="vendor-credit-section"><h3>채권관리</h3><div class="vendor-fields">
+              <div class="field"><label for="vendor-credit-limit">여신한도</label><input id="vendor-credit-limit" type="number" min="0" step="1"></div>
+              <div class="field"><label for="vendor-collection-place">청구처</label><input id="vendor-collection-place" maxlength="160"></div>
+              <div class="field"><label for="vendor-main-partner">대표거래처</label><input id="vendor-main-partner" maxlength="160"></div>
+              <div class="field vendor-field-wide"><label for="vendor-sales-terms">매출회수조건</label><input id="vendor-sales-terms" maxlength="200"></div>
+              <div class="field"><label for="vendor-payment-account">지불계정</label><select id="vendor-payment-account"><option value="">선택</option></select></div>
+              <div class="field"><label for="vendor-payment-relationship">거래처관계</label><select id="vendor-payment-relationship"><option>일반</option><option>계열사</option><option>관계사</option></select></div>
+            </div></section>
+            <section class="vendor-card" id="vendor-product-section"><h3>품목정보</h3><div class="vendor-fields">
+              <div class="field vendor-field-wide"><label for="vendor-product-name">거래처품명</label><input id="vendor-product-name" maxlength="200"></div>
+            </div></section>
+            <section class="vendor-card" id="vendor-other-section"><h3>기타정보</h3><div class="vendor-fields">
+              <div class="field"><label for="vendor-website">홈페이지</label><input id="vendor-website" type="url" maxlength="240"></div>
+              <div class="field"><label for="vendor-opening-date">영업개시일</label><input id="vendor-opening-date" type="date"></div>
+              <div class="field"><label for="vendor-classification">거래처분류</label><select id="vendor-classification"><option value="">선택</option></select></div>
+              <div class="field"><label for="vendor-email">이메일</label><input id="vendor-email" type="email" maxlength="160"></div>
+            </div></section>
+            <section class="vendor-card" id="vendor-extra-section"><h3>추가정보</h3><div class="vendor-fields">
+              <div class="field vendor-field-wide"><label for="vendor-extra-info">추가정보</label><textarea id="vendor-extra-info" maxlength="2000" rows="2"></textarea></div>
+              <label class="vendor-check"><input id="vendor-has-image" type="checkbox"> 이미지</label><label class="vendor-check"><input id="vendor-has-attachment" type="checkbox"> 첨부파일</label>
+            </div></section>
+          </div>
+          <section class="vendor-card vendor-type-card"><h3>거래처 종류 <span id="vendor-type-count" class="count"></span></h3>
+            <div class="table-wrap"><table aria-label="거래처 종류 선택"><thead><tr><th>선택</th><th>거래처종류</th><th>거래구분</th><th>사업자번호 필수</th><th>주민등록번호 필수</th></tr></thead><tbody id="vendor-type-items"></tbody></table></div>
+            <p class="vendor-help">여러 종류를 체크할 수 있습니다. 행삭제는 선택한 종류 체크를 해제합니다.</p>
+          </section>
+        </div>
+        <p id="vendor-status-message" class="product-list-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="dialog-footer"><button type="button" class="secondary" id="vendor-cancel">취소</button><button type="submit" class="primary" data-vendor-action="save">저장</button></div>
+    </form>
+  </dialog>
+  <dialog id="vendor-list-dialog" aria-labelledby="vendor-list-title" class="vendor-list-dialog">
+    <div class="dialog-header"><h2 id="vendor-list-title">거래처 조회</h2><button type="button" class="close" id="close-vendor-list" aria-label="거래처 조회 창 닫기">닫기</button></div>
+    <div class="dialog-body"><label class="vendor-search-label" for="vendor-list-query">거래처 검색<input id="vendor-list-query" type="search" placeholder="상호, 거래처명, 거래처번호, 사업자번호"></label><p id="vendor-list-message" class="product-list-status" role="status" aria-live="polite"></p>
+      <div class="table-wrap"><table aria-label="거래처 현황"><thead><tr><th>거래처번호</th><th>상호</th><th>거래처명</th><th>종류</th><th>상태</th><th>사업자번호</th><th>관리</th></tr></thead><tbody id="vendor-list-items"></tbody></table></div>
+    </div>
+  </dialog>
+  <dialog id="vendor-option-dialog" aria-labelledby="vendor-option-title" class="vendor-option-dialog">
+    <div class="dialog-header"><h2 id="vendor-option-title"></h2><button type="button" class="close" id="close-vendor-option" aria-label="설정 창 닫기">닫기</button></div>
+    <div class="dialog-body"><form id="vendor-option-form" class="vendor-option-form"></form><p id="vendor-option-message" class="product-list-status" role="status" aria-live="polite"></p>
+      <div class="table-wrap"><table aria-label="거래처 설정 목록"><thead id="vendor-option-head"></thead><tbody id="vendor-option-items"></tbody></table></div>
     </div>
   </dialog>
   <dialog id="sales-order-dialog" aria-labelledby="sales-order-title" class="sales-order-dialog">
@@ -241,5 +333,5 @@
   <dialog id="stock-risk-dialog" aria-labelledby="stock-risk-title"><div class="dialog-header"><div><h2 id="stock-risk-title">품절위험 품목 <span id="stock-risk-count" class="count"></span></h2><p>현재 재고가 적정재고의 20% 미만인 품목입니다.</p></div><div class="print-toolbar"><button class="secondary" type="button" data-print-settings="stock-risk">인쇄 설정</button><button class="secondary" type="button" data-print="stock-risk">인쇄</button><button type="button" class="close" id="close-stock-risk" aria-label="품절위험 품목 창 닫기">닫기</button></div></div><div class="dialog-body"><p id="stock-risk-status" role="status" aria-live="polite"></p><div class="table-wrap product-list-table"><table id="stock-risk-table" aria-label="품절위험 품목 목록"><thead><tr><th>품목분류</th><th>품번</th><th>품명</th><th>규격</th><th>색상</th><th>적정재고</th><th>현재재고</th><th>재고비율</th></tr></thead><tbody id="stock-risk-items"></tbody></table></div></div></dialog>
   <dialog id="long-stock-dialog" aria-labelledby="long-stock-title"><div class="dialog-header"><div><h2 id="long-stock-title">장기재고 <span id="long-stock-detail-count" class="count"></span></h2><p>입고일 기준 6개월 이상 경과한 재고 잔량입니다. 입고일시는 한국 시간으로 표시합니다.</p></div><div class="print-toolbar"><button class="secondary" type="button" data-print-settings="long-stock">인쇄 설정</button><button class="secondary" type="button" data-print="long-stock">인쇄</button><button type="button" class="close" id="close-long-stock" aria-label="장기재고 창 닫기">닫기</button></div></div><div class="dialog-body"><p id="long-stock-status" role="status" aria-live="polite"></p><div class="table-wrap product-list-table"><table id="long-stock-table" aria-label="장기재고 상세 내역"><thead><tr><th>입고일시</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>수량</th><th>단가</th><th>금액</th><th>위치</th><th>거래처명</th></tr></thead><tbody id="long-stock-items"></tbody></table></div></div></dialog>
   <dialog id="print-settings-dialog" aria-labelledby="print-settings-title"><div class="dialog-header"><div><h2 id="print-settings-title">인쇄 설정</h2><p>축소 비율과 여백을 조절한 뒤 설정 창을 닫고 인쇄하세요.</p></div><button type="button" class="close" id="close-print-settings" aria-label="인쇄 설정 창 닫기">닫기</button></div><div class="dialog-body"><section id="shared-print-settings" class="print-settings" aria-label="인쇄 설정"><div class="print-scale-control"><label for="product-list-print-scale">비율 축소</label><div><input id="product-list-print-scale" type="range" min="50" max="100" step="5" value="100"><output id="product-list-print-scale-value" for="product-list-print-scale">100%</output></div><p>축소 비율을 낮추면 표 글자와 행 크기가 함께 작아집니다.</p></div><div class="print-margin-settings"><div id="product-list-print-preview" class="print-paper" role="img" aria-label="A4 가로 용지의 인쇄 여백 조절 미리보기"><div id="printable-area" class="printable-area"><button type="button" class="margin-handle margin-top" data-margin="top" role="slider" aria-label="위쪽 여백 경계선 드래그" aria-valuemin="2" aria-valuemax="40" aria-valuenow="10" tabindex="0"></button><button type="button" class="margin-handle margin-right" data-margin="right" role="slider" aria-label="오른쪽 여백 경계선 드래그" aria-valuemin="2" aria-valuemax="40" aria-valuenow="10" tabindex="0"></button><button type="button" class="margin-handle margin-bottom" data-margin="bottom" role="slider" aria-label="아래쪽 여백 경계선 드래그" aria-valuemin="2" aria-valuemax="40" aria-valuenow="10" tabindex="0"></button><button type="button" class="margin-handle margin-left" data-margin="left" role="slider" aria-label="왼쪽 여백 경계선 드래그" aria-valuemin="2" aria-valuemax="40" aria-valuenow="10" tabindex="0"></button></div></div><div class="print-margin-inputs"><label for="print-margin-top">위쪽 (mm)<input id="print-margin-top" type="number" min="2" max="40" step="1" value="10"></label><label for="print-margin-right">오른쪽 (mm)<input id="print-margin-right" type="number" min="2" max="40" step="1" value="10"></label><label for="print-margin-bottom">아래쪽 (mm)<input id="print-margin-bottom" type="number" min="2" max="40" step="1" value="10"></label><label for="print-margin-left">왼쪽 (mm)<input id="print-margin-left" type="number" min="2" max="40" step="1" value="10"></label></div></div><p class="print-settings-hint">용지 미리보기의 점선 경계선을 드래그하거나 여백을 mm 단위로 입력하세요. 방향키로도 1mm씩 조정할 수 있습니다.</p></section></div></dialog>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script><script src="supabase-config.js"></script><script src="inventory-model.js"></script><script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script><script src="inventory-excel.js"></script><script src="inventory-import.js"></script><script src="inventory-render.js"></script><script src="inventory-app.js"></script><script src="inventory-sidebar.js"></script><script src="inventory-datepicker.js"></script><script>startSidebar();startSearchDatePickers();startApp();</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.100.0/dist/umd/supabase.min.js"></script><script src="supabase-config.js"></script><script src="inventory-model.js"></script><script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script><script src="inventory-excel.js"></script><script src="inventory-import.js"></script><script src="inventory-render.js"></script><script src="inventory-app.js"></script><script src="vendor-management.js"></script><script src="inventory-sidebar.js"></script><script src="inventory-datepicker.js"></script><script>startSidebar();startSearchDatePickers();startApp();</script>
 </body></html>

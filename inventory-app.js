@@ -166,6 +166,7 @@ let appliedDateProductIds = null,appliedSupplier = '',searching = false;
 let productListDateIds = null,productListSupplier = '',productListQuery = '',productListSearching = false;
 let movementListRows = [],movementListLoading = false;
 let movementListKind='';
+let selectedProductImportFile=null;
 function movementListLabel(){return movementListKind==='opening'?'기초재고 내역':movementListKind==='receipt'?'입고 내역':movementListKind==='issue'?'출고 내역':'입출고 내역';}
 let salesOrders = [],salesOrdersLoading = false,salesOrderSaving = false;
 let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:''},salesStatusUpdating=false;
@@ -956,6 +957,38 @@ async function importProductInfoFile(event){
     busy=false;$('product-info-editor').disabled=false;$('import-product-info-button').disabled=false;$('close-product-info').disabled=false;
   }
 }
+function openProductInfoImportDialog(){
+  if(!currentUser||busy)return;
+  selectedProductImportFile=null;
+  $('product-info-import-file').value='';
+  $('product-info-import-file-name').textContent='선택된 파일이 없습니다.';
+  $('start-product-info-import').disabled=true;
+  $('product-info-import-dialog').showModal();
+}
+function selectProductInfoImportFile(){
+  selectedProductImportFile=null;
+  $('product-info-import-file').value='';
+  $('product-info-import-file-name').textContent='파일을 선택하세요.';
+  $('start-product-info-import').disabled=true;
+  $('product-info-import-file').click();
+}
+function updateSelectedProductImportFile(event){
+  selectedProductImportFile=event.target.files?.[0]||null;
+  $('product-info-import-file-name').textContent=selectedProductImportFile?.name||'선택된 파일이 없습니다.';
+  $('start-product-info-import').disabled=!selectedProductImportFile;
+}
+function closeProductInfoImportDialog(){
+  $('product-info-import-dialog').close();
+  selectedProductImportFile=null;
+  $('product-info-import-file').value='';
+  $('start-product-info-import').disabled=true;
+}
+async function startSelectedProductImport(){
+  const file=selectedProductImportFile;
+  if(!file)return;
+  closeProductInfoImportDialog();
+  await importProductInfoFile({target:{files:[file],value:''}});
+}
 function showMissingReceiptProducts(missingProducts,errors){
   const body=$('receipt-import-missing-items');body.replaceChildren();
   missingProducts.forEach(item=>{
@@ -1619,8 +1652,12 @@ async function startApp(){
   $('clear-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch(true));
   ['sales_quantity','sales_unit_price'].forEach(id=>$(id).addEventListener('input',updateSalesAmount));
   $('close-product-info').addEventListener('click',()=>{resetProductInfoForm();$('product-info-dialog').close();});
-  $('import-product-info-button').addEventListener('click',()=>{$('product-info-import-file').click();});
-  $('product-info-import-file').addEventListener('change',importProductInfoFile);
+  $('import-product-info-button').addEventListener('click',openProductInfoImportDialog);
+  $('select-product-info-import-file').addEventListener('click',selectProductInfoImportFile);
+  $('product-info-import-file').addEventListener('change',updateSelectedProductImportFile);
+  $('start-product-info-import').addEventListener('click',startSelectedProductImport);
+  $('close-product-info-import').addEventListener('click',closeProductInfoImportDialog);
+  $('cancel-product-info-import').addEventListener('click',closeProductInfoImportDialog);
   $('close-product-info-status').addEventListener('click',()=>$('product-info-status-dialog').close());
   $('product-info-status-query').addEventListener('input',renderProductInfoStatus);
   $('clear-product-info-status-search').addEventListener('click',()=>{$('product-info-status-query').value='';renderProductInfoStatus();$('product-info-status-query').focus();});

@@ -387,3 +387,13 @@ th[draggable="true"]:active{cursor:grabbing}
 @media(max-width:850px){.dialog-header .close{font-size:24.336px}}
 .dialog-header-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .receipt-import-errors{margin-top:16px;white-space:pre-line}
+dialog.product-import-dialog{
+  width:33.3333vw!important;height:33.3333vh!important;aspect-ratio:auto;
+  min-width:320px!important;min-height:220px!important;
+  max-width:calc(100vw - 32px)!important;max-height:calc(100dvh - 32px)!important;
+}
+.product-import-dialog .dialog-body{flex:1}
+.product-info-import-file-name{overflow-wrap:anywhere}
+@media screen and (max-width:850px){
+  dialog.product-import-dialog{width:calc(100vw - 32px)!important;height:auto!important;min-width:0!important;min-height:220px!important}
+}

@@ -80,6 +80,15 @@ test('all popup buttons use 15px text and fit their button boxes',()=>{
   assert.match(style,/dialog \.dialog-header \.close\{padding:8px 12px\}/);
 });
 
+test('popup text uses 13px while titles and button text keep their sizes',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const style=readFileSync('popup-typography.css','utf8');
+  assert.ok(html.indexOf('href="/popup-typography.css?v=20261102-popup-body-font-13"')>html.indexOf('href="/popup-button.css'));
+  assert.match(style,/dialog,\s*dialog \*\{\s*font-size:13px!important;\s*\}/);
+  assert.match(style,/dialog \.dialog-header h2\{\s*font-size:36px!important;\s*\}/);
+  assert.match(style,/dialog button,\s*dialog button \*\{\s*font-size:15px!important;\s*\}/);
+});
+
 test('product list dialog searches all stock fields and prints the displayed list',()=>{
   const script=readFileSync('inventory-app.js','utf8');
   const style=readFileSync('inventory.css','utf8');

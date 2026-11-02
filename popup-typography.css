@@ -1,0 +1,11 @@
+dialog,
+dialog *{
+  font-size:13px!important;
+}
+dialog .dialog-header h2{
+  font-size:36px!important;
+}
+dialog button,
+dialog button *{
+  font-size:15px!important;
+}

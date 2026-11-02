@@ -1189,7 +1189,7 @@ function renderProductInfoItems() {
 }
 function renderProductInfoStatus() {
   const body=$('product-info-status-items'),query=$('product-info-status-query').value.trim().toLocaleLowerCase('ko-KR');
-  const filtered=items.filter(item=>!query||['product_category','product_code','product_name','specification','material','color','unit'].some(key=>String(item[key]||'').toLocaleLowerCase('ko-KR').includes(query)));
+  const filtered=items.filter(item=>!query||['product_code','product_name','specification'].some(key=>String(item[key]||'').toLocaleLowerCase('ko-KR').includes(query)));
   body.replaceChildren();
   if(!filtered.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=9;cell.className='empty';cell.textContent=items.length?'검색 결과가 없습니다.':'등록된 품목정보가 없습니다.';row.append(cell);body.append(row);return;}
   filtered.forEach(item=>{

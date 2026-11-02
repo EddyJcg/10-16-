@@ -80,9 +80,9 @@
             <div class="field"><label for="info_standard_stock_quantity">적정재고 수량</label><input id="info_standard_stock_quantity" type="number" required min="1" max="1000000" step="1" placeholder="1~1,000,000"></div>
           </div>
           <p id="product-info-status" class="product-list-status" role="status" aria-live="polite"></p>
-          <div class="table-wrap product-list-table"><table aria-label="등록된 품목정보"><thead><tr><th>품목자산분류</th><th>재고자산종류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th></tr></thead><tbody id="product-info-items"></tbody></table></div>
+          <div class="table-wrap product-list-table"><table aria-label="등록된 품목정보"><thead><tr><th>품목자산분류</th><th>재고자산종류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th><th>관리</th></tr></thead><tbody id="product-info-items"></tbody></table></div>
         </div>
-        <div class="dialog-footer"><button type="button" id="cancel-product-info" class="secondary">닫기</button><button id="save-product-info" class="primary">품목정보 저장</button></div>
+        <div class="dialog-footer"><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소</button><button type="button" id="cancel-product-info" class="secondary">닫기</button><button id="save-product-info" class="primary">품목정보 저장</button></div>
       </fieldset>
     </form>
   </dialog>
@@ -114,7 +114,7 @@
     <div class="dialog-body product-list-body">
       <div class="product-list-search product-info-status-search"><label for="product-info-status-query">품목 검색 <span class="optional">(선택)</span><input id="product-info-status-query" type="search" placeholder="분류, 품번, 품명, 규격, 재질, 색상, 단위"></label><div class="product-list-actions"><button id="clear-product-info-status-search" class="secondary" type="button">초기화</button></div></div>
       <p id="product-info-status-list-message" class="product-list-status" role="status" aria-live="polite"></p>
-      <div class="table-wrap product-list-table"><table aria-label="품목정보 현황 목록"><thead><tr><th>품목분류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th></tr></thead><tbody id="product-info-status-items"></tbody></table></div>
+      <div class="table-wrap product-list-table"><table aria-label="품목정보 현황 목록"><thead><tr><th>품목분류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th><th>관리</th></tr></thead><tbody id="product-info-status-items"></tbody></table></div>
     </div>
   </dialog>
   <dialog id="sales-order-dialog" aria-labelledby="sales-order-title" class="sales-order-dialog">
@@ -139,7 +139,7 @@
           </div>
           <p id="sales-order-status" class="product-list-status" role="status" aria-live="polite"></p>
           <h3>저장된 수주</h3>
-          <div class="table-wrap sales-order-table"><table aria-label="저장된 수주 목록"><thead><tr><th>일련번호</th><th>수주일자</th><th>수주번호</th><th>수주형태</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>납기일자</th><th>배송방법</th><th>주소</th><th>기타사항</th></tr></thead><tbody id="sales-order-items"></tbody></table></div>
+          <div class="table-wrap sales-order-table"><table aria-label="저장된 수주 목록"><thead><tr><th>일련번호</th><th>수주일자</th><th>수주번호</th><th>수주형태</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>납기일자</th><th>배송방법</th><th>주소</th><th>기타사항</th><th>관리</th></tr></thead><tbody id="sales-order-items"></tbody></table></div>
         </div>
         <div class="dialog-footer"><button type="button" id="cancel-sales-order" class="secondary">닫기</button><button id="save-sales-order" class="primary">수주 저장</button></div>
       </fieldset>

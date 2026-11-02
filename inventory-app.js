@@ -907,6 +907,75 @@ function editProductInfo(id){
   $('product-info-status').textContent='품목정보 수정 중입니다.';
   $('info_product_code').focus();
 }
+async function importProductInfoFile(event){
+  const file=event.target.files?.[0];
+  event.target.value='';
+  if(!file||!currentUser||busy)return;
+  if(editingProductInfoId){
+    window.alert('품목정보 수정 중에는 Excel 업로드를 시작할 수 없습니다. 수정 내용을 저장하거나 취소한 뒤 다시 시도하세요.');
+    return;
+  }
+  if(!window.ExcelJS){window.alert('Excel 도구를 불러오지 못했습니다. 새로고침한 뒤 다시 시도하세요.');return;}
+
+  const generation=authGeneration,workbook=new window.ExcelJS.Workbook();
+  let parsed;
+  try{
+    await workbook.xlsx.load(await file.arrayBuffer());
+    parsed=window.parseProductImportWorkbook(workbook,assetClassifications,items,PRODUCT_UNITS);
+  }catch(error){
+    window.alert('Excel 파일을 읽지 못했습니다. .xlsx 파일인지 확인하세요. '+errorText(error));
+    return;
+  }
+  if(generation!==authGeneration)return;
+  if(parsed.errors.length){
+    const shown=parsed.errors.slice(0,30);
+    const more=parsed.errors.length-shown.length;
+    window.alert('Excel 파일을 등록할 수 없습니다. 누락되거나 잘못된 열과 행을 수정하세요.\n\n'
+      +shown.join('\n')+(more>0?`\n그 외 ${more}건의 오류가 더 있습니다.`:''));
+    return;
+  }
+  if(!window.confirm(`${file.name}\n품목정보 ${parsed.rows.length}건을 일괄 등록할까요?`))return;
+
+  busy=true;$('product-info-editor').disabled=true;$('import-product-info-button').disabled=true;$('close-product-info').disabled=true;
+  $('product-info-status').textContent=`품목정보를 등록하는 중입니다. 0/${parsed.rows.length}건`;
+  let registered=0,failure=null;
+  try{
+    for(let index=0;index<parsed.rows.length;index++){
+      if(generation!==authGeneration)return;
+      let error;
+      try{({error}=await client.rpc('register_stock_product',{p_details:parsed.rows[index]}));}
+      catch(requestError){error=requestError;}
+      if(error){failure={row:index+2,error};break;}
+      registered++;
+      $('product-info-status').textContent=`품목정보를 등록하는 중입니다. ${registered}/${parsed.rows.length}건`;
+    }
+
+    if(generation!==authGeneration)return;
+    if(failure){
+      let refreshMessage='';
+      try{await loadStock();renderProductInfoItems();}
+      catch(refreshError){refreshMessage=' 최신 목록을 불러오지 못했습니다. '+errorText(refreshError);}
+      const message=`Excel 일괄 등록을 중단했습니다. ${registered}/${parsed.rows.length}건은 등록되었고, ${failure.row}행에서 오류가 발생했습니다. ${errorText(failure.error)}${refreshMessage}`;
+      $('product-info-status').textContent=message;
+      window.alert(message);
+      return;
+    }
+
+    try{
+      await loadStock();
+      if(generation!==authGeneration)return;
+      renderProductInfoItems();
+      $('product-info-status').textContent=`Excel에서 품목정보 ${registered}건을 등록했습니다.`;
+      window.alert(`품목정보 ${registered}건을 등록했습니다.`);
+    }catch(error){
+      const message=`품목정보 ${registered}건은 등록했지만 목록 새로고침에 실패했습니다. ${errorText(error)}`;
+      $('product-info-status').textContent=message;
+      window.alert(message);
+    }
+  }finally{
+    busy=false;$('product-info-editor').disabled=false;$('import-product-info-button').disabled=false;$('close-product-info').disabled=false;
+  }
+}
 async function saveProductInfo(event) {
   event.preventDefault();
   if(!currentUser||busy)return;
@@ -1478,6 +1547,8 @@ async function startApp(){
   $('clear-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch(true));
   ['sales_quantity','sales_unit_price'].forEach(id=>$(id).addEventListener('input',updateSalesAmount));
   $('close-product-info').addEventListener('click',()=>{resetProductInfoForm();$('product-info-dialog').close();});
+  $('import-product-info-button').addEventListener('click',()=>{$('product-info-import-file').click();});
+  $('product-info-import-file').addEventListener('change',importProductInfoFile);
   $('close-product-info-status').addEventListener('click',()=>$('product-info-status-dialog').close());
   $('product-info-status-query').addEventListener('input',renderProductInfoStatus);
   $('clear-product-info-status-search').addEventListener('click',()=>{$('product-info-status-query').value='';renderProductInfoStatus();$('product-info-status-query').focus();});

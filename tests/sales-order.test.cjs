@@ -63,6 +63,10 @@ test('sales status view includes every order field and completion control after 
     assert.ok(table.includes(`<th>${label}</th>`),label);
   for(const id of ['sales-status-start-date','sales-status-end-date','sales-status-type-filter','sales-status-filter','sales-status-total','sales-status-completed-total','sales-status-outstanding-total'])
     assert.match(html,new RegExp(`id="${id}"`),id);
+  assert.match(table,/<th>관리<\/th>/);
+  const app=fs.readFileSync('inventory-app.js','utf8');
+  assert.match(app,/\$\('sales-status-items'\)\.addEventListener\('click'/);
+  assert.match(app,/function editSalesOrderFromStatus\(id\)/);
 });
 
 test('dashboard sales balance uses the same sales-order columns and status selection',()=>{

@@ -12,10 +12,13 @@ const PRODUCT_UNITS = ['EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g
 const PRODUCT_FIELDS = ['product_category','product_code','product_name','specification','material','color','unit','storage_location','supplier'];
 const CURRENT_STOCK_FIELDS = STOCK_FIELDS.filter(field=>! /^(opening|receipt|issue)_/.test(field.key))
   .flatMap(field=>field.key==='material'?[field,{key:'color',label:'색상',numeric:false}]:field.key==='stock_quantity'?[{key:'unit',label:'단위',numeric:false},field]:[field]);
-function currentStockRows(rows) { return rows.filter(row=>Number(row.stock_quantity)>0); }
+function currentStockRows(rows) { return rows.filter(row=>isStockLedgerManaged(row)&&Number(row.stock_quantity)>0); }
+function isStockLedgerManaged(row) {
+  return row.quantity_management_disabled!==true&&row.value_management_disabled!==true;
+}
 function stockRiskItems(rows) {
   return rows.filter(row=>{
-    if(row.shortage_control_enabled===false||row.quantity_management_disabled===true)return false;
+    if(row.shortage_control_enabled===false||!isStockLedgerManaged(row))return false;
     const standard=Number(row.standard_stock_quantity),stock=Number(row.stock_quantity)||0;
     return Number.isSafeInteger(standard)&&standard>0&&stock*5<standard;
   }).slice().sort((a,b)=>Number(a.stock_quantity)/Number(a.standard_stock_quantity)-Number(b.stock_quantity)/Number(b.standard_stock_quantity));
@@ -59,7 +62,7 @@ function sixMonthsAgoDate(today=todayDate()) {
 }
 function stockAgingRows(rows,today=todayDate()) {
   const cutoff=sixMonthsAgoDate(today);
-  return rows.filter(row=>Number(row.remaining_quantity)>0&&row.received_date<=cutoff)
+  return rows.filter(row=>isStockLedgerManaged(row)&&Number(row.remaining_quantity)>0&&row.received_date<=cutoff)
     .slice().sort((a,b)=>a.received_date.localeCompare(b.received_date)||Number(a.sequence_id)-Number(b.sequence_id));
 }
 function validDate(value) {
@@ -86,4 +89,4 @@ function planFifo(lots,quantity,date) {
   const amount = Number(amountCents)/100;
   return {allocations,shortage:Math.max(left,0),amount,unitCost:quantity>0 ? amount/quantity : 0};
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,filterSalesOrders,summarizeSalesOrders,todayDate,validDate,validOrderDueDate,planFifo};
+if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,isStockLedgerManaged,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,filterSalesOrders,summarizeSalesOrders,todayDate,validDate,validOrderDueDate,planFifo};

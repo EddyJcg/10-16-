@@ -1,4 +1,4 @@
--- Future purchasing workflow schema. Run after supabase/fifo.sql.
+-- Purchasing workflow storage. Run after supabase/fifo.sql and item-asset-classification.sql.
 
 begin;
 

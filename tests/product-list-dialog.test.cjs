@@ -78,7 +78,7 @@ test('product list dialog searches all stock fields and prints the displayed lis
   assert.match(script,/function productListFields\(\) \{ return STOCK_DISPLAY_FIELDS\.flatMap\(field=>field\.key==='material'\?\[field,\{key:'color',label:'색상',numeric:false\}\]:\[field\]\); \}/);
   assert.match(script,/productListFields\(\)\.forEach\(field=>/);
   assert.match(script,/cell\.colSpan=fields\.length\+1/);
-  assert.match(script,/filterInventoryItems\(items,\{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds\}\)/);
+  assert.match(script,/filterInventoryItems\(ledgerItems,\{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds\}\)/);
   assert.match(script,/findMovementProductIds\(startDate,endDate,''\)/);
   assert.match(script,/window\.print\(\)/);
   assert.match(style,/@media print/);
@@ -96,7 +96,7 @@ test('all requested status and inventory dialogs offer Excel downloads using vis
   ])assert.match(script,new RegExp(`\\$\\('${id}'\\)\\.addEventListener\\('click',${handler}\\)`),id);
   assert.match(script,/filterSalesOrders\(salesOrders,appliedSalesStatusFilters\)/);
   assert.match(script,/currentStockRows\(items\)/);
-  assert.match(script,/filterInventoryItems\(items,\{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds\}\)/);
+  assert.match(script,/filterInventoryItems\(items\.filter\(stockLedgerManaged\),\{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds\}\)/);
   assert.match(script,/const rows=filteredMovementListRows\(\)/);
 });
 

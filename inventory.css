@@ -245,6 +245,18 @@
   #apply-search,#apply-sales-balance-search,#apply-sales-status-search{font-size:19.2px}
 }
 
+.purchase-order-dialog{width:min(1500px,96vw)}
+.purchase-order-dialog .purchase-order-wide{grid-column:1/-1}
+.purchase-order-line-form{grid-template-columns:minmax(220px,2fr) repeat(3,minmax(150px,1fr)) auto;align-items:end}
+.purchase-order-line-form>button{margin-bottom:2px;white-space:nowrap}
+.purchase-order-table{max-height:34vh;overflow:auto;margin:12px 0 20px}
+.purchase-order-table table{min-width:1000px}
+#purchase-receive-dialog{width:min(680px,94vw)}
+@media(max-width:850px){
+  .purchase-order-line-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .purchase-order-line-form>button{grid-column:1/-1}
+}
+
 /* Keep dashboard search controls aligned with matching field widths. */
 @media screen{
   #workspace .search-conditions{grid-template-columns:repeat(3,minmax(0,1fr)) auto}

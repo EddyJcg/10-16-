@@ -12,11 +12,11 @@ function renderHeaders(){
   STOCK_DISPLAY_FIELDS.forEach(field=>{const cell=document.createElement('th');cell.scope='col';cell.textContent=field.label;cell.className=(field.numeric?'numeric ':'')+(field.numeric?'group-'+field.key.split('_')[0]:'');$('stock-head').append(cell);});
 }
 function render(){
-  const ledgerItems=items.filter(item=>item.quantity_management_disabled!==true);
+  const ledgerItems=items.filter(isStockLedgerManaged);
   renderCurrentStock(ledgerItems);
   renderStockRisk();
   renderLongStock();
-  $('total-value').textContent=money(items.reduce((sum,item)=>sum+Number(item.stock_amount||0),0))+'원';
+  $('total-value').textContent=money(ledgerItems.reduce((sum,item)=>sum+Number(item.stock_amount||0),0))+'원';
   const shown=filterInventoryItems(ledgerItems,{query:$('search').value,availability:$('filter').value,dateProductIds:appliedDateProductIds,supplier:appliedSupplier});
   $('items').replaceChildren();
   if(!shown.length)emptyRow($('items'),STOCK_DISPLAY_FIELDS.length+1,ledgerItems.length?'검색 조건에 맞는 품목이 없습니다.':'재고수량관리를 하는 품목을 품목정보에 등록하세요.');

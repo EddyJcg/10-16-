@@ -176,7 +176,7 @@ function parseReceiptImportWorkbook(workbook,existingItems,today=new Date().toIS
       rowNumber:lineNumber,productCode:code,productName:values.product_name,productCategory:values.product_category
     });
     if(item){
-      if(item.quantity_management_disabled===true)rowErrors.push('재고수량관리를 하지 않는 품목');
+      if(item.quantity_management_disabled===true||item.value_management_disabled===true)rowErrors.push('수량 또는 금액관리 안함 품목은 일반 입고할 수 없으며 발주 등록에서 입고 처리해야 합니다.');
       [
         ['product_category','product_category','품목분류'],
         ['product_name','product_name','품명'],

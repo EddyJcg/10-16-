@@ -31,9 +31,10 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(importer,/item\.quantity_management_disabled===true\|\|item\.value_management_disabled===true/);
   assert.match(html,/<th>재고수량관리 안함<\/th><th>재고금액관리 안함<\/th><th>재고부족통제<\/th><th>세트품목<\/th><th>Lot관리기본값<\/th>/);
   assert.match(app,/function classificationFlag\(value\)[\s\S]*value===true\|\|value===1\|\|value==='1'\|\|value==='true'/);
-  assert.match(style,/label\[for="asset-classification-name"\][\s\S]*font-size:24\.336px/);
+  assert.match(style,/#asset-classification-dialog \.asset-classification-form \.form-grid \.field > label\{font-size:18\.72px\}/);
   assert.match(style,/classification-checkboxes input\[type="checkbox"\]\{transform:scaleX\(1\.5\) scaleY\(1\.3\)/);
   assert.match(style,/dialog-footer>#save-asset-classification\{transform:scale\(\.81\)/);
+  assert.match(html,/inventory\.css\?v=20261022-login-input-font-120-targeted-classification-label-size/);
   assert.doesNotMatch(html,/선택하면 원자재 수불부에 반영하지 않습니다|변경해도 기존 거래의 단가·금액은 수정되지 않습니다|선택 시 적정재고 미달 품목을 품절위험 목록에 표시합니다/);
 });
 

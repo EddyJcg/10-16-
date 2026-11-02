@@ -1012,7 +1012,7 @@ function startProductListPrintSettings() {
   $('product-list-print-scale').addEventListener('input',()=>applyProductListPrintSettings());
 }
 function closeMovement() { if (!busy) {lotsGeneration++;editingMovementId='';$('save-movement').textContent='저장';$('movement-dialog').close();} }
-function editMovement(id){
+async function editMovement(id){
   const movement=movementListRows.find(row=>row.id===id);if(!movement||!currentUser||busy)return;
   openMovement(movement.kind);
   const item=items.find(row=>row.id===movement.product_id);if(!item)return;
@@ -1037,9 +1037,20 @@ function editMovement(id){
     }
     select.value=movement.sales_order_id||'';select.disabled=true;
     $('movement_cost').value=String(movement.unit_cost||0);
-    loadSelectedLots();
+    try{
+      await loadSelectedLots();
+      if(!productLotsReady)return;
+      const {data,error}=await client.from('stock_allocations').select('lot_id,quantity').eq('issue_id',movement.id);
+      if(error)throw error;
+      const lotsById=new Map(productLots.map(lot=>[String(lot.id),lot]));
+      data.forEach(allocation=>{
+        const lot=lotsById.get(String(allocation.lot_id));
+        if(lot)lot.remaining_quantity=Number(lot.remaining_quantity)+Number(allocation.quantity);
+      });
+      updateAmounts();
+    }catch(error){$('form-message').textContent=errorText(error);}
   }
-  updateAmounts();
+  if(movement.kind!=='issue')updateAmounts();
 }
 async function saveMovement(event) {
   event.preventDefault(); if (busy || !currentUser) return;
@@ -1056,7 +1067,7 @@ async function saveMovement(event) {
   if (mode==='issue' && !editingMovementId && !validateIssueQuantity(true)) return;
   const details=Object.fromEntries(PRODUCT_FIELDS.map(key=>[key,$(key).value.trim()])); details.product_code=details.product_code.toUpperCase();
   const salesOrderId=mode==='issue'?$('issue-sales-order')?.value:'';
-  if(salesOrderId){
+  if(salesOrderId&&!editingMovementId){
     const order=salesOrdersForIssue(activeProduct()).find(row=>row.id===salesOrderId);
     if(!order||quantity>Number(order.quantity)-Number(order.shipped_quantity||0)){
       $('form-message').textContent='선택한 수주의 잔여 수량과 출고수량을 확인하세요.';return;

@@ -39,6 +39,7 @@ test('sales order dialog contains all requested fields and choices',()=>{
   const form=html.match(/<form id="sales-order-form" novalidate>([\s\S]*?)<\/form>/)?.[1]||'';
   assert.ok(form);
   for(const [id,label] of [
+    ['sales_vendor_id','거래처'],['sales_vendor_contact','연락처'],
     ['sales_order_number','수주번호'],['sales_order_type','수주형태'],['sales_product_name','품명'],
     ['sales_specification','규격'],['sales_unit','단위'],['sales_quantity','수량'],
     ['sales_unit_price','단가'],['sales_amount','수주금액'],['sales_due_date','납기일자'],
@@ -48,7 +49,10 @@ test('sales order dialog contains all requested fields and choices',()=>{
     assert.ok(form.includes('>'+label+'</label>'),label);
   }
   assert.match(form,/id="sales_order_type" required><option value="">선택하세요<\/option><option value="온라인 수주">온라인 수주<\/option><option value="오프라인 수주">오프라인 수주<\/option>/);
+  assert.match(form,/id="sales_vendor_id" required/);
+  assert.match(form,/id="sales_vendor_contact" readonly/);
   assert.match(form,/id="sales_amount" readonly/);
+  assert.match(html,/<th>거래처<\/th><th>연락처<\/th>/);
   assert.match(html,/id="sales-order-items"/);
   assert.match(html,/<th>일련번호<\/th><th>수주일자<\/th><th>수주번호<\/th>/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);
@@ -58,8 +62,8 @@ test('sales status view includes every order field and completion control after 
   const html=fs.readFileSync('inventory.html','utf8');
   const table=html.match(/<table aria-label="전체 수주현황">([\s\S]*?)<\/table>/)?.[1]||'';
   assert.match(html,/id="sales-status-button"[^>]*>수주 현황<\/button>/);
-  assert.match(table,/<th>수주번호<\/th><th>수주형태<\/th><th>출고일자<\/th><th>매출 상태<\/th>/);
-  for(const label of ['일련번호','수주일자','수주번호','매출 상태','수주형태','출고일자','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
+  assert.match(table,/<th>수주번호<\/th><th>수주형태<\/th><th>거래처<\/th><th>연락처<\/th><th>출고일자<\/th><th>매출 상태<\/th>/);
+  for(const label of ['일련번호','수주일자','수주번호','매출 상태','수주형태','거래처','연락처','출고일자','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
     assert.ok(table.includes(`<th>${label}</th>`),label);
   for(const id of ['sales-status-start-date','sales-status-end-date','sales-status-type-filter','sales-status-filter','sales-status-total','sales-status-completed-total','sales-status-outstanding-total'])
     assert.match(html,new RegExp(`id="${id}"`),id);
@@ -160,9 +164,40 @@ test('sales order dialog is connected to the authenticated database save flow',(
   assert.match(script,/function showSalesOrder\(\)/);
   assert.match(script,/function saveSalesOrder\(event\)/);
   assert.match(script,/client\.rpc\('register_sales_order'/);
+  assert.match(script,/from\('business_partners'\)[\s\S]*?p_vendor_id:p_vendor_id|p_vendor_id:vendorId/);
+  assert.match(script,/registeredVendorContact/);
+  assert.match(script,/\$\('sales_vendor_id'\)\.addEventListener\('change',updateSalesOrderVendorContact\)/);
   assert.match(script,/client\.rpc\('set_sales_order_status'/);
   assert.match(script,/sales-order-form'\)\.addEventListener\('submit',saveSalesOrder\)/);
   assert.match(sql,/create table if not exists public\.sales_orders/);
   assert.match(sql,/create or replace function public\.register_sales_order/);
   assert.match(sql,/create or replace function public\.set_sales_order_status/);
+  const vendorSql=fs.readFileSync('supabase/sales-order-vendor.sql','utf8');
+  assert.match(vendorSql,/references public\.business_partners\(id\)/);
+  assert.match(vendorSql,/p_vendor_id uuid default null/);
+});
+
+test('registered vendor selection fills its contact details from vendor profile',()=>{
+  const fields=new Map([
+    ['sales_vendor_id',{value:'vendor-2'}],
+    ['sales_vendor_contact',{value:''}]
+  ]);
+  const select=fields.get('sales_vendor_id');
+  select.options=[];
+  select.replaceChildren=function(...options){this.options=options;};
+  select.add=function(option){this.options.push(option);};
+  const context=vm.createContext({
+    document:{getElementById:id=>fields.get(id)},
+    Option:function(text,value){return {textContent:text,value};}
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`salesOrderVendors=[
+    {id:'vendor-1',legal_name:'업체 A',profile:{contact_person:'담당 A',phone:'111'}},
+    {id:'vendor-2',legal_name:'업체 B',profile:{contact_person:'',sales_manager:'담당 B',manager_phone:'222'}}
+  ];populateSalesOrderVendorOptions()`,context);
+  assert.equal(select.options.length,3);
+  assert.equal(fields.get('sales_vendor_contact').value,'담당 B / 222');
+  select.value='vendor-1';
+  vm.runInContext('updateSalesOrderVendorContact()',context);
+  assert.equal(fields.get('sales_vendor_contact').value,'담당 A / 111');
 });

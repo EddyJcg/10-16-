@@ -12,9 +12,13 @@ test('record editing preserves product, sales and FIFO ledger consistency',async
       create function public.inventory_access_allowed() returns boolean language sql as $$ select current_setting('test.active',true) is distinct from 'false' $$;`);
     await db.exec(readFileSync('supabase/fifo.sql','utf8'));
     await db.exec(readFileSync('supabase/item-asset-classification.sql','utf8'));
+    await db.exec(readFileSync('supabase/vendor-management.sql','utf8'));
     const editMigration=readFileSync('supabase/edit-records.sql','utf8');
     await db.exec(editMigration);
     await db.exec(editMigration);
+    const vendorMigration=readFileSync('supabase/sales-order-vendor.sql','utf8');
+    await db.exec(vendorMigration);
+    await db.exec(vendorMigration);
 
     const classification=(await db.query(`select id,name from public.stock_product_classifications
       where inventory_asset_type is not null and not quantity_management_disabled
@@ -32,12 +36,25 @@ test('record editing preserves product, sales and FIFO ledger consistency',async
     assert.equal(updatedProduct.product_name,'Updated item');
     assert.equal(Number(updatedProduct.standard_stock_quantity),8);
 
-    const order=(await db.query(`select public.register_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) as result`,
-      ['SO-EDIT','온라인 수주','Updated item','Updated spec','EA(개)',10,50,'2026-12-31','','','', '2026-01-01'])).rows[0].result;
+    const vendor=(await db.query(`insert into public.business_partners(legal_name,vendor_name,profile)
+      values('테스트 거래처','테스트 거래처', '{"contact_person":"담당자","manager_phone":"010-1234-5678"}')
+      returning id`)).rows[0];
+    const order=(await db.query(`select public.register_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) as result`,
+      ['SO-EDIT','온라인 수주','Updated item','Updated spec','EA(개)',10,50,'2026-12-31','','','', '2026-01-01',vendor.id])).rows[0].result;
+    assert.equal(order.vendor_id,vendor.id);
+    assert.equal(order.vendor_name,'테스트 거래처');
+    assert.equal(order.vendor_contact,'담당자 / 010-1234-5678');
+    await assert.rejects(db.query(`select public.register_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+      ['SO-INVALID-VENDOR','온라인 수주','Updated item','Updated spec','EA(개)',1,1,'2026-12-31','','','', '2026-01-01','00000000-0000-4000-8000-000000000099']),/SALES_ORDER_VENDOR_NOT_FOUND/);
     const changedOrder=(await db.query(`select public.update_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) as result`,
       [order.id,'2026-01-02','SO-EDIT-2','온라인 수주','Updated item','Updated spec','EA(개)',10,75,'2026-12-31','택배','서울','변경'])).rows[0].result;
     assert.equal(changedOrder.order_number,'SO-EDIT-2');
     assert.equal(Number(changedOrder.amount),750);
+    assert.equal(changedOrder.vendor_id,vendor.id,'legacy update calls preserve the saved vendor');
+    await db.query(`update public.business_partners set profile='{"contact_person":"새 담당자","manager_phone":"010-5678-1234"}' where id=$1`,[vendor.id]);
+    const changedVendorOrder=(await db.query(`select public.update_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) as result`,
+      [order.id,'2026-01-02','SO-EDIT-2','온라인 수주','Updated item','Updated spec','EA(개)',10,75,'2026-12-31','택배','서울','변경',vendor.id])).rows[0].result;
+    assert.equal(changedVendorOrder.vendor_contact,'새 담당자 / 010-5678-1234');
 
     const post=async(kind,quantity,cost,date,link=null)=> (await db.query(
       'select public.post_stock_movement($1,$2,$3,$4,$5,$6) as result',

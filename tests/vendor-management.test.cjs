@@ -17,6 +17,8 @@ test('vendor registration screen wires toolbar, type checkboxes and settings',()
   assert.match(script,/async function deleteVendorOption\(id\)/);
   assert.match(script,/type='checkbox'/);
   assert.match(style,/\.vendor-main-grid\{display:grid/);
+  assert.match(style,/\.vendor-toolbar\{display:flex;flex-wrap:wrap;gap:6\.5px;padding:10\.4px 13px/);
+  assert.match(style,/\.vendor-toolbar button\{[^}]*padding:7\.8px 10\.4px;font-size:15\.6px/);
 });
 
 test('vendor lookup matches the query toolbar, conditions and wide result grid',()=>{

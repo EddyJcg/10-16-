@@ -6,8 +6,8 @@
 .vendor-tabbar strong{padding:5px 12px;background:#536169;border-radius:4px}
 .vendor-home-mark{font-size:20px}
 .vendor-tabbar button{margin-left:auto;border:0;background:transparent;color:#fff;font-size:18px}
-.vendor-toolbar{display:flex;flex-wrap:wrap;gap:5px;padding:8px 10px;background:#454e54}
-.vendor-toolbar button{border:0;border-radius:4px;background:transparent;color:#fff;padding:6px 8px;font-size:12px}
+.vendor-toolbar{display:flex;flex-wrap:wrap;gap:6.5px;padding:10.4px 13px;background:#454e54}
+.vendor-toolbar button{border:0;border-radius:5px;background:transparent;color:#fff;padding:7.8px 10.4px;font-size:15.6px}
 .vendor-toolbar button:hover{background:#65737a}
 .vendor-toolbar button[data-vendor-action="save"]{background:#176c52}
 .vendor-body{max-height:none;min-height:0;flex:1;padding:14px 18px;overflow:auto;background:#edf0f5}
@@ -90,6 +90,6 @@
   .vendor-top-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
   .vendor-fields,.vendor-option-form{grid-template-columns:1fr}
   .vendor-section-menu{position:static}
-  .vendor-toolbar{gap:2px}
-  .vendor-toolbar button{font-size:11px;padding:5px}
+  .vendor-toolbar{gap:2.6px;padding:7px 9px}
+  .vendor-toolbar button{font-size:14.3px;padding:6.5px 6.5px}
 }

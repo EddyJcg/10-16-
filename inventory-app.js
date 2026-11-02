@@ -57,6 +57,130 @@ function installDialogInteractions(){
     dialog.append(resizeHandle);
   });
 }
+function installPopupTableTools(){
+  const tableStates=new WeakMap();
+  function columnKey(header,index,duplicates){
+    const clone=header.cloneNode(true);
+    clone.querySelectorAll('button').forEach(button=>button.remove());
+    const label=clone.textContent.trim().replace(/\s+/g,' ').toLocaleLowerCase('ko');
+    const base=label||'column-'+index,occurrence=duplicates.get(base)||0;
+    duplicates.set(base,occurrence+1);
+    return base+'#'+occurrence;
+  }
+  function moveCells(row,keys){
+    const cells=[...(row.cells||row.children)],byKey=new Map(cells.map((cell,index)=>[cell.dataset.popupColumnKey||keys[index],cell]));
+    const order=keys.filter(key=>byKey.has(key));
+    if(order.length!==cells.length)return;
+    const current=cells.map((cell,index)=>cell.dataset.popupColumnKey||keys[index]);
+    if(current.every((key,index)=>key===order[index]))return;
+    order.forEach(key=>row.appendChild(byKey.get(key)));
+  }
+  function prepareTable(dialog,table,index){
+    const header=table.tHead?.rows[0];
+    if(!header)return;
+    let state=tableStates.get(table);
+    if(!state){
+      const duplicates=new Map(),defaultKeys=[...header.cells].map((cell,column)=>columnKey(cell,column,duplicates));
+      const storageKey='inventory-popup-column-order-'+(dialog.id||'dialog')+'-'+(table.id||index);
+      let order=[];
+      try{
+        const saved=JSON.parse(window.localStorage.getItem(storageKey)||'null');
+        if(Array.isArray(saved)&&saved.every(key=>typeof key==='string'))order=saved;
+      }catch{}
+      state={defaultKeys,order,storageKey};
+      tableStates.set(table,state);
+      table.addEventListener('dragstart',event=>{
+        const cell=event.target.closest('th');
+        if(!cell||!table.tHead?.contains(cell)||event.target.closest('button,input,select')){event.preventDefault();return;}
+        state.draggedKey=cell.dataset.popupColumnKey;
+        if(event.dataTransfer){event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',state.draggedKey);}
+      });
+      table.addEventListener('dragover',event=>{if(state.draggedKey)event.preventDefault();});
+      table.addEventListener('drop',event=>{
+        if(!state.draggedKey)return;
+        const currentHeader=table.tHead?.rows[0],target=event.target.closest('th');
+        if(!target||!currentHeader?.contains(target)){state.draggedKey='';return;}
+        event.preventDefault();
+        const from=state.order.indexOf(state.draggedKey),to=state.order.indexOf(target.dataset.popupColumnKey);
+        if(from>=0&&to>=0&&from!==to){
+          const [key]=state.order.splice(from,1);state.order.splice(to,0,key);
+          applyOrder(table,state);
+          try{window.localStorage.setItem(state.storageKey,JSON.stringify(state.order));}catch{}
+          table.dispatchEvent(new CustomEvent('columnorderchange',{detail:{from,to}}));
+        }
+        state.draggedKey='';
+      });
+      table.addEventListener('dragend',()=>{state.draggedKey='';});
+    }
+    [...header.cells].forEach((cell,column)=>{
+      if(!cell.dataset.popupColumnKey)cell.dataset.popupColumnKey=state.defaultKeys[column]||'column-'+column+'#0';
+      cell.draggable=true;
+    });
+    const keys=[...header.cells].map(cell=>cell.dataset.popupColumnKey);
+    [...table.tBodies].flatMap(body=>[...body.rows]).forEach(row=>{
+      if(row.cells.length===1&&row.cells[0].colSpan>1)return;
+      [...row.cells].forEach((cell,column)=>{if(!cell.dataset.popupColumnKey)cell.dataset.popupColumnKey=state.defaultKeys[column]||'column-'+column+'#0';});
+      moveCells(row,keys);
+    });
+    const colgroup=table.querySelector('colgroup');
+    if(colgroup){
+      [...colgroup.children].forEach((column,columnIndex)=>{if(!column.dataset.popupColumnKey)column.dataset.popupColumnKey=state.defaultKeys[columnIndex]||'column-'+columnIndex+'#0';});
+      moveCells(colgroup,keys);
+    }
+    const savedOrder=state.order.filter(key=>keys.includes(key));
+    keys.forEach(key=>{if(!savedOrder.includes(key))savedOrder.push(key);});
+    const orderChanged=savedOrder.some((key,column)=>key!==keys[column]);
+    state.order=savedOrder;
+    if(orderChanged)applyOrder(table,state);
+  }
+  function applyOrder(table,state){
+    const header=table.tHead?.rows[0];
+    if(!header)return;
+    moveCells(header,state.order);
+    const keys=[...header.cells].map(cell=>cell.dataset.popupColumnKey);
+    [...table.tBodies].flatMap(body=>[...body.rows]).forEach(row=>{
+      if(row.cells.length===1&&row.cells[0].colSpan>1)return;
+      moveCells(row,keys);
+    });
+    const colgroup=table.querySelector('colgroup');
+    if(colgroup)moveCells(colgroup,keys);
+    [...table.querySelectorAll('.column-resizer')].forEach((handle,column)=>{handle.dataset.column=String(column);});
+  }
+  function filterDialog(dialog,input){
+    const query=input.value.trim().toLocaleLowerCase('ko');
+    dialog.querySelectorAll('table tbody tr').forEach(row=>{
+      const matches=!query||[...row.cells].some(cell=>cell.textContent.toLocaleLowerCase('ko').includes(query));
+      row.classList.toggle('dialog-table-filter-hidden',!matches);
+    });
+  }
+  function prepareDialog(dialog){
+    const tables=[...dialog.querySelectorAll('table')];
+    if(!tables.length)return;
+    let input=dialog.querySelector('.dialog-table-filter input');
+    if(!input){
+      const header=dialog.querySelector('.dialog-header');
+      if(!header)return;
+      const filter=document.createElement('label');
+      filter.className='dialog-table-filter';
+      const title=dialog.querySelector('.dialog-header h2')?.textContent.trim()||'표';
+      filter.textContent=title+' 필터';
+      input=document.createElement('input');input.type='search';input.placeholder='표 전체 검색';
+      input.setAttribute('aria-label',filter.textContent);filter.append(input);
+      header.classList.add('dialog-header-has-filter');
+      const tools=[...header.children].find(child=>child.matches('.print-toolbar,.product-list-toolbar,.close'));
+      header.insertBefore(filter,tools||null);
+      input.addEventListener('input',()=>filterDialog(dialog,input));
+    }
+    tables.forEach((table,index)=>prepareTable(dialog,table,index));
+    filterDialog(dialog,input);
+  }
+  function initialize(){document.querySelectorAll('dialog').forEach(prepareDialog);}
+  initialize();
+  if(typeof MutationObserver!=='undefined'&&document.body){
+    const observer=new MutationObserver(initialize);
+    observer.observe(document.body,{childList:true,subtree:true});
+  }
+}
 const number = value => Number(value || 0).toLocaleString('ko-KR',{maximumFractionDigits:2});
 const money = number;
 const MODE_LABELS = {opening:['기초재고','기초','기초일자'],receipt:['입고등록','입고','입고일자'],issue:['출고등록','출고','출고일자']};
@@ -972,6 +1096,14 @@ function startColumnResizing(tableId,columnsId,storageKey,defaults) {
     try {window.localStorage.setItem(storageKey,JSON.stringify(widths));} catch {}
   }
   columns.forEach((_,index)=>applyWidth(index,widths[index]));
+  table.addEventListener('columnorderchange',event=>{
+    const {from,to}=event.detail;
+    if(from<0||to<0||from>=columns.length||to>=columns.length)return;
+    columns.splice(to,0,columns.splice(from,1)[0]);
+    widths.splice(to,0,widths.splice(from,1)[0]);
+    widths.forEach((width,index)=>applyWidth(index,width));
+    saveWidths();
+  });
   table.addEventListener('pointerdown',event=>{
     const handle=event.target.closest('.column-resizer');
     if(!handle||!table.contains(handle))return;
@@ -1301,6 +1433,7 @@ async function exportExcel() {
 }
 async function startApp(){
   installDialogInteractions();
+  installPopupTableTools();
   $('message').textContent='로그인 상태를 확인하고 있습니다…';
   $('today').textContent=new Date().toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'long',day:'numeric',weekday:'long'});renderHeaders();render();
   if(!window.supabase){$('login-panel').hidden=false;notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}

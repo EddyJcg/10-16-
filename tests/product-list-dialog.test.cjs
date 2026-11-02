@@ -254,7 +254,7 @@ test('product information status title remains without the item count',()=>{
   assert.doesNotMatch(html,/product-info-status-count/);
   assert.doesNotMatch(script,/product-info-status-count/);
 });
-test('product information status has separate product code, name, and specification filters',()=>{
+test('product information status searches each condition independently and allows selecting a result',()=>{
   const html=readFileSync('inventory.html','utf8');
   const queries={
     'product-info-status-code-query':{value:' sku-2 '},
@@ -268,22 +268,38 @@ test('product information status has separate product code, name, and specificat
   };
   const body={children:[],append(child){this.children.push(child);},replaceChildren(...children){this.children=children;}};
   const context=vm.createContext({
-    document:{getElementById:element,createElement:()=>({children:[],dataset:{},append(...children){this.children.push(...children);}})},
+    document:{getElementById:element,createElement:()=>({children:[],dataset:{},append(...children){this.children.push(...children);},setAttribute(){}})},
     makeCell:value=>({textContent:String(value)}),number:value=>String(value)
   });
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`items=[
-    {product_code:'SKU-2',product_name:'Backpack Alpha',specification:'Spec-2'},
-    {product_code:'SKU-2',product_name:'Backpack Beta',specification:'Spec-3'},
-    {product_code:'SKU-3',product_name:'Backpack Gamma',specification:'Spec-2'},
-    {product_code:'SKU-4',product_name:'Other',specification:'Spec-2'}
+    {id:'item-1',product_code:'SKU-2',product_name:'Backpack Alpha',specification:'Spec-2'},
+    {id:'item-2',product_code:'SKU-2',product_name:'Backpack Beta',specification:'Spec-3'},
+    {id:'item-3',product_code:'SKU-3',product_name:'Backpack Gamma',specification:'Spec-2'},
+    {id:'item-4',product_code:'SKU-4',product_name:'Other',specification:'Spec-2'}
   ]`,context);
   vm.runInContext('renderProductInfoStatus()',context);
-  assert.equal(body.children.length,1,'all entered fields should match the same product');
+  assert.equal(body.children.length,4,'a match in any entered condition should be displayed');
+  queries['product-info-status-name-query'].value='';
+  queries['product-info-status-specification-query'].value='';
+  vm.runInContext('renderProductInfoStatus()',context);
+  assert.equal(body.children.length,2,'a single product-code condition should return all matching products');
+  queries['product-info-status-code-query'].value='';
+  queries['product-info-status-name-query'].value='backpack';
+  vm.runInContext('renderProductInfoStatus()',context);
+  assert.equal(body.children.length,3,'a single product-name condition should return all matching products');
+  queries['product-info-status-name-query'].value='';
+  queries['product-info-status-specification-query'].value='spec-2';
+  vm.runInContext('renderProductInfoStatus()',context);
+  assert.equal(body.children.length,3,'a single specification condition should return all matching products');
+  const selection=body.children[0].children.at(-1).children[0];
+  assert.equal(selection.textContent,'선택');
+  assert.equal(selection.dataset.productInfoId,'item-1');
+  assert.match(readFileSync('inventory-app.js','utf8'),/\$\('product-info-status-dialog'\)\.close\(\);\$\('product-info-dialog'\)\.showModal\(\);editProductInfo\(button\.dataset\.productInfoId\)/);
   assert.match(html,/for="product-info-status-code-query">품번<input id="product-info-status-code-query"/);
   assert.match(html,/for="product-info-status-name-query">품명<input id="product-info-status-name-query"/);
   assert.match(html,/for="product-info-status-specification-query">규격<input id="product-info-status-specification-query"/);
-  assert.match(html,/여러 조건을 입력하면 모두 일치하는 결과를 표시합니다/);
+  assert.match(html,/검색 결과에서 품목을 선택하면 등록 창에서 내용을 확인하거나 수정할 수 있습니다/);
 });
 test('current stock and movement history table cell text is centered',()=>{
   const style=readFileSync('inventory.css','utf8');

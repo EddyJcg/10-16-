@@ -1194,7 +1194,7 @@ function renderProductInfoStatus() {
     ['product_name',$('product-info-status-name-query').value],
     ['specification',$('product-info-status-specification-query').value]
   ].map(([key,value])=>[key,value.trim().toLocaleLowerCase('ko-KR')]).filter(([,value])=>value);
-  const filtered=items.filter(item=>filters.every(([key,value])=>String(item[key]||'').toLocaleLowerCase('ko-KR').includes(value)));
+  const filtered=items.filter(item=>!filters.length||filters.some(([key,value])=>String(item[key]||'').toLocaleLowerCase('ko-KR').includes(value)));
   body.replaceChildren();
   if(!filtered.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=9;cell.className='empty';cell.textContent=items.length?'검색 결과가 없습니다.':'등록된 품목정보가 없습니다.';row.append(cell);body.append(row);return;}
   filtered.forEach(item=>{
@@ -1202,7 +1202,8 @@ function renderProductInfoStatus() {
     ['product_category','product_code','product_name','specification','material','color','unit'].forEach(key=>row.append(makeCell(item[key]||'')));
     row.append(makeCell(number(item.standard_stock_quantity)+' '+(item.unit||'EA(개)')));
     const action=document.createElement('td'),button=document.createElement('button');
-    button.type='button';button.className='secondary';button.textContent='수정';button.dataset.productInfoId=item.id;
+    button.type='button';button.className='secondary';button.textContent='선택';button.dataset.productInfoId=item.id;
+    button.setAttribute('aria-label',item.product_code+' 품목 선택');
     action.append(button);row.append(action);body.append(row);
   });
 }

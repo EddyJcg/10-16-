@@ -251,18 +251,21 @@ test('current stock and movement history table cell text is centered',()=>{
   const style=readFileSync('inventory.css','utf8');
   assert.match(style,/#current-stock-table th,#current-stock-table td,#movement-list-table th,#movement-list-table td\{text-align:center\}/);
 });
-test('table dialogs provide a shared header filter and draggable persisted columns',()=>{
+test('table dialogs omit the shared header filter and retain draggable persisted columns',()=>{
   const script=readFileSync('inventory-app.js','utf8');
   const style=readFileSync('inventory.css','utf8');
+  const html=readFileSync('inventory.html','utf8');
   assert.match(script,/function installPopupTableTools\(\)/);
-  assert.match(script,/input\.placeholder='표 전체 검색'/);
-  assert.match(script,/cell\.textContent\.toLocaleLowerCase\('ko'\)\.includes\(query\)/);
-  assert.match(script,/dialog-table-filter-hidden/);
+  assert.doesNotMatch(script,/표 전체 검색|dialog-table-filter|filterDialog/);
+  assert.doesNotMatch(style,/dialog-header-has-filter|dialog-table-filter/);
+  assert.match(style,/\.dialog-header-actions\{display:flex;align-items:center;gap:8px;flex:0 0 auto\}/);
+  assert.match(style,/\.intro,\.toolbar,\.session,\.dialog-header,\.dialog-footer\{[^}]*justify-content:space-between/);
+  assert.match(html,/class="dialog-header-actions"><button type="button" id="import-product-info-button"/);
+  assert.match(html,/class="dialog-header-actions"><button type="button" class="secondary" id="import-receipt-button"/);
   assert.match(script,/table\.addEventListener\('dragstart'/);
   assert.match(script,/table\.addEventListener\('drop'/);
   assert.match(script,/inventory-popup-column-order-/);
   assert.match(script,/table\.dispatchEvent\(new CustomEvent\('columnorderchange'/);
   assert.match(script,/installPopupTableTools\(\);/);
-  assert.match(style,/\.dialog-table-filter input/);
   assert.match(style,/th\[draggable="true"\]\{cursor:grab/);
 });

@@ -146,33 +146,9 @@ function installPopupTableTools(){
     if(colgroup)moveCells(colgroup,keys);
     [...table.querySelectorAll('.column-resizer')].forEach((handle,column)=>{handle.dataset.column=String(column);});
   }
-  function filterDialog(dialog,input){
-    const query=input.value.trim().toLocaleLowerCase('ko');
-    dialog.querySelectorAll('table tbody tr').forEach(row=>{
-      const matches=!query||[...row.cells].some(cell=>cell.textContent.toLocaleLowerCase('ko').includes(query));
-      row.classList.toggle('dialog-table-filter-hidden',!matches);
-    });
-  }
   function prepareDialog(dialog){
     const tables=[...dialog.querySelectorAll('table')];
-    if(!tables.length)return;
-    let input=dialog.querySelector('.dialog-table-filter input');
-    if(!input){
-      const header=dialog.querySelector('.dialog-header');
-      if(!header)return;
-      const filter=document.createElement('label');
-      filter.className='dialog-table-filter';
-      const title=dialog.querySelector('.dialog-header h2')?.textContent.trim()||'표';
-      filter.textContent=title+' 필터';
-      input=document.createElement('input');input.type='search';input.placeholder='표 전체 검색';
-      input.setAttribute('aria-label',filter.textContent);filter.append(input);
-      header.classList.add('dialog-header-has-filter');
-      const tools=[...header.children].find(child=>child.matches('.print-toolbar,.product-list-toolbar,.close'));
-      header.insertBefore(filter,tools||null);
-      input.addEventListener('input',()=>filterDialog(dialog,input));
-    }
     tables.forEach((table,index)=>prepareTable(dialog,table,index));
-    filterDialog(dialog,input);
   }
   function initialize(){document.querySelectorAll('dialog').forEach(prepareDialog);}
   initialize();

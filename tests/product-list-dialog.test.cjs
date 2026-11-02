@@ -72,21 +72,21 @@ test('popup close buttons are scaled to 1.3 times their previous size',()=>{
   assert.match(style,/@media\(max-width:850px\)\{\.dialog-header \.close\{font-size:24\.336px\}\}/);
 });
 
-test('all popup buttons use 15px text and fit their button boxes',()=>{
+test('all popup buttons use 18px text and fit their button boxes',()=>{
   const html=readFileSync('inventory.html','utf8');
   const style=readFileSync('popup-button.css','utf8');
-  assert.ok(html.indexOf('href="/popup-button.css?v=20261102-popup-button-font-15"')>html.indexOf('href="/product-info-dialog.css'));
-  assert.match(style,/dialog button\{\s*box-sizing:border-box;\s*font-size:15px!important;\s*line-height:1\.4;\s*\}/);
+  assert.ok(html.indexOf('href="/popup-button.css?v=20261102-popup-button-font-18"')>html.indexOf('href="/product-info-dialog.css'));
+  assert.match(style,/dialog button\{\s*box-sizing:border-box;\s*font-size:18px!important;\s*line-height:1\.4;\s*\}/);
   assert.match(style,/dialog \.dialog-header \.close\{padding:8px 12px\}/);
 });
 
-test('popup text uses 13px while titles and button text keep their sizes',()=>{
+test('all popup text uses 18px except 36px titles',()=>{
   const html=readFileSync('inventory.html','utf8');
   const style=readFileSync('popup-typography.css','utf8');
-  assert.ok(html.indexOf('href="/popup-typography.css?v=20261102-popup-body-font-13"')>html.indexOf('href="/popup-button.css'));
-  assert.match(style,/dialog,\s*dialog \*\{\s*font-size:13px!important;\s*\}/);
+  assert.ok(html.indexOf('href="/popup-typography.css?v=20261102-popup-body-font-18"')>html.indexOf('href="/popup-button.css'));
+  assert.match(style,/dialog,\s*dialog \*\{\s*font-size:18px!important;\s*\}/);
   assert.match(style,/dialog \.dialog-header h2\{\s*font-size:36px!important;\s*\}/);
-  assert.match(style,/dialog button,\s*dialog button \*\{\s*font-size:15px!important;\s*\}/);
+  assert.match(style,/dialog button,\s*dialog button \*\{\s*font-size:18px!important;\s*\}/);
 });
 
 test('product list dialog searches all stock fields and prints the displayed list',()=>{

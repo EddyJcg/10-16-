@@ -20,7 +20,9 @@ test('vendor registration screen wires toolbar, type checkboxes and settings',()
   assert.match(style,/\.vendor-toolbar\{display:flex;flex-wrap:wrap;gap:6\.5px;padding:10\.4px 13px/);
   assert.match(style,/\.vendor-toolbar button\{[^}]*padding:7\.8px 10\.4px;font-size:15\.6px/);
   assert.match(style,/\.vendor-section-menu button\{[^}]*padding:5\.6px 9\.6px;font-size:\.8em/);
-  assert.match(html,/vendor-management\.css\?v=[^"]*section-menu-scale-08/);
+  assert.match(style,/\.vendor-dialog\{zoom:1\.2;width:min\(1133px,80vw\);max-height:78vh\}/);
+  assert.match(style,/\.vendor-dialog>form\{display:flex;flex-direction:column;max-height:78vh\}/);
+  assert.match(html,/vendor-management\.css\?v=[^"]*vendor-dialog-scale-12/);
 });
 
 test('vendor lookup matches the query toolbar, conditions and wide result grid',()=>{

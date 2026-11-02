@@ -1,5 +1,5 @@
-.vendor-dialog{width:min(1360px,96vw);max-height:94vh}
-.vendor-dialog>form{display:flex;flex-direction:column;max-height:94vh}
+.vendor-dialog{zoom:1.2;width:min(1133px,80vw);max-height:78vh}
+.vendor-dialog>form{display:flex;flex-direction:column;max-height:78vh}
 .vendor-dialog .dialog-header{flex:none;padding:12px 20px}
 .vendor-dialog .dialog-header h2{font-size:24px}
 .vendor-tabbar{display:flex;align-items:center;gap:12px;padding:7px 12px;background:#37434a;color:#fff}

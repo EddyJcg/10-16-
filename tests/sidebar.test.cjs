@@ -48,7 +48,8 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   assert.match(nav,/<details id="sales-folder"[^>]*data-sidebar-folder><summary>매출관리<\/summary><div class="folder-children"><button[^>]*id="sales-order-button"[^>]*>수주 입력<\/button><button[^>]*id="sales-status-button"[^>]*>수주 현황<\/button><\/div><\/details>/);
   const purchasePosition=nav.indexOf('id="purchase-folder"'),inventoryPosition=nav.indexOf('id="inventory-folder"');
   assert.ok(nav.indexOf('id="sales-folder"')<purchasePosition&&purchasePosition<inventoryPosition,'발주관리 should appear between 매출관리 and 재고관리');
-  assert.match(nav,/<details id="purchase-folder"[^>]*data-sidebar-folder><summary>발주관리<\/summary><div class="folder-children"><button[^>]*id="purchase-order-button"[^>]*>발주 등록·입고 처리<\/button><\/div><\/details>/);
+  assert.match(nav,/<details id="purchase-folder"[^>]*data-sidebar-folder><summary>발주관리<\/summary><div class="folder-children">[\s\S]*?<details id="purchase-entry-folder"[^>]*><summary>구매발주 품목입력<\/summary><div class="folder-children"><button[^>]*id="purchase-entry-button"[^>]*>품목 입력<\/button><\/div><\/details>[\s\S]*?<details id="purchase-query-folder"[^>]*><summary>구매발주 품목조회<\/summary><div class="folder-children"><button[^>]*id="purchase-query-button"[^>]*>품목 조회<\/button><\/div><\/details>[\s\S]*?<\/div><\/details>/);
+  assert.ok(nav.indexOf('id="purchase-entry-folder"')>purchasePosition&&nav.indexOf('id="purchase-query-folder"')>purchasePosition,'purchase folders should be nested under 발주관리');
   const parentStart=nav.indexOf('<details id="inventory-folder"');
   const parentEnd=nav.indexOf('\n      </div></details>',parentStart);
   assert.ok(parentStart>=0);

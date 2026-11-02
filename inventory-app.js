@@ -455,9 +455,15 @@ async function loadPurchaseOrders(){
     throw error;
   }finally{purchaseLoading=false;}
 }
-async function showPurchaseOrders(){
+async function showPurchaseOrders(mode='entry'){
   if(!currentUser||busy||purchaseSaving)return;
   const generation=authGeneration;
+  const isQuery=mode==='query';
+  $('purchase-order-title').textContent=isQuery?'구매발주 품목조회':'구매발주 품목입력';
+  $('purchase-order-description').textContent=isQuery?'저장된 발주와 입고 내역을 조회하고, 미입고 발주 품목을 입고 처리합니다.':'발주 정보를 입력하고 품목을 추가한 뒤 발주를 저장합니다.';
+  $('purchase-order-entry').hidden=isQuery;
+  $('purchase-order-view').hidden=!isQuery;
+  $('save-purchase-order').parentElement.hidden=isQuery;
   resetPurchaseOrderForm();$('purchase-order-dialog').showModal();
   try{await loadStock();populatePurchaseProductOptions();await loadPurchaseOrders();}
   catch(error){if(generation===authGeneration)$('purchase-order-status').textContent='발주 기능을 준비하지 못했습니다. Supabase SQL Editor에서 README의 DB 적용 순서를 확인하세요. '+errorText(error);}
@@ -1799,7 +1805,8 @@ async function startApp(){
   $('cancel-asset-classification-edit').addEventListener('click',resetAssetClassificationForm);
   $('asset-classification-items').addEventListener('click',event=>{const button=event.target.closest('[data-classification-id]');if(button)editAssetClassification(button.dataset.classificationId);});
   $('sales-order-button').addEventListener('click',showSalesOrder);
-  $('purchase-order-button').addEventListener('click',showPurchaseOrders);
+  $('purchase-entry-button').addEventListener('click',()=>showPurchaseOrders('entry'));
+  $('purchase-query-button').addEventListener('click',()=>showPurchaseOrders('query'));
   $('close-purchase-order').addEventListener('click',()=>$('purchase-order-dialog').close());
   $('purchase-order-form').addEventListener('submit',savePurchaseOrder);
   $('add-purchase-line').addEventListener('click',addPurchaseDraftLine);

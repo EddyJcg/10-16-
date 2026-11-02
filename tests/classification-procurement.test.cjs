@@ -23,7 +23,11 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(app,/option\.textContent=classification\.name\+\(classification\.inventory_asset_type\?/);
   assert.doesNotMatch(app,/option\.disabled=!classification\.inventory_asset_type/);
   assert.match(app,/if\(!selectedClassification\?\.inventory_asset_type\)/);
-  assert.match(html,/id="purchase-order-button"/);
+  assert.match(html,/id="purchase-entry-button"/);
+  assert.match(html,/id="purchase-query-button"/);
+  assert.match(app,/async function showPurchaseOrders\(mode='entry'\)[\s\S]*purchase-order-entry'\)\.hidden=isQuery[\s\S]*purchase-order-view'\)\.hidden=!isQuery/);
+  assert.match(app,/\$\('purchase-entry-button'\)\.addEventListener\('click',\(\)=>showPurchaseOrders\('entry'\)\)/);
+  assert.match(app,/\$\('purchase-query-button'\)\.addEventListener\('click',\(\)=>showPurchaseOrders\('query'\)\)/);
   assert.match(html,/id="purchase-draft-items"/);
   assert.match(html,/id="purchase-receive-form"/);
   assert.match(app,/client\.rpc\('create_purchase_order'/);

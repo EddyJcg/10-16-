@@ -184,7 +184,7 @@ let appliedDateProductIds = null,appliedSupplier = '',searching = false;
 let productListDateIds = null,productListSupplier = '',productListQuery = '',productListSearching = false;
 let movementListRows = [],movementListLoading = false;
 let movementListKind='';
-function movementListLabel(){return movementListKind==='opening'?'기초재고 내역':movementListKind==='receipt'?'입고 내역':movementListKind==='issue'?'출고 내역':'입출고 내역';}
+function movementListLabel(){return movementListKind==='opening'?'기초재고 내역':movementListKind==='receipt'?'입고 현황':movementListKind==='issue'?'출고 내역':'입출고 내역';}
 let salesOrders = [],salesDraftLines=[],salesOrdersLoading = false,salesOrderSaving = false;
 let purchaseOrders=[],purchaseOrderLines=[],purchaseReceipts=[],purchaseDraftLines=[],purchaseOrderVendors=[],purchaseOrderVendorsLoaded=false,purchaseLoading=false,purchaseSaving=false,purchaseSyncTimer=null;
 let receivingPurchaseLineId='',receivingPurchaseRequestId='';
@@ -1536,7 +1536,7 @@ function filteredMovementListRows() {
 }
 function renderMovementList() {
   const shown=filteredMovementListRows(),itemsById=new Map(items.map(item=>[item.id,item]));
-  const body=$('movement-list-items');body.replaceChildren();$('movement-list-count').textContent=shown.length?shown.length.toLocaleString('ko-KR')+'건':'';
+  const body=$('movement-list-items');body.replaceChildren();
   if(!shown.length){
     const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=14;cell.className='empty';
     cell.textContent=movementListRows.length?'검색 조건에 맞는 내역이 없습니다.':'기록된 '+movementListLabel()+'이 없습니다.';row.append(cell);body.append(row);return;

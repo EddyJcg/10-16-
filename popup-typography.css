@@ -2,7 +2,8 @@ dialog,
 dialog *{
   font-size:18px!important;
 }
-dialog .dialog-header h2{
+dialog .dialog-header h2,
+dialog .dialog-header h2 *{
   font-size:36px!important;
 }
 dialog button,

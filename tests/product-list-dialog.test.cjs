@@ -83,9 +83,9 @@ test('all popup buttons use 18px text and fit their button boxes',()=>{
 test('all popup text uses 18px except 36px titles',()=>{
   const html=readFileSync('inventory.html','utf8');
   const style=readFileSync('popup-typography.css','utf8');
-  assert.ok(html.indexOf('href="/popup-typography.css?v=20261102-popup-body-font-18"')>html.indexOf('href="/popup-button.css'));
+  assert.ok(html.indexOf('href="/popup-typography.css?v=20261102-popup-title-content-36"')>html.indexOf('href="/popup-button.css'));
   assert.match(style,/dialog,\s*dialog \*\{\s*font-size:18px!important;\s*\}/);
-  assert.match(style,/dialog \.dialog-header h2\{\s*font-size:36px!important;\s*\}/);
+  assert.match(style,/dialog \.dialog-header h2,\s*dialog \.dialog-header h2 \*\{\s*font-size:36px!important;\s*\}/);
   assert.match(style,/dialog button,\s*dialog button \*\{\s*font-size:18px!important;\s*\}/);
 });
 

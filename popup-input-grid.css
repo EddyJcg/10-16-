@@ -1,0 +1,63 @@
+@media(min-width:851px){
+  dialog .form-grid,
+  dialog .transaction-grid,
+  dialog .product-list-search,
+  dialog .sales-status-filters,
+  dialog .vendor-top-fields,
+  dialog .vendor-fields,
+  dialog .vendor-option-form,
+  dialog .vendor-query-grid,
+  dialog .purchase-product-details,
+  dialog .print-margin-inputs{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+  }
+  dialog .sales-order-wide,
+  dialog .purchase-order-wide,
+  dialog .vendor-field-wide,
+  dialog .vendor-option-wide{
+    grid-column:1/-1;
+  }
+  dialog .purchase-order-line-form>button{grid-column:auto}
+}
+@media(min-width:601px) and (max-width:850px){
+  dialog .form-grid,
+  dialog .transaction-grid,
+  dialog .product-list-search,
+  dialog .sales-status-filters,
+  dialog .vendor-top-fields,
+  dialog .vendor-fields,
+  dialog .vendor-option-form,
+  dialog .vendor-query-grid,
+  dialog .purchase-product-details,
+  dialog .print-margin-inputs{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  dialog .sales-order-wide,
+  dialog .purchase-order-wide,
+  dialog .vendor-field-wide,
+  dialog .vendor-option-wide,
+  dialog .purchase-order-line-form>button{
+    grid-column:1/-1;
+  }
+}
+@media(max-width:600px){
+  dialog .form-grid,
+  dialog .transaction-grid,
+  dialog .product-list-search,
+  dialog .sales-status-filters,
+  dialog .vendor-top-fields,
+  dialog .vendor-fields,
+  dialog .vendor-option-form,
+  dialog .vendor-query-grid,
+  dialog .purchase-product-details,
+  dialog .print-margin-inputs{
+    grid-template-columns:minmax(0,1fr);
+  }
+  dialog .sales-order-wide,
+  dialog .purchase-order-wide,
+  dialog .vendor-field-wide,
+  dialog .vendor-option-wide,
+  dialog .purchase-order-line-form>button{
+    grid-column:auto;
+  }
+}

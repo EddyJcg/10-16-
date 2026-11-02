@@ -51,7 +51,9 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   assert.ok(nav.indexOf('id="basic-info-folder"')<nav.indexOf('id="vendor-info-entry-folder"')&&nav.indexOf('id="vendor-status-button"')<nav.indexOf('id="sales-folder"'),'vendor actions should be inside 기본정보');
   assert.ok(!nav.includes('vendor-registration-folder')&&!nav.includes('vendor-query-folder')&&!nav.includes('vendor-status-folder')&&!nav.includes('<summary>거래처 현황</summary>'),'remove duplicate vendor folders');
   assert.ok(nav.indexOf('id="sales-folder"')<nav.indexOf('id="inventory-folder"'),'매출관리 should appear above 재고관리');
-  assert.match(nav,/<details id="sales-folder"[^>]*data-sidebar-folder><summary>매출관리<\/summary><div class="folder-children"><button[^>]*id="sales-order-button"[^>]*>수주 입력<\/button><button[^>]*id="sales-status-button"[^>]*>수주 현황<\/button><details id="sales-registration-folder"[^>]*><summary>매출등록<\/summary><div class="folder-children"><button[^>]*id="sales-register-button"[^>]*>매출 등록<\/button><\/div><\/details><details id="sales-status-query-folder"[^>]*><summary>매출현황 조회<\/summary><div class="folder-children"><button[^>]*id="sales-status-query-button"[^>]*>매출현황 조회<\/button><\/div><\/details><\/div><\/details>/);
+  assert.match(nav,/<details id="sales-folder"[^>]*data-sidebar-folder><summary>매출관리<\/summary><div class="folder-children"><button[^>]*id="sales-order-button"[^>]*>수주 입력<\/button><button[^>]*id="sales-status-button"[^>]*>수주 현황<\/button><button[^>]*id="sales-register-button"[^>]*>매출등록<\/button><details id="sales-status-query-folder"[^>]*><summary>매출현황 조회<\/summary><div class="folder-children"><button[^>]*id="sales-status-query-button"[^>]*>매출현황 조회<\/button><\/div><\/details><\/div><\/details>/);
+  assert.ok(!nav.includes('sales-registration-folder'),'매출등록은 중복 폴더 없이 매출관리 아래에 표시');
+  assert.match(fs.readFileSync('purchase-folder-icon.css','utf8'),/#sales-status-query-folder>summary::before\{content:none;display:none\}/);
   const purchasePosition=nav.indexOf('id="purchase-folder"'),inventoryPosition=nav.indexOf('id="inventory-folder"');
   assert.ok(nav.indexOf('id="sales-folder"')<purchasePosition&&purchasePosition<inventoryPosition,'발주관리 should appear between 매출관리 and 재고관리');
   assert.match(nav,/<details id="purchase-folder"[^>]*data-sidebar-folder><summary>발주관리<\/summary><div class="folder-children">[\s\S]*?<details id="purchase-entry-folder"[^>]*><summary>구매발주 품목입력<\/summary><div class="folder-children"><button[^>]*id="purchase-entry-button"[^>]*>품목 입력<\/button><\/div><\/details>[\s\S]*?<details id="purchase-query-folder"[^>]*><summary>구매발주 품목조회<\/summary><div class="folder-children"><button[^>]*id="purchase-query-button"[^>]*>품목 조회<\/button><\/div><\/details>[\s\S]*?<\/div><\/details>/);
@@ -89,7 +91,7 @@ test('procurement folder uses the supplied settings icon without a background',(
   const html=fs.readFileSync('inventory.html','utf8');
   const style=fs.readFileSync('purchase-folder-icon.css','utf8');
   const icon=fs.readFileSync('purchase-settings.svg','utf8');
-  assert.match(html,/href="\/purchase-folder-icon\.css\?v=20261102-hide-purchase-subfolder-icons"/);
+  assert.match(html,/href="\/purchase-folder-icon\.css\?v=20261102-sales-folder-icon-adjustment"/);
   assert.match(style,/#purchase-folder>summary::before\{[^}]*width:29\.9px;height:29\.9px[^}]*mask:url\('\/purchase-settings\.svg'\)/);
   assert.match(style,/#purchase-entry-folder>summary::before,#purchase-query-folder>summary::before\{content:none;display:none\}/);
   assert.doesNotMatch(icon,/<rect\b|<image\b/i);

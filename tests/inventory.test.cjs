@@ -63,6 +63,11 @@ test('stock entry dialogs provide a shortcut to edit prior opening, receipt and 
   assert.match(app,/movementListKind=\['opening','receipt','issue'\]\.includes\(kind\)\?kind:''/);
   assert.match(app,/movementListKind==='opening'\?'기초재고 내역'/);
 });
+test('receipt dialog uses the registration title and hides its history edit shortcut',()=>{
+  const app=fs.readFileSync('inventory-app.js','utf8');
+  assert.match(app,/receipt:\['입고등록','입고','입고일자'\]/);
+  assert.match(app,/edit-existing-movement'\)\.hidden=mode==='receipt'/);
+});
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);

@@ -1,4 +1,6 @@
 .purchase-order-line-form>button{height:42px;margin-bottom:16px;white-space:nowrap}
+#purchase-order-entry .field>label{font-size:18.72px}
+#purchase-order-entry>h3{font-size:18.2px}
 .purchase-product-details{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0 16px;margin-top:4px}
 .purchase-product-details input[readonly]{background:#f3f6f3;color:#526b5c}
 .purchase-order-dialog .dialog-footer #save-purchase-order{transform:scale(.8);transform-origin:right center}

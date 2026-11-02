@@ -59,6 +59,9 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(app,/function updatePurchaseProductDetails\(\)[\s\S]*item\?\.classification_name\|\|item\?\.product_category[\s\S]*item\?\.inventory_asset_type[\s\S]*item\?\.unit[\s\S]*item\?\.material[\s\S]*item\?\.color/);
   assert.match(app,/\$\('purchase-line-product'\)\.addEventListener\('change',updatePurchaseProductDetails\)/);
   assert.match(purchaseStyle,/\.purchase-order-line-form>button\{height:42px;margin-bottom:16px/);
+  assert.match(purchaseStyle,/#purchase-order-entry \.field>label\{font-size:18\.72px\}/);
+  assert.match(purchaseStyle,/#purchase-order-entry>h3\{font-size:18\.2px\}/);
+  assert.match(html,/purchase-order\.css\?v=20261102-purchase-entry-label-size/);
   assert.match(purchaseStyle,/\.purchase-order-dialog \.dialog-footer #save-purchase-order\{transform:scale\(\.8\)/);
   assert.match(purchaseStyle,/\.purchase-product-details\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(purchaseStyle,/@media\(max-width:520px\)\{\.purchase-product-details\{grid-template-columns:1fr\}\}/);

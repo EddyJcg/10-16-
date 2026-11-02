@@ -18,7 +18,7 @@ function render(){
   renderLongStock();
   $('total-value').textContent=money(items.reduce((sum,item)=>sum+Number(item.stock_amount||0),0))+'원';
   const shown=filterInventoryItems(ledgerItems,{query:$('search').value,availability:$('filter').value,dateProductIds:appliedDateProductIds,supplier:appliedSupplier});
-  $('list-count').textContent=shown.length+'개';$('items').replaceChildren();
+  $('items').replaceChildren();
   if(!shown.length)emptyRow($('items'),STOCK_DISPLAY_FIELDS.length+1,ledgerItems.length?'검색 조건에 맞는 품목이 없습니다.':'재고수량관리를 하는 품목을 품목정보에 등록하세요.');
   shown.forEach((item,index)=>{const row=document.createElement('tr');row.append(makeCell(number(index+1),true));STOCK_DISPLAY_FIELDS.forEach(field=>{const cell=makeCell(field.numeric?number(item[field.key]):item[field.key]||(field.key==='unit'?'EA(개)':''),field.numeric);if(field.key==='product_code'){const button=document.createElement('button');button.className='code-button';button.textContent=item.product_code;button.setAttribute('aria-label',item.product_code+' 입고별 잔량 보기');button.addEventListener('click',()=>showLots(item));cell.replaceChildren(button);}row.append(cell);});$('items').append(row);});
 }

@@ -44,6 +44,14 @@ test('sidebar opens the searchable full product list in a modal dialog',()=>{
     assert.ok(html.includes(detail));
 });
 
+test('main inventory heading does not display the item count',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const renderer=readFileSync('inventory-render.js','utf8');
+  assert.match(html,/<h2>재고 수불부<\/h2>/);
+  assert.doesNotMatch(html,/id="list-count"/);
+  assert.doesNotMatch(renderer,/list-count/);
+});
+
 test('product list dialog searches all stock fields and prints the displayed list',()=>{
   const script=readFileSync('inventory-app.js','utf8');
   const style=readFileSync('inventory.css','utf8');

@@ -1,5 +1,62 @@
 'use strict';
 const $ = id => document.getElementById(id);
+function installDialogInteractions(){
+  document.querySelectorAll('dialog:not(.search-calendar)').forEach(dialog=>{
+    const header=dialog.querySelector('.dialog-header');
+    if(!header)return;
+    let activePointerId=null,interaction=null;
+    const pinToRect=rect=>{
+      dialog.style.left=rect.left+'px';dialog.style.top=rect.top+'px';dialog.style.transform='none';
+    };
+    const finish=event=>{
+      if(event.pointerId!==activePointerId)return;
+      activePointerId=null;interaction=null;
+    };
+    const move=event=>{
+      if(event.pointerId!==activePointerId||!interaction)return;
+      if(interaction.type==='drag'){
+        const left=Math.max(0,Math.min(window.innerWidth-80,event.clientX-interaction.offsetX));
+        const top=Math.max(0,Math.min(window.innerHeight-header.offsetHeight,event.clientY-interaction.offsetY));
+        dialog.style.left=left+'px';dialog.style.top=top+'px';
+        return;
+      }
+      const maxWidth=Math.max(100,window.innerWidth-interaction.left-16);
+      const maxHeight=Math.max(100,window.innerHeight-interaction.top-16);
+      const width=Math.max(Math.min(280,maxWidth),Math.min(maxWidth,interaction.width+event.clientX-interaction.x));
+      const height=Math.max(Math.min(180,maxHeight),Math.min(maxHeight,interaction.height+event.clientY-interaction.y));
+      dialog.style.setProperty('width',width+'px','important');
+      dialog.style.setProperty('height',height+'px','important');
+    };
+    const begin=(event,type)=>{
+      if(!dialog.open||event.button!==0)return;
+      event.preventDefault();
+      activePointerId=event.pointerId;const rect=dialog.getBoundingClientRect();
+      pinToRect(rect);
+      if(type==='drag')interaction={type,offsetX:event.clientX-rect.left,offsetY:event.clientY-rect.top};
+      else{
+        dialog.style.setProperty('width',rect.width+'px','important');
+        dialog.style.setProperty('height',rect.height+'px','important');
+        interaction={type,width:rect.width,height:rect.height,left:rect.left,top:rect.top,x:event.clientX,y:event.clientY};
+      }
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    };
+    header.addEventListener('pointerdown',event=>{
+      if(event.target.closest('button,a,input,select,textarea,[contenteditable="true"]'))return;
+      begin(event,'drag');
+    });
+    header.addEventListener('pointermove',move);
+    header.addEventListener('pointerup',finish);
+    header.addEventListener('pointercancel',finish);
+    const resizeHandle=document.createElement('button');
+    resizeHandle.type='button';resizeHandle.className='dialog-resize-handle';
+    resizeHandle.setAttribute('aria-label','창 크기 조절');
+    resizeHandle.addEventListener('pointerdown',event=>begin(event,'resize'));
+    resizeHandle.addEventListener('pointermove',move);
+    resizeHandle.addEventListener('pointerup',finish);
+    resizeHandle.addEventListener('pointercancel',finish);
+    dialog.append(resizeHandle);
+  });
+}
 const number = value => Number(value || 0).toLocaleString('ko-KR',{maximumFractionDigits:2});
 const money = number;
 const MODE_LABELS = {opening:['기초재고','기초','기초일자'],receipt:['입고등록','입고','입고일자'],issue:['출고등록','출고','출고일자']};
@@ -1243,6 +1300,7 @@ async function exportExcel() {
   }catch{notify('Excel 파일을 만들지 못했습니다.',true);}finally{exporting=false;$('export').disabled=false;}
 }
 async function startApp(){
+  installDialogInteractions();
   $('message').textContent='로그인 상태를 확인하고 있습니다…';
   $('today').textContent=new Date().toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'long',day:'numeric',weekday:'long'});renderHeaders();render();
   if(!window.supabase){$('login-panel').hidden=false;notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}

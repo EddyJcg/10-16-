@@ -118,6 +118,38 @@ test('issue dialog uses the registration title and hides its history edit shortc
   assert.match(app,/issue:\['출고등록','출고','출고일자'\]/);
   assert.match(app,/edit-existing-movement'\)\.hidden=mode==='receipt'\|\|mode==='issue'/);
 });
+test('all dialogs can be dragged by the header and resized with the corner handle',()=>{
+  const handlers={},header={offsetHeight:40,handlers,addEventListener(event,handler){handlers[event]=handler;},setPointerCapture(){}};
+  const handle={handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},setAttribute(name,value){this[name]=value;},setPointerCapture(){}};
+  const style={setProperty(name,value,priority){this[name]=value;this[name+'Priority']=priority;}};
+  const dialog={open:true,style,querySelector:()=>header,append(node){this.resizeHandle=node;},getBoundingClientRect:()=>({left:100,top:100,width:600,height:400})};
+  const context=vm.createContext({
+    document:{querySelectorAll:selector=>{assert.equal(selector,'dialog:not(.search-calendar)');return[dialog];},createElement:()=>handle},
+    window:{innerWidth:1200,innerHeight:900}
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext('installDialogInteractions()',context);
+  const pointer=(currentTarget,clientX,clientY)=>({button:0,pointerId:1,clientX,clientY,currentTarget,target:{closest:()=>null},preventDefault(){}});
+  handlers.pointerdown(pointer(header,110,120));
+  handlers.pointermove(pointer(header,210,220));
+  handlers.pointerup(pointer(header,210,220));
+  assert.equal(style.left,'200px');
+  assert.equal(style.top,'200px');
+  assert.equal(dialog.resizeHandle['aria-label'],'창 크기 조절');
+  handle.handlers.pointerdown(pointer(handle,700,500));
+  handle.handlers.pointermove(pointer(handle,760,560));
+  handle.handlers.pointerup(pointer(handle,760,560));
+  assert.equal(style.width,'660px');
+  assert.equal(style.height,'460px');
+  assert.equal(style.widthPriority,'important');
+  assert.equal(style.heightPriority,'important');
+});
+test('popup layout keeps desktop size and mobile initial sizing while showing resize control',()=>{
+  const css=fs.readFileSync('inventory.css','utf8');
+  assert.match(css,/@media screen and \(min-width:851px\)\{\s*dialog:not\(\.search-calendar\)\{[\s\S]*?width:66\.6667vw!important;height:66\.6667vh!important/);
+  assert.match(css,/@media screen and \(max-width:850px\)\{\s*dialog:not\(\.search-calendar\)\{[\s\S]*?width:var\(--popup-width,calc\(100vw - 32px\)\)!important;height:auto!important;aspect-ratio:16\/9/);
+  assert.match(css,/\.dialog-resize-handle\{[\s\S]*?cursor:nwse-resize/);
+});
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);

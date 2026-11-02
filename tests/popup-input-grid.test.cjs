@@ -8,7 +8,7 @@ test('all popup input grids use five columns on desktop and responsive columns o
   const head=html.match(/<head>([\s\S]*?)<\/head>/)?.[1]||'';
   const stylesheetLinks=[...head.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map(match=>match[1]);
   const popupInputGridIndex=stylesheetLinks.indexOf('/popup-input-grid.css?v=20261102-all-popups-five-column-inputs');
-  const productInfoStyleIndex=stylesheetLinks.indexOf('/product-info-dialog.css?v=20261102-product-info-text-scale-144');
+  const productInfoStyleIndex=stylesheetLinks.indexOf('/product-info-dialog.css?v=20261102-product-info-text-scale-108');
   assert.ok(popupInputGridIndex>=0,'the shared popup grid stylesheet should be loaded');
   assert.ok(productInfoStyleIndex>popupInputGridIndex,'product information overrides should load after shared popup styles');
 

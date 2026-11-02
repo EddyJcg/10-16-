@@ -1,0 +1,6 @@
+#product-info-dialog .dialog-body .field>label{font-size:17.28px}
+#product-info-dialog .dialog-body input:not([type=checkbox]):not([type=radio]):not([type=range]),
+#product-info-dialog .dialog-body select,
+#product-info-dialog .dialog-body textarea{font-size:17.28px}
+#product-info-dialog table{font-size:14.4px}
+#product-info-dialog #product-info-items button{font-size:13px}

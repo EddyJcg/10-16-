@@ -73,6 +73,15 @@ test('sidebar text sizes are increased by approximately twenty percent',()=>{
   assert.match(style,/\.sidebar-action\{[^}]*font-size:16px/);
   assert.match(style,/\.sidebar-hint\{[^}]*font-size:13px/);
 });
+test('procurement folder uses the supplied settings icon without a background',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  const style=fs.readFileSync('purchase-folder-icon.css','utf8');
+  const icon=fs.readFileSync('purchase-settings.svg','utf8');
+  assert.match(html,/href="\/purchase-folder-icon\.css"/);
+  assert.match(style,/#purchase-folder>summary::before\{[^}]*width:29\.9px;height:29\.9px[^}]*mask:url\('\/purchase-settings\.svg'\)/);
+  assert.doesNotMatch(icon,/<rect\b|<image\b/i);
+  assert.match(icon,/<svg\b[^>]*viewBox="0 0 24 24"/);
+});
 test('pointer resize persists width and folders remember their open state',()=>{
   const app=boot(),resizer=app.elements.get('sidebar-resizer');
   resizer.handlers.pointerdown({button:0,pointerId:1,preventDefault(){}});

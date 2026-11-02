@@ -1,3 +1,2 @@
 #purchase-folder>summary::before{content:'';display:inline-block;flex:0 0 29.9px;width:29.9px;height:29.9px;background:currentColor;-webkit-mask:url('/purchase-settings.svg') center/contain no-repeat;mask:url('/purchase-settings.svg') center/contain no-repeat}
 #purchase-entry-folder>summary::before,#purchase-query-folder>summary::before{content:none;display:none}
-#sales-status-query-folder>summary::before{content:none;display:none}

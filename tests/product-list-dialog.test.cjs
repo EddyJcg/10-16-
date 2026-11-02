@@ -187,7 +187,7 @@ test('movement history columns can be resized by pointer and keyboard and keep t
   const style=readFileSync('inventory.css','utf8');
   const columns=html.match(/<colgroup id="movement-list-columns">([\s\S]*?)<\/colgroup>/)?.[1]||'';
   const resizers=html.match(/class="column-resizer"/g)||[];
-  assert.equal((columns.match(/<col>/g)||[]).length,13);
+  assert.equal((columns.match(/<col>/g)||[]).length,14);
   assert.equal(resizers.length,13);
   assert.match(html,/<th>색상<button class="column-resizer" type="button" data-column="6"/);
   assert.match(html,/<th>단위<button class="column-resizer" type="button" data-column="9"/);

@@ -10,6 +10,8 @@ Supabase 프로젝트의 **SQL Editor**에서 최신 `supabase/schema.sql` 전�
 
 SQL은 공개 재고 권한을 제거하고, 관리자가 허용한 활성 계정만 재고를 사용하도록 RLS를 변경합니다. 버전 관리 및 Realtime은 유지합니다. 기존 공개 버전을 사용했다면 화면 배포와 별도로 이 SQL을 반드시 다시 적용하세요.
 
+품목정보 현황의 등록자 표시, 수정 시 기입된 값 잠금, 규격 중복 방지를 적용하려면 `supabase/item-asset-classification.sql`과 `supabase/edit-records.sql` 적용 후 **`supabase/product-info-controls.sql`**을 실행하세요. 이 SQL은 신규 품목의 등록자 이름(계정 이름 또는 이메일)을 저장하고 품목 수정·규격 중복 규칙을 DB에서도 강제합니다. 기존 품목의 과거 등록자는 기록되어 있지 않으므로 현황에 `기존 등록자`로 표시됩니다. 이미 등록된 규격끼리 중복된 경우 SQL이 예시 규격을 알려주며 중단되므로, 기존 데이터를 정리한 뒤 다시 적용하세요.
+
 최초 관리자 UUID는 `1a5b77e2-e8b2-4f7f-980d-e1974834be5c`로 지정되어 있습니다. Supabase Authentication의 해당 계정이 실제로 존재하고 이메일과 비밀번호가 설정되어 있어야 합니다. SQL은 해당 계정에 재고 접근용 `app_metadata.inventory_access`를 부여합니다. 비밀번호는 SQL에 적지 않습니다.
 
 ## 이전 단순 재고 버전

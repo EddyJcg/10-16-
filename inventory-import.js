@@ -57,7 +57,8 @@ function parseProductImportWorkbook(workbook,classifications,existingItems,units
 
   const classificationByName=new Map(classifications.map(item=>[String(item.name||'').trim(),item]));
   const knownCodes=new Set(existingItems.map(item=>String(item.product_code||'').trim().toUpperCase()));
-  const seenCodes=new Set(),allowedUnits=new Set(units),rows=[],errors=[];
+  const knownSpecifications=new Set(existingItems.map(item=>String(item.specification||'').trim().toLocaleLowerCase('ko-KR')).filter(Boolean));
+  const seenCodes=new Set(),seenSpecifications=new Set(),allowedUnits=new Set(units),rows=[],errors=[];
   sheet.eachRow((row,rowNumber)=>{
     if(rowNumber===1)return;
     const values=Object.fromEntries(PRODUCT_IMPORT_FIELDS.map(field=>{
@@ -85,6 +86,12 @@ function parseProductImportWorkbook(workbook,classifications,existingItems,units
     if(!values.product_name)rowErrors.push('품명 누락');
     if(values.product_name.length>120)rowErrors.push('품명은 120자 이하여야 함');
     if(values.specification.length>200)rowErrors.push('규격은 200자 이하여야 함');
+    const normalizedSpecification=values.specification.trim().toLocaleLowerCase('ko-KR');
+    if(normalizedSpecification){
+      if(knownSpecifications.has(normalizedSpecification))rowErrors.push('이미 등록된 규격');
+      if(seenSpecifications.has(normalizedSpecification))rowErrors.push('파일 안에 중복된 규격');
+      seenSpecifications.add(normalizedSpecification);
+    }
     if(values.material.length>120)rowErrors.push('재질은 120자 이하여야 함');
     if(values.color.length>120)rowErrors.push('색상은 120자 이하여야 함');
     if(!values.unit)rowErrors.push('단위 누락');

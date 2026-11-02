@@ -173,8 +173,8 @@ test('stock risk card opens a printable list and its threshold uses standard sto
   assert.match(html,/data-print="stock-risk"/);
   assert.match(script,/stock-risk':'#stock-risk-dialog table'/);
   assert.match(script,/function showStockRisk\(\)/);
-  assert.match(script,/set_stock_product_standard_stock_quantity/);
-  assert.match(script,/다른 품목정보는 변경되지 않았습니다/);
+  assert.match(script,/PRODUCT_INFO_ALREADY_ASSIGNED/);
+  assert.match(script,/info_standard_stock_quantity'\)\.readOnly/);
   assert.match(renderer,/stockRiskItems\(items\)/);
   assert.match(model,/stock\*5<standard/);
   assert.match(style,/body\[data-print-target="stock-risk"\] #stock-risk-dialog/);
@@ -275,16 +275,16 @@ test('product information status title remains without the item count',()=>{
   assert.doesNotMatch(html,/product-info-status-count/);
   assert.doesNotMatch(script,/product-info-status-count/);
 });
-test('product information registration text is enlarged while edit buttons retain their size',()=>{
+test('product information registration text is enlarged without row edit buttons',()=>{
   const html=readFileSync('inventory.html','utf8');
   const style=readFileSync('product-info-dialog.css','utf8');
   assert.match(html,/product-info-dialog\.css\?v=[^"]*product-info-edit-button-scale-12/);
   assert.match(style,/#product-info-dialog \.dialog-body \.field>label\{font-size:20\.52864px\}/);
   assert.match(style,/#product-info-dialog \.dialog-body input:not\(\[type=checkbox\]\):not\(\[type=radio\]\):not\(\[type=range\]\),[\s\S]*?#product-info-dialog \.dialog-body textarea\{font-size:20\.52864px\}/);
   assert.match(style,/#product-info-dialog table\{font-size:17\.1072px\}/);
-  assert.match(style,/#product-info-dialog #product-info-items button\{padding:9\.6px 15\.6px;border-radius:8\.4px;font-size:15\.6px\}/);
+  assert.doesNotMatch(style,/#product-info-dialog #product-info-items button/);
 });
-test('product information status searches each condition independently and allows selecting a result',()=>{
+test('product information status searches each condition independently and allows editing a result',()=>{
   const html=readFileSync('inventory.html','utf8');
   const queries={
     'product-info-status-code-query':{value:' sku-2 '},
@@ -323,22 +323,85 @@ test('product information status searches each condition independently and allow
   vm.runInContext('renderProductInfoStatus()',context);
   assert.equal(body.children.length,3,'a single specification condition should return all matching products');
   const selection=body.children[0].children.at(-1).children[0];
-  assert.equal(selection.textContent,'선택');
+  assert.equal(selection.textContent,'수정');
   assert.equal(selection.dataset.productInfoId,'item-1');
-  assert.match(readFileSync('inventory-app.js','utf8'),/\$\('product-info-status-dialog'\)\.close\(\);\$\('product-info-dialog'\)\.showModal\(\);editProductInfo\(button\.dataset\.productInfoId\)/);
+  assert.match(readFileSync('inventory-app.js','utf8'),/if\(!window\.confirm\('품목정보를 수정하시겠습니까\?'\)\)return;/);
+  assert.match(html,/등록자명<\/th><th>관리<\/th>/);
   assert.match(html,/for="product-info-status-code-query">품번<input id="product-info-status-code-query"/);
   assert.match(html,/for="product-info-status-name-query">품명<input id="product-info-status-name-query"/);
   assert.match(html,/for="product-info-status-specification-query">규격<input id="product-info-status-specification-query"/);
-  assert.match(html,/검색 결과에서 품목을 선택하면 등록 창에서 내용을 확인하거나 수정할 수 있습니다/);
+  assert.match(html,/검색 결과의 수정 버튼을 누르고 확인하면 등록 창에서 미지정 항목을 추가할 수 있습니다/);
   vm.runInContext(`downloadDataWorkbook=(...args)=>args`,context);
   queries['product-info-status-code-query'].value='';
   queries['product-info-status-name-query'].value='backpack beta';
   queries['product-info-status-specification-query'].value='';
   const exported=vm.runInContext('exportProductInfoStatusExcel()',context);
   assert.equal(exported[0],'export-product-info-status');
-  assert.deepEqual(Array.from(exported[3]),['품목분류','품번','품명','규격','재질','색상','단위','적정재고']);
-  assert.deepEqual(Array.from(exported[4],row=>Array.from(row)),[['','SKU-2','Backpack Beta','Spec-3','','','',0]]);
+  assert.deepEqual(Array.from(exported[3]),['품목분류','품번','품명','규격','재질','색상','단위','적정재고','등록자명']);
+  assert.deepEqual(Array.from(exported[4],row=>Array.from(row)),[['','SKU-2','Backpack Beta','Spec-3','','','',0,'기존 등록자']]);
   assert.deepEqual(Array.from(exported[5]),[7]);
+  assert.match(html,/aria-label="등록된 품목정보"><thead><tr>[\s\S]*?<th>적정재고<\/th><\/tr>/);
+});
+test('product edits require confirmation and lock assigned fields while allowing blank fields',()=>{
+  const elements=new Map(),confirmations=[];
+  const element=id=>{
+    if(!elements.has(id)){
+      const current={value:'',textContent:'',disabled:false,readOnly:false,hidden:false,options:[{value:'',textContent:''}],
+        close(){this.open=false;},showModal(){this.open=true;},focus(){},reset(){},
+        replaceChildren(){this.options=[];},append(option){this.options.push(option);}};
+      elements.set(id,current);
+    }
+    return elements.get(id);
+  };
+  const context=vm.createContext({
+    document:{getElementById:element,createElement:()=>({value:'',textContent:''})},
+    window:{confirm:message=>{confirmations.push(message);return context.confirmResult;}}
+  });
+  vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`items=[{id:'p1',classification_id:'c1',product_category:'원자재',product_code:'SKU-1',
+    product_name:'부품',specification:'규격',material:'철',color:'',unit:'EA(개)',standard_stock_quantity:5}];
+    assetClassifications=[{id:'c1',name:'원자재',inventory_asset_type:'원자재'}];confirmResult=false;`,context);
+  element('product-info-status-dialog').open=true;
+  element('product-info-dialog').open=false;
+  vm.runInContext(`editProductInfo('p1')`,context);
+  assert.equal(element('product-info-status-dialog').open,true,'declining confirmation leaves the status dialog open');
+  assert.equal(element('product-info-dialog').open,false);
+  vm.runInContext('confirmResult=true;editProductInfo("p1")',context);
+  assert.deepEqual(confirmations,['품목정보를 수정하시겠습니까?','품목정보를 수정하시겠습니까?']);
+  assert.equal(element('product-info-status-dialog').open,false);
+  assert.equal(element('product-info-dialog').open,true);
+  for(const id of ['info_product_code','info_product_name','info_specification','info_material','info_unit','info_standard_stock_quantity'])
+    assert.equal(element(id).readOnly||element(id).disabled,true,id+' should be locked');
+  assert.equal(element('info_color').readOnly,false,'an unassigned field remains editable');
+  assert.equal(element('info_product_category').disabled,true);
+});
+test('duplicate product codes and non-empty specifications are detected case-insensitively',()=>{
+  const context=vm.createContext({});
+  vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`items=[{id:'one',product_code:'SKU-1',specification:'Spec-A'}]`,context);
+  assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'sku-1',specification:''})`,context),'품번');
+  assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'SKU-2',specification:' spec-a '})`,context),'규격');
+  assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'SKU-2',specification:''})`,context),'');
+});
+test('duplicate product codes and specifications show blocking warnings before registration',async()=>{
+  const values={
+    info_product_category:'class-1',info_product_code:'sku-1',info_product_name:'New item',
+    info_specification:'New spec',info_material:'',info_color:'',info_unit:'EA(개)',info_standard_stock_quantity:'1'
+  };
+  const alerts=[];
+  const context=vm.createContext({
+    document:{getElementById:id=>({value:values[id]||''})},
+    window:{alert:message=>alerts.push(message)}
+  });
+  vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`currentUser={id:'user'};busy=false;editingProductInfoId='';selectedProductInfoCode='';
+    items=[{id:'existing',product_code:'SKU-1',specification:'Spec-A'}];
+    assetClassifications=[{id:'class-1',name:'원자재',inventory_asset_type:'원자재'}]`,context);
+  await vm.runInContext('saveProductInfo({preventDefault(){}})',context);
+  values.info_product_code='SKU-2';
+  values.info_specification=' spec-a ';
+  await vm.runInContext('saveProductInfo({preventDefault(){}})',context);
+  assert.deepEqual(alerts,['이미 등록된 품번입니다. 다른 품번을 입력하세요.','이미 등록된 규격입니다. 다른 규격을 입력하세요.']);
 });
 test('current stock and movement history table cell text is centered',()=>{
   const style=readFileSync('inventory.css','utf8');

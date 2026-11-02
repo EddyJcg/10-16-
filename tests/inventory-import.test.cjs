@@ -109,6 +109,19 @@ test('product import rejects every invalid row before registration',async()=>{
   assert.match(result.errors.join('\n'),/적정재고는 1~1,000,000의 정수/);
 });
 
+test('product import rejects specifications already in use or repeated in the workbook',async()=>{
+  const workbook=await workbookWith(PRODUCT_IMPORT_FIELDS.map(field=>field.label),[
+    ['원자재','원자재','SKU-001','정상 품목','기존 규격','','','EA(개)',30],
+    ['원자재','원자재','SKU-002','파일 중복 1','새 규격','','','EA(개)',30],
+    ['원자재','원자재','SKU-003','파일 중복 2',' 새 규격 ','','','EA(개)',30],
+    ['원자재','원자재','SKU-004','빈 규격','','','','EA(개)',30]
+  ]);
+  const result=parseProductImportWorkbook(workbook,classifications,[{product_code:'OLD',specification:'기존 규격'}],units);
+  assert.equal(result.rows.length,2);
+  assert.match(result.errors[0],/이미 등록된 규격/);
+  assert.match(result.errors[1],/파일 안에 중복된 규격/);
+});
+
 test('product import opens the native XLSX picker directly without an intermediate dialog',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const dialog=html.match(/<dialog id="product-info-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';

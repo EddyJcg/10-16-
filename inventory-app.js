@@ -417,7 +417,7 @@ function updatePurchaseOrderNumber(){
 function populatePurchaseProductOptions(){
   const select=$('purchase-line-product'),selected=select.value;
   select.replaceChildren();
-  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='등록 품목 선택';select.append(placeholder);
+  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='품목정보 등록에서 선택';select.append(placeholder);
   items.forEach(item=>{
     const option=document.createElement('option');option.value=item.id;
     option.textContent=`${item.product_code} · ${item.product_name} · ${item.product_category}${stockLedgerManaged(item)?' · 재고관리':' · 재고관리 안함'}`;

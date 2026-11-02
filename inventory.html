@@ -313,11 +313,10 @@
           </div>
           <h3>발주 품목</h3>
           <div class="form-grid purchase-order-line-form">
-            <div class="field"><label for="purchase-line-product">품목</label><select id="purchase-line-product" required><option value="">등록 품목 선택</option></select></div>
+            <div class="field"><label for="purchase-line-product">품목</label><select id="purchase-line-product" required><option value="">품목정보 등록에서 선택</option></select></div>
             <div class="field"><label for="purchase-line-quantity">발주수량</label><input id="purchase-line-quantity" type="number" min="1" max="1000000" step="1" required></div>
             <div class="field"><label for="purchase-line-unit-cost">발주단가</label><input id="purchase-line-unit-cost" type="number" min="0" max="1000000000" step="0.01" required></div>
             <div class="field"><label for="purchase-line-expected-date">품목 납기예정일 (선택)</label><input id="purchase-line-expected-date" type="date" min="1900-01-01"></div>
-            <button type="button" class="secondary" id="add-purchase-line">품목 추가</button>
           </div>
           <div class="purchase-product-details" aria-label="선택한 품목의 등록 정보">
             <div class="field"><label for="purchase-product-category">품목자산분류</label><input id="purchase-product-category" readonly placeholder="품목 선택 시 자동 표시"></div>
@@ -334,7 +333,7 @@
           <h3>입고 기록</h3>
           <div class="table-wrap purchase-order-table"><table aria-label="발주 입고 기록"><thead><tr><th>일련번호</th><th>입고일자</th><th>발주번호</th><th>품번</th><th>품명</th><th>수량</th><th>단가</th><th>재고수불부 반영</th></tr></thead><tbody id="purchase-receipt-items"></tbody></table></div>
         </div>
-        <div class="dialog-footer"><button id="save-purchase-order" class="primary">발주 저장</button></div>
+        <div class="dialog-footer"><button type="button" id="add-purchase-line" class="primary">품목 추가</button><button id="save-purchase-order" class="primary">발주 저장</button></div>
       </fieldset>
     </form>
   </dialog>

@@ -3,6 +3,10 @@
 #purchase-order-entry>h3{font-size:18.2px}
 .purchase-product-details{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0 16px;margin-top:4px}
 .purchase-product-details input[readonly]{background:#f3f6f3;color:#526b5c}
-.purchase-order-dialog .dialog-footer #save-purchase-order{transform:scale(.8);transform-origin:right center}
+.purchase-order-dialog .dialog-footer #add-purchase-line,
+.purchase-order-dialog .dialog-footer #save-purchase-order{
+  width:160px;height:48px;display:inline-flex;align-items:center;justify-content:center;
+  padding:0 12px;transform:scale(.8);transform-origin:center;white-space:nowrap
+}
 @media(max-width:850px){.purchase-product-details{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:520px){.purchase-product-details{grid-template-columns:1fr}}

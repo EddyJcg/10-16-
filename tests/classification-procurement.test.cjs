@@ -43,7 +43,14 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(html,/id="purchase-order-number" required maxlength="17" readonly/);
   assert.match(html,/id="purchase-order-date" type="date" required/);
   assert.match(html,/id="purchase-order-supplier" required><option value="">등록 거래처 선택<\/option><\/select>/);
+  assert.match(html,/id="purchase-line-product" required><option value="">품목정보 등록에서 선택<\/option><\/select>/);
+  assert.match(html,/<div class="dialog-footer"><button type="button" id="add-purchase-line" class="primary">품목 추가<\/button><button id="save-purchase-order" class="primary">발주 저장<\/button><\/div>/);
+  const purchaseLineForm=html.match(/<div class="form-grid purchase-order-line-form">([\s\S]*?)<\/div>\s*<div class="purchase-product-details"/)?.[1]||'';
+  assert.ok(purchaseLineForm);
+  assert.doesNotMatch(purchaseLineForm,/id="add-purchase-line"/);
   assert.match(app,/async function loadRegisteredVendors\(\)[\s\S]*from\('business_partners'\)/);
+  assert.match(app,/function populatePurchaseProductOptions\(\)[\s\S]*items\.forEach\(item=>\{[\s\S]*option\.value=item\.id/);
+  assert.match(app,/if\(!items\.some\(item=>item\.id===productId\)\)\{\$\('purchase-order-status'\)\.textContent='등록된 품목을 선택하세요\.'/);
   assert.match(app,/async function loadPurchaseOrderVendors\(\)[\s\S]*populatePurchaseOrderVendorOptions\(\)/);
   assert.match(app,/const supplier=String\(selectedVendor\?\.legal_name\|\|selectedVendor\?\.vendor_name\|\|''\)\.trim\(\)/);
   assert.match(app,/p_order_number:orderNumber,p_supplier:supplier/);
@@ -68,7 +75,7 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(purchaseStyle,/#purchase-order-entry \.field>label\{font-size:18\.72px\}/);
   assert.match(purchaseStyle,/#purchase-order-entry>h3\{font-size:18\.2px\}/);
   assert.match(html,/purchase-order\.css\?v=20261102-purchase-entry-label-size/);
-  assert.match(purchaseStyle,/\.purchase-order-dialog \.dialog-footer #save-purchase-order\{transform:scale\(\.8\)/);
+  assert.match(purchaseStyle,/\.purchase-order-dialog \.dialog-footer #add-purchase-line,[\s\S]*#save-purchase-order\{[\s\S]*width:160px;height:48px[\s\S]*transform:scale\(\.8\)/);
   assert.match(purchaseStyle,/\.purchase-product-details\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(purchaseStyle,/@media\(max-width:520px\)\{\.purchase-product-details\{grid-template-columns:1fr\}\}/);
   assert.match(html,/id="purchase-receive-form"/);

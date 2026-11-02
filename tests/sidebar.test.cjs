@@ -46,6 +46,9 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   assert.match(nav,/<details id="product-info-folder"[^>]*data-sidebar-folder><summary>품목정보 입력<\/summary><div class="folder-children"><button[^>]*id="product-info-button"[^>]*>품목정보 등록<\/button><button[^>]*id="product-info-status-button"[^>]*>품목정보 현황<\/button><\/div><\/details>/);
   assert.ok(nav.indexOf('id="sales-folder"')<nav.indexOf('id="inventory-folder"'),'매출관리 should appear above 재고관리');
   assert.match(nav,/<details id="sales-folder"[^>]*data-sidebar-folder><summary>매출관리<\/summary><div class="folder-children"><button[^>]*id="sales-order-button"[^>]*>수주 입력<\/button><button[^>]*id="sales-status-button"[^>]*>수주 현황<\/button><\/div><\/details>/);
+  const purchasePosition=nav.indexOf('id="purchase-folder"'),inventoryPosition=nav.indexOf('id="inventory-folder"');
+  assert.ok(nav.indexOf('id="sales-folder"')<purchasePosition&&purchasePosition<inventoryPosition,'발주관리 should appear between 매출관리 and 재고관리');
+  assert.match(nav,/<details id="purchase-folder"[^>]*data-sidebar-folder><summary>발주관리<\/summary><div class="folder-children"><button[^>]*id="purchase-order-button"[^>]*>발주 등록·입고 처리<\/button><\/div><\/details>/);
   const parentStart=nav.indexOf('<details id="inventory-folder"');
   const parentEnd=nav.indexOf('\n      </div></details>',parentStart);
   assert.ok(parentStart>=0);
@@ -53,6 +56,7 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   assert.match(nav.slice(parentStart,parentEnd),/<summary>재고관리<\/summary>/);
   for(const folder of ['opening-folder','receipt-folder','issue-folder','stock-folder'])
     assert.ok(nav.indexOf(`id="${folder}"`)>parentStart,`${folder} should be nested under 재고관리`);
+  assert.ok(nav.indexOf('id="purchase-folder"')<parentStart,'발주관리 should be outside 재고관리');
   const adminPosition=nav.indexOf('id="admin-folder"');
   assert.ok(adminPosition>parentEnd,'관리자 should be outside 재고관리');
   assert.ok(adminPosition>nav.indexOf('id="inventory-folder"'),'관리자 should appear after 재고관리');

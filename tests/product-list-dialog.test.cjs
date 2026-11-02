@@ -257,10 +257,10 @@ test('product information status title remains without the item count',()=>{
 test('product information registration text is enlarged while edit buttons retain their size',()=>{
   const html=readFileSync('inventory.html','utf8');
   const style=readFileSync('product-info-dialog.css','utf8');
-  assert.match(html,/product-info-dialog\.css\?v=[^"]*product-info-text-scale-108/);
-  assert.match(style,/#product-info-dialog \.dialog-body \.field>label\{font-size:18\.6624px\}/);
-  assert.match(style,/#product-info-dialog \.dialog-body input:not\(\[type=checkbox\]\):not\(\[type=radio\]\):not\(\[type=range\]\),[\s\S]*?#product-info-dialog \.dialog-body textarea\{font-size:18\.6624px\}/);
-  assert.match(style,/#product-info-dialog table\{font-size:15\.552px\}/);
+  assert.match(html,/product-info-dialog\.css\?v=[^"]*product-info-text-scale-121/);
+  assert.match(style,/#product-info-dialog \.dialog-body \.field>label\{font-size:20\.52864px\}/);
+  assert.match(style,/#product-info-dialog \.dialog-body input:not\(\[type=checkbox\]\):not\(\[type=radio\]\):not\(\[type=range\]\),[\s\S]*?#product-info-dialog \.dialog-body textarea\{font-size:20\.52864px\}/);
+  assert.match(style,/#product-info-dialog table\{font-size:17\.1072px\}/);
   assert.match(style,/#product-info-dialog #product-info-items button\{font-size:13px\}/);
 });
 test('product information status searches each condition independently and allows selecting a result',()=>{

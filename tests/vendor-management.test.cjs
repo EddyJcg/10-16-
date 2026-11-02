@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
 
 test('vendor registration screen wires toolbar, type checkboxes and settings',()=>{
-  const html=readFileSync('inventory.html','utf8'),script=readFileSync('vendor-management.js','utf8'),style=readFileSync('vendor-management.css','utf8');
+  const html=readFileSync('inventory.html','utf8'),script=readFileSync('vendor-management.js','utf8'),style=readFileSync('vendor-management.css','utf8'),baseStyle=readFileSync('inventory.css','utf8');
   for(const id of ['vendor-dialog','vendor-form','vendor-entry-button','vendor-status-button','vendor-toolbar','vendor-type-items','vendor-list-dialog','vendor-option-dialog'])
     assert.ok(html.includes(`id="${id}"`),`${id} should exist`);
   for(const action of ['new','query','save','copy','remove-types','delete'])
@@ -22,6 +22,8 @@ test('vendor registration screen wires toolbar, type checkboxes and settings',()
   assert.match(style,/\.vendor-section-menu button\{[^}]*padding:5\.6px 9\.6px;font-size:\.8em/);
   assert.match(style,/\.vendor-dialog\{zoom:1\.2;width:min\(1133px,80vw\);max-height:78vh\}/);
   assert.match(style,/\.vendor-dialog>form\{display:flex;flex-direction:column;max-height:78vh\}/);
+  assert.match(baseStyle,/dialog \.dialog-header h2\{font-size:36px\}/);
+  assert.match(style,/\.vendor-dialog \.dialog-header h2\{font-size:36px\}/);
   assert.match(html,/vendor-management\.css\?v=[^"]*vendor-dialog-scale-12/);
 });
 

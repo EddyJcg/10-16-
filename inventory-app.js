@@ -1,8 +1,8 @@
 'use strict';
 const $ = id => document.getElementById(id);
 function installDialogInteractions(){
-  document.querySelectorAll('dialog:not(.search-calendar)').forEach(dialog=>{
-    const header=dialog.querySelector('.dialog-header');
+  document.querySelectorAll('dialog').forEach(dialog=>{
+    const header=dialog.querySelector('.dialog-header,.calendar-title');
     if(!header)return;
     let activePointerId=null,interaction=null;
     const pinToRect=rect=>{

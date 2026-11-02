@@ -122,9 +122,9 @@ test('all dialogs can be dragged by the header and resized with the corner handl
   const handlers={},header={offsetHeight:40,handlers,addEventListener(event,handler){handlers[event]=handler;},setPointerCapture(){}};
   const handle={handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},setAttribute(name,value){this[name]=value;},setPointerCapture(){}};
   const style={setProperty(name,value,priority){this[name]=value;this[name+'Priority']=priority;}};
-  const dialog={open:true,style,querySelector:()=>header,append(node){this.resizeHandle=node;},getBoundingClientRect:()=>({left:100,top:100,width:600,height:400})};
+  const dialog={open:true,style,querySelector:selector=>{assert.equal(selector,'.dialog-header,.calendar-title');return header;},append(node){this.resizeHandle=node;},getBoundingClientRect:()=>({left:100,top:100,width:600,height:400})};
   const context=vm.createContext({
-    document:{querySelectorAll:selector=>{assert.equal(selector,'dialog:not(.search-calendar)');return[dialog];},createElement:()=>handle},
+    document:{querySelectorAll:selector=>{assert.equal(selector,'dialog');return[dialog];},createElement:()=>handle},
     window:{innerWidth:1200,innerHeight:900}
   });
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);

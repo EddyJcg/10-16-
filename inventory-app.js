@@ -628,7 +628,7 @@ function openMovement(kind) {
   if(!items.some(item=>item.quantity_management_disabled!==true)){window.alert('재고수량관리를 하는 품목정보를 먼저 등록해 주세요.');return;}
   mode = kind;editingMovementId='';$('save-movement').textContent='저장';const [title,prefix,dateLabel] = MODE_LABELS[mode];
   $('movement-form').reset(); selectedCode=''; productLots=[]; productLotsReady=false; lotsGeneration++; requestId=crypto.randomUUID();
-  $('dialog-title').textContent = title;
+  $('dialog-title').textContent = mode==='opening'?'기초재고 등록':title;
   $('dialog-description').textContent = mode==='issue' ? '먼저 들어온 입고 건부터 자동 차감합니다.' : '품목정보에 등록된 품번을 선택하세요.';
   $('date-label').textContent=dateLabel; $('quantity-label').textContent=prefix+'수량'; $('cost-label').textContent=prefix+'단가'; $('amount-label').textContent=prefix+'금액';
   $('movement_date').value=todayDate(); $('movement_date').max=todayDate();
@@ -645,7 +645,7 @@ function openMovement(kind) {
   });
   updateAmounts(); $('movement-dialog').showModal();
   $('edit-existing-movement').textContent=MODE_LABELS[mode][0]+' 내역 수정';
-  $('edit-existing-movement').hidden=mode==='receipt'||mode==='issue';
+  $('edit-existing-movement').hidden=true;
   if(mode==='issue')loadSalesOrders();
 }
 async function loadAssetClassifications() {

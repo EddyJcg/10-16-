@@ -56,17 +56,23 @@ test('movement product selectors offer SKU and specification lookups',()=>{
   assert.match(html,/<input id="specification"[^>]*list="product-specifications"/);
   assert.match(html,/<datalist id="product-specifications"><\/datalist>/);
 });
-test('stock entry dialogs provide a shortcut to edit prior opening, receipt and issue records',()=>{
+test('stock entry dialogs hide the history edit shortcut',()=>{
   const app=fs.readFileSync('inventory-app.js','utf8');
   assert.match(app,/button\.id='edit-existing-movement'/);
   assert.match(app,/button\.addEventListener\('click',openMovementHistoryForEdit\)/);
   assert.match(app,/movementListKind=\['opening','receipt','issue'\]\.includes\(kind\)\?kind:''/);
   assert.match(app,/movementListKind==='opening'\?'기초재고 내역'/);
+  assert.match(app,/edit-existing-movement'\)\.hidden=true/);
+});
+test('opening dialog title is registration and does not show the history edit shortcut',()=>{
+  const app=fs.readFileSync('inventory-app.js','utf8');
+  assert.match(app,/mode==='opening'\?'기초재고 등록':title/);
+  assert.match(app,/edit-existing-movement'\)\.hidden=true/);
 });
 test('receipt dialog uses the registration title and hides its history edit shortcut',()=>{
   const app=fs.readFileSync('inventory-app.js','utf8');
   assert.match(app,/receipt:\['입고등록','입고','입고일자'\]/);
-  assert.match(app,/edit-existing-movement'\)\.hidden=mode==='receipt'/);
+  assert.match(app,/edit-existing-movement'\)\.hidden=true/);
 });
 test('receipt save asks for missing storage location and supplier before saving',async()=>{
   const nodes=new Map();
@@ -116,7 +122,7 @@ test('receipt prompt ignore action submits once without reopening the prompt',as
 test('issue dialog uses the registration title and hides its history edit shortcut',()=>{
   const app=fs.readFileSync('inventory-app.js','utf8');
   assert.match(app,/issue:\['출고등록','출고','출고일자'\]/);
-  assert.match(app,/edit-existing-movement'\)\.hidden=mode==='receipt'\|\|mode==='issue'/);
+  assert.match(app,/edit-existing-movement'\)\.hidden=true/);
 });
 test('all dialogs can be dragged by the header and resized with the corner handle',()=>{
   const handlers={},header={offsetHeight:40,handlers,addEventListener(event,handler){handlers[event]=handler;},setPointerCapture(){}};

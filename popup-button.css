@@ -1,0 +1,6 @@
+dialog button{
+  box-sizing:border-box;
+  font-size:15px!important;
+  line-height:1.4;
+}
+dialog .dialog-header .close{padding:8px 12px}

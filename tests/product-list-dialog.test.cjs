@@ -72,6 +72,14 @@ test('popup close buttons are scaled to 1.3 times their previous size',()=>{
   assert.match(style,/@media\(max-width:850px\)\{\.dialog-header \.close\{font-size:24\.336px\}\}/);
 });
 
+test('all popup buttons use 15px text and fit their button boxes',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const style=readFileSync('popup-button.css','utf8');
+  assert.ok(html.indexOf('href="/popup-button.css?v=20261102-popup-button-font-15"')>html.indexOf('href="/product-info-dialog.css'));
+  assert.match(style,/dialog button\{\s*box-sizing:border-box;\s*font-size:15px!important;\s*line-height:1\.4;\s*\}/);
+  assert.match(style,/dialog \.dialog-header \.close\{padding:8px 12px\}/);
+});
+
 test('product list dialog searches all stock fields and prints the displayed list',()=>{
   const script=readFileSync('inventory-app.js','utf8');
   const style=readFileSync('inventory.css','utf8');

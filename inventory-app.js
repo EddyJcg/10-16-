@@ -3,8 +3,114 @@ const $ = id => document.getElementById(id);
 function stockLedgerManaged(item) {
   return item.quantity_management_disabled!==true&&item.value_management_disabled!==true;
 }
+let minimizedDialogs=new Map(),dialogInteractionsInstalled=false;
+function removeMinimizedDialog(dialog){
+  const restoreButton=minimizedDialogs.get(dialog);
+  if(restoreButton){
+    restoreButton.remove();
+    minimizedDialogs.delete(dialog);
+  }
+  const tray=document.getElementById('minimized-dialogs');
+  if(tray)tray.hidden=minimizedDialogs.size===0;
+}
+function clearMinimizedDialogs(){
+  minimizedDialogs.forEach((button,dialog)=>{
+    clearTimeout(dialog.__minimizeTimeout);
+    dialog.__minimized=false;
+    dialog.classList.remove('dialog-minimizing');
+    dialog.classList.remove('dialog-expanded');
+    button.remove();
+  });
+  minimizedDialogs.clear();
+  const tray=document.getElementById('minimized-dialogs');
+  if(tray)tray.hidden=true;
+}
 function installDialogInteractions(){
-  document.querySelectorAll('dialog').forEach(dialog=>{
+  if(dialogInteractionsInstalled)return;
+  dialogInteractionsInstalled=true;
+  const initializedDialogs=new WeakSet();
+  const installWindowControls=dialog=>{
+    if(initializedDialogs.has(dialog))return;
+    initializedDialogs.add(dialog);
+    const closeButton=dialog.querySelector('.close');
+    const host=dialog.querySelector('.dialog-header,.calendar-title,[role="toolbar"]')||closeButton?.parentElement||dialog;
+    const controls=document.createElement('span');
+    controls.className='dialog-window-controls';
+    const minimizeButton=document.createElement('button');
+    minimizeButton.type='button';minimizeButton.className='dialog-window-button dialog-minimize-button';
+    minimizeButton.setAttribute('aria-label','팝업 축소');minimizeButton.title='축소';
+    const minimizeIcon=document.createElement('span');
+    minimizeIcon.className='dialog-minimize-icon';minimizeIcon.setAttribute('aria-hidden','true');
+    minimizeButton.appendChild(minimizeIcon);
+    const expandButton=document.createElement('button');
+    expandButton.type='button';expandButton.className='dialog-window-button dialog-expand-button';
+    expandButton.setAttribute('aria-label','전체화면 확대');expandButton.title='전체화면 확대';
+    const expandIcon=document.createElement('span');
+    expandIcon.className='dialog-expand-icon';expandIcon.setAttribute('aria-hidden','true');
+    expandButton.appendChild(expandIcon);
+    controls.appendChild(minimizeButton);controls.appendChild(expandButton);
+    if(closeButton?.parentNode)closeButton.parentNode.insertBefore(controls,closeButton);
+    else host.appendChild(controls);
+    const title=dialog.querySelector('h1,h2,h3')?.textContent.trim()
+      ||(dialog.getAttribute('aria-label')||'').trim()||'팝업창';
+    minimizeButton.addEventListener('click',()=>{
+      if(!dialog.open||dialog.__minimized)return;
+      dialog.__minimized=true;
+      const tray=document.getElementById('minimized-dialogs')||document.createElement('div');
+      if(!tray.id){
+        tray.id='minimized-dialogs';tray.className='minimized-dialogs';tray.hidden=true;
+        tray.setAttribute('role','region');tray.setAttribute('aria-label','축소된 팝업');
+        document.body.appendChild(tray);
+      }
+      const restoreButton=document.createElement('button');
+      restoreButton.type='button';restoreButton.className='minimized-dialog-button';
+      restoreButton.textContent=title+' 복원';restoreButton.setAttribute('aria-label',title+' 팝업 복원');
+      restoreButton.addEventListener('click',()=>{
+        removeMinimizedDialog(dialog);dialog.__minimized=false;
+        dialog.classList.remove('dialog-minimizing');
+        if(!dialog.open)dialog.showModal();
+      });
+      minimizedDialogs.set(dialog,restoreButton);tray.appendChild(restoreButton);tray.hidden=false;
+      dialog.classList.add('dialog-minimizing');
+      dialog.__minimizeTimeout=setTimeout(()=>{
+        dialog.__minimizeTimeout=null;
+        if(dialog.open&&dialog.__minimized)dialog.close('minimized');
+        dialog.classList.remove('dialog-minimizing');
+      },180);
+    });
+    expandButton.addEventListener('click',()=>{
+      if(dialog.classList.contains('dialog-expanded')){
+        dialog.classList.remove('dialog-expanded');
+        const previous=dialog.__expandedStyle||{};
+        Object.entries(previous).forEach(([property,[value,priority]])=>{
+          if(value)dialog.style.setProperty(property,value,priority);
+          else dialog.style.removeProperty(property);
+        });
+        dialog.__expandedStyle=null;
+        expandButton.setAttribute('aria-label','전체화면 확대');
+        expandButton.title='전체화면 확대';expandButton.setAttribute('aria-pressed','false');
+        return;
+      }
+      const properties=['width','height','max-width','max-height','left','top','transform','margin','border-radius'];
+      dialog.__expandedStyle=Object.fromEntries(properties.map(property=>[
+        property,[dialog.style.getPropertyValue(property),dialog.style.getPropertyPriority(property)]
+      ]));
+      properties.forEach(property=>dialog.style.removeProperty(property));
+      dialog.classList.add('dialog-expanded');
+      expandButton.setAttribute('aria-label','팝업 크기 복원');
+      expandButton.title='원래 크기로 복원';expandButton.setAttribute('aria-pressed','true');
+    });
+    dialog.addEventListener('close',()=>{
+      clearTimeout(dialog.__minimizeTimeout);dialog.__minimizeTimeout=null;
+      dialog.classList.remove('dialog-minimizing');
+      if(!dialog.__minimized){
+        removeMinimizedDialog(dialog);
+        if(dialog.classList.contains('dialog-expanded'))expandButton.click();
+      }
+    });
+  };
+  const installDialog=dialog=>{
+    installWindowControls(dialog);
     const header=dialog.querySelector('.dialog-header,.calendar-title');
     const sizeStorageKey=dialog.id?'inventory-dialog-size-'+dialog.id:null;
     if(sizeStorageKey){
@@ -92,7 +198,23 @@ function installDialogInteractions(){
       edge.addEventListener('pointercancel',finish);
       dialog.append(edge);
     });
-  });
+  };
+  document.querySelectorAll('dialog').forEach(installDialog);
+  if(typeof MutationObserver!=='undefined'&&document.body){
+    const observer=new MutationObserver(records=>records.forEach(record=>{
+      if(record.type==='childList')record.addedNodes.forEach(node=>{
+        if(node.nodeType!==1)return;
+        if(node.matches?.('dialog'))installDialog(node);
+        node.querySelectorAll?.('dialog').forEach(installDialog);
+      });
+      if(record.type==='attributes'&&record.target.open&&record.target.__minimized){
+        record.target.__minimized=false;
+        record.target.classList.remove('dialog-minimizing');
+        removeMinimizedDialog(record.target);
+      }
+    }));
+    observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});
+  }
 }
 function installPopupTableTools(){
   const tableStates=new WeakMap();
@@ -966,6 +1088,7 @@ async function updateSession(session) {
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
+    clearMinimizedDialogs();
     $('movement-dialog').close(); $('product-info-dialog').close(); $('product-info-status-dialog').close(); $('asset-classification-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('purchase-order-dialog').close(); $('purchase-receive-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try {

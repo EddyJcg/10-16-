@@ -8,3 +8,37 @@
 .dialog-resize-top:hover,.dialog-resize-bottom:hover{background:linear-gradient(transparent 45%,#23654e55 45% 55%,transparent 55%)}
 .dialog-resize-left:hover,.dialog-resize-right:hover{background:linear-gradient(90deg,transparent 45%,#23654e55 45% 55%,transparent 55%)}
 .dialog-resize-edge:focus-visible{outline:2px solid #23654e;outline-offset:-2px}
+
+.dialog-window-controls{display:inline-flex;align-items:center;gap:2px;flex:0 0 auto}
+.dialog-window-button{
+  display:inline-flex!important;align-items:center;justify-content:center;
+  width:28px!important;height:28px!important;min-width:28px;padding:0!important;
+  border:0!important;border-radius:4px!important;background:transparent!important;
+  color:#68766d;cursor:pointer
+}
+.dialog-window-button:hover{background:#e8eee9!important;color:#294c3a}
+.dialog-window-button:active{background:#dce7df!important}
+.dialog-minimize-icon{width:10px;height:1px;background:currentColor}
+.dialog-expand-icon{width:9px;height:9px;border:1px solid currentColor}
+.dialog-expanded .dialog-expand-icon{width:9px;height:8px;border:1px solid currentColor;border-top-width:2px}
+dialog.dialog-minimizing{opacity:0;transform:scale(.97);transition:opacity 180ms ease,transform 180ms ease}
+dialog.dialog-expanded[open]:not(.search-calendar){
+  position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;
+  max-width:none!important;max-height:none!important;margin:0!important;transform:none!important;
+  border-radius:0!important
+}
+dialog.dialog-expanded[open]:not(.search-calendar) .dialog-body{max-height:calc(100dvh - 180px)}
+.minimized-dialogs{
+  position:fixed;right:18px;bottom:18px;z-index:10000;display:flex;flex-direction:column;
+  gap:6px;max-width:min(360px,calc(100vw - 32px));padding:8px;
+  border:1px solid #ccd8ce;border-radius:9px;background:#fff;
+  box-shadow:0 8px 28px #173f3333;animation:minimized-dialog-appear 180ms ease-out
+}
+.minimized-dialog-button{
+  display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;
+  border:1px solid #d4dfd6;border-radius:6px;background:#f8faf8;color:#345543;
+  text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.minimized-dialog-button:hover{background:#eaf2ec}
+@keyframes minimized-dialog-appear{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){dialog.dialog-minimizing,.minimized-dialogs{transition:none;animation:none}}

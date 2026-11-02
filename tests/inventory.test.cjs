@@ -5,6 +5,89 @@ const vm=require('node:vm');
 const {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,planFifo,validDate,filterInventoryItems,stockRiskItems,stockAgingRows,sixMonthsAgoDate,salesOrderStatus}=require('../inventory-model.js');
 const {CURRENT_STOCK_FIELDS,currentStockRows}=require('../inventory-model.js');
 
+function makeDialogHarness(dialogOptions=[]){
+  const elements=new Map(),timers=[],observers=[];
+  const makeNode=tagName=>{
+    const listeners={},attributes={},styleValues={},stylePriorities={},children=[];
+    const node={
+      nodeType:1,tagName:tagName.toUpperCase(),children,attributes,listeners,parentNode:null,hidden:false,textContent:'',open:false,
+      style:{
+        setProperty(name,value,priority=''){styleValues[name]=String(value);stylePriorities[name]=priority;this[name]=String(value);this[name+'Priority']=priority;},
+        getPropertyValue(name){return styleValues[name]||'';},
+        getPropertyPriority(name){return stylePriorities[name]||'';},
+        removeProperty(name){delete styleValues[name];delete stylePriorities[name];delete this[name];delete this[name+'Priority'];}
+      },
+      classList:{
+        add(name){const names=new Set(node.className.split(/\s+/).filter(Boolean));names.add(name);node.className=[...names].join(' ');},
+        remove(name){node.className=node.className.split(/\s+/).filter(value=>value&&value!==name).join(' ');},
+        contains(name){return node.className.split(/\s+/).includes(name);}
+      },
+      addEventListener(type,listener){listeners[type]=listener;},
+      setAttribute(name,value){attributes[name]=String(value);if(name!=='open')node[name]=String(value);if(name==='id')node.id=String(value);},
+      getAttribute(name){return attributes[name]??null;},
+      appendChild(child){if(child.parentNode)child.remove();children.push(child);child.parentNode=node;return child;},
+      append(...nodes){nodes.forEach(child=>node.appendChild(child));},
+      insertBefore(child,reference){if(child.parentNode)child.remove();const index=children.indexOf(reference);children.splice(index<0?children.length:index,0,child);child.parentNode=node;return child;},
+      remove(){if(!node.parentNode)return;const siblings=node.parentNode.children,index=siblings.indexOf(node);if(index>=0)siblings.splice(index,1);node.parentNode=null;},
+      matches(selector){return selector==='dialog'&&node.tagName==='DIALOG';},
+      querySelectorAll(){return[];},
+      setPointerCapture(){}
+    };
+    node.style=new Proxy(node.style,{
+      set(target,name,value){target[name]=value;if(typeof name==='string'&&!['setProperty','getPropertyValue','getPropertyPriority','removeProperty'].includes(name))styleValues[name]=String(value);return true;},
+      deleteProperty(target,name){delete target[name];delete styleValues[name];delete stylePriorities[name];return true;}
+    });
+    Object.defineProperty(node,'className',{get(){return attributes.class||'';},set(value){attributes.class=String(value);}});
+    node.handlers=listeners;
+    node.dispatch=(type,event={})=>listeners[type]?.(event);
+    return node;
+  };
+  const body=makeNode('body');
+  const dialogs=dialogOptions.map(options=>{
+    const dialog=makeNode('dialog');dialog.id=options.id||'test-dialog';dialog.open=options.open!==false;
+    const header=options.header===false?null:makeNode('div'),close=options.close===false?null:makeNode('button');
+    const title=options.title===false?null:makeNode('h2');
+    if(header){header.className='dialog-header';header.offsetHeight=40;body.appendChild(header);}
+    if(title){title.textContent=options.title||'테스트 팝업';if(header)header.appendChild(title);}
+    if(close){close.className='close';if(header)header.appendChild(close);}
+    dialog.querySelector=selector=>{
+      if(selector==='.dialog-header,.calendar-title,[role="toolbar"]')return header;
+      if(selector==='.dialog-header,.calendar-title')return header;
+      if(selector==='.close')return close;
+      if(selector==='h1,h2,h3')return title;
+      return null;
+    };
+    dialog.getBoundingClientRect=()=>{
+      const left=parseFloat(dialog.style.getPropertyValue('left')||'100'),top=parseFloat(dialog.style.getPropertyValue('top')||'100');
+      const width=parseFloat(dialog.style.getPropertyValue('width')||'600'),height=parseFloat(dialog.style.getPropertyValue('height')||'400');
+      return{left,top,right:left+width,bottom:top+height,width,height};
+    };
+    dialog.showModal=()=>{dialog.open=true;dialog.setAttribute('open','');};
+    dialog.close=()=>{if(!dialog.open)return;dialog.open=false;delete dialog.attributes.open;dialog.dispatch('close');};
+    elements.set(dialog.id,dialog);return dialog;
+  });
+  const document={
+    body,
+    querySelectorAll:selector=>selector==='dialog'?dialogs:[],
+    getElementById:id=>{
+      if(elements.has(id))return elements.get(id);
+      const find=node=>node.id===id?node:node.children.map(find).find(Boolean)||null;
+      return find(body);
+    },
+    createElement:tagName=>makeNode(tagName)
+  };
+  class TestMutationObserver{
+    constructor(callback){this.callback=callback;observers.push(this);}
+    observe(target,options){this.target=target;this.options=options;}
+    notify(records){this.callback(records);}
+  }
+  const context=vm.createContext({
+    document,window:{innerWidth:1200,innerHeight:900,localStorage:{getItem:key=>elements.get('store:'+key)||null,setItem(key,value){elements.set('store:'+key,value);}}},
+    MutationObserver:TestMutationObserver,setTimeout:callback=>{timers.push(callback);return timers.length;},clearTimeout(){}
+  });
+  return{context,dialogs,body,elements,timers,observers,makeNode};
+}
+
 test('current stock keeps all workbook fields except opening, receipt and issue totals',()=>{
   assert.deepEqual(CURRENT_STOCK_FIELDS.map(field=>field.label),['품목분류','품번','품명','규격','재질','색상','단위','재고수량','재고단가','재고금액','저장위치','납품업체']);
 });
@@ -125,15 +208,11 @@ test('issue dialog uses the registration title and hides its history edit shortc
   assert.match(app,/edit-existing-movement'\)\.hidden=true/);
 });
 test('all dialogs can be dragged by the header and resized from every edge and corner',()=>{
-  const handlers={},header={offsetHeight:40,handlers,addEventListener(event,handler){handlers[event]=handler;},setPointerCapture(){}};
-  const handles=[];
-  const style={setProperty(name,value,priority){this[name]=value;this[name+'Priority']=priority;}};
-  const sizeStore=new Map();
-  const dialog={id:'test-dialog',open:true,style,querySelector:selector=>{assert.equal(selector,'.dialog-header,.calendar-title');return header;},append(node){handles.push(node);},getBoundingClientRect:()=>{const left=parseFloat(style.left||100),top=parseFloat(style.top||100),width=parseFloat(style.width||600),height=parseFloat(style.height||400);return{left,top,right:left+width,bottom:top+height,width,height};}};
-  const context=vm.createContext({
-    document:{querySelectorAll:selector=>{assert.equal(selector,'dialog');return[dialog];},createElement:()=>{const handle={handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},setAttribute(name,value){this[name]=value;},setPointerCapture(){}};handles.push(handle);return handle;}},
-    window:{innerWidth:1200,innerHeight:900,localStorage:{getItem:key=>sizeStore.get(key)||null,setItem:(key,value)=>sizeStore.set(key,value)}}
-  });
+  const {context,dialogs:[dialog],elements}=makeDialogHarness([{id:'test-dialog'}]);
+  const header=dialog.querySelector('.dialog-header,.calendar-title');
+  const handles=dialog.children;
+  const handlers=header.handlers,style=dialog.style;
+  const sizeStore={get:key=>elements.get('store:'+key)};
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext('installDialogInteractions()',context);
   const pointer=(currentTarget,clientX,clientY)=>({button:0,pointerId:1,clientX,clientY,currentTarget,target:{closest:()=>null},preventDefault(){}});
@@ -176,28 +255,72 @@ test('all dialogs can be dragged by the header and resized from every edge and c
   assert.deepEqual(JSON.parse(sizeStore.get('inventory-dialog-size-test-dialog')),{width:700,height:500});
 });
 test('dialogs without a header still receive all four resize edges',()=>{
-  const handles=[],style={setProperty(name,value){this[name]=value;}};
-  const dialog={open:true,style,querySelector:()=>null,append(node){handles.push(node);},getBoundingClientRect:()=>({left:40,top:50,right:440,bottom:350,width:400,height:300})};
-  const context=vm.createContext({
-    document:{querySelectorAll:()=>[dialog],createElement:()=>({handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},setAttribute(name,value){this[name]=value;},setPointerCapture(){}})},
-    window:{innerWidth:1000,innerHeight:800}
-  });
+  const {context,dialogs:[dialog]}=makeDialogHarness([{id:'no-header-dialog',header:false,close:false}]);
+  dialog.getBoundingClientRect=()=>({left:40,top:50,right:440,bottom:350,width:400,height:300});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext('installDialogInteractions()',context);
+  const handles=dialog.children.filter(node=>node.className?.includes('dialog-resize-'));
   assert.equal(handles.length,5,'four side handles and the existing corner handle should be installed');
   assert.deepEqual(handles.slice(1).map(handle=>handle['aria-label']),[
     '창 위쪽 가장자리 크기 조절','창 오른쪽 가장자리 크기 조절',
     '창 아래쪽 가장자리 크기 조절','창 왼쪽 가장자리 크기 조절'
   ]);
 });
+test('dialogs can be minimized to the restore tray and expanded back to their original size',()=>{
+  const {context,dialogs:[dialog],body,timers}=makeDialogHarness([{id:'window-controls-dialog',title:'품목정보'}]);
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext('installDialogInteractions()',context);
+  const header=dialog.querySelector('.dialog-header,.calendar-title');
+  const controls=header.children.find(node=>node.className==='dialog-window-controls');
+  const [minimizeButton,expandButton]=controls.children;
+
+  minimizeButton.dispatch('click');
+  assert.equal(dialog.classList.contains('dialog-minimizing'),true);
+  const tray=body.children.find(node=>node.id==='minimized-dialogs');
+  assert.ok(tray);
+  assert.equal(tray.hidden,false);
+  assert.equal(tray.children[0].textContent,'품목정보 복원');
+  timers[0]();
+  assert.equal(dialog.open,false);
+  tray.children[0].dispatch('click');
+  assert.equal(dialog.open,true);
+  assert.equal(tray.hidden,true);
+  assert.equal(dialog.__minimized,false);
+
+  dialog.style.setProperty('width','620px','important');
+  dialog.style.setProperty('left','120px');
+  expandButton.dispatch('click');
+  assert.equal(dialog.classList.contains('dialog-expanded'),true);
+  assert.equal(dialog.style.getPropertyValue('width'),'');
+  assert.equal(expandButton.getAttribute('aria-pressed'),'true');
+  expandButton.dispatch('click');
+  assert.equal(dialog.classList.contains('dialog-expanded'),false);
+  assert.equal(dialog.style.getPropertyValue('width'),'620px');
+  assert.equal(dialog.style.getPropertyPriority('width'),'important');
+  assert.equal(dialog.style.getPropertyValue('left'),'120px');
+  assert.equal(expandButton.getAttribute('aria-pressed'),'false');
+});
+test('dialogs added after initialization receive popup controls and resize handles',()=>{
+  const {context,body,observers,makeNode}=makeDialogHarness();
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext('installDialogInteractions()',context);
+  assert.equal(observers.length,1);
+  const dialog=makeNode('dialog');dialog.id='dynamic-dialog';dialog.open=true;
+  const header=makeNode('div');header.className='dialog-header';
+  const close=makeNode('button');close.className='close';header.appendChild(close);
+  dialog.querySelector=selector=>selector==='.dialog-header,.calendar-title,[role="toolbar"]'||selector==='.dialog-header,.calendar-title'?header:selector==='.close'?close:null;
+  dialog.getBoundingClientRect=()=>({left:0,top:0,right:400,bottom:300,width:400,height:300});
+  body.appendChild(dialog);
+  observers[0].notify([{type:'childList',addedNodes:[dialog]}]);
+  assert.ok(header.children.some(node=>node.className==='dialog-window-controls'));
+  assert.equal(dialog.children.filter(node=>node.className?.includes('dialog-resize-')).length,5);
+});
 test('dialog sizes restore from browser storage and fit the current viewport',()=>{
-  const style={setProperty(name,value,priority){this[name]=value;this[name+'Priority']=priority;}};
-  const dialog={id:'saved-dialog',style,querySelector:()=>null,append(){},getBoundingClientRect:()=>({width:400,height:300})};
-  const stored=new Map([['inventory-dialog-size-saved-dialog',JSON.stringify({width:900,height:700})]]);
-  const context=vm.createContext({
-    document:{querySelectorAll:()=>[dialog],createElement:()=>({addEventListener(){},setAttribute(){}})},
-    window:{innerWidth:600,innerHeight:500,localStorage:{getItem:key=>stored.get(key)||null,setItem:(key,value)=>stored.set(key,value)}}
-  });
+  const {context,dialogs:[dialog],elements}=makeDialogHarness([{id:'saved-dialog',header:false,close:false}]);
+  const style=dialog.style;
+  elements.set('store:inventory-dialog-size-saved-dialog',JSON.stringify({width:900,height:700}));
+  context.window.innerWidth=600;context.window.innerHeight=500;
+  dialog.getBoundingClientRect=()=>({width:400,height:300});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext('installDialogInteractions()',context);
   assert.equal(style.width,'568px');

@@ -387,8 +387,8 @@ th[draggable="true"]:active{cursor:grabbing}
   .dialog-table-filter{flex-basis:100%;max-width:none;order:3}
 }
 .dialog-header .close{
-  width:auto;height:auto;flex:0 0 auto;padding:8px 13px;
-  border:1px solid #d4dfd6;border-radius:7px;background:white;
-  color:#456450;font-size:13px;font-weight:600;white-space:nowrap;
+  width:auto;height:auto;flex:0 0 auto;padding:10.4px 16.9px;
+  border:1px solid #d4dfd6;border-radius:9.1px;background:white;
+  color:#456450;font-size:16.9px;font-weight:600;white-space:nowrap;
 }
-@media(max-width:850px){.dialog-header .close{font-size:18.72px}}
+@media(max-width:850px){.dialog-header .close{font-size:24.336px}}

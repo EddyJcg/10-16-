@@ -66,6 +66,12 @@ test('every popup has a text close button in its header without a duplicate foot
   assert.match(readFileSync('inventory-app.js','utf8'),/\$\('close-receipt-details'\)\.addEventListener\('click'/);
 });
 
+test('popup close buttons are scaled to 1.3 times their previous size',()=>{
+  const style=readFileSync('inventory.css','utf8');
+  assert.match(style,/\.dialog-header \.close\{[^}]*padding:10\.4px 16\.9px;[^}]*font-size:16\.9px/);
+  assert.match(style,/@media\(max-width:850px\)\{\.dialog-header \.close\{font-size:24\.336px\}\}/);
+});
+
 test('product list dialog searches all stock fields and prints the displayed list',()=>{
   const script=readFileSync('inventory-app.js','utf8');
   const style=readFileSync('inventory.css','utf8');

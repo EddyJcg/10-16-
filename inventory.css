@@ -21,7 +21,7 @@
 .asset-classification-form{padding:18px;background:#f7faf7;border:1px solid #dfe7df;border-radius:10px}
 .asset-classification-form label[for="asset-classification-name"],
 .asset-classification-form label[for="asset-classification-type"],
-.asset-classification-form label[for="asset-classification-notes"]{font-size:18.72px}
+.asset-classification-form label[for="asset-classification-notes"]{font-size:24.336px}
 .asset-classification-form>#save-asset-classification,
 .asset-classification-form .dialog-footer>#save-asset-classification{transform:scale(.81);transform-origin:right center}
 .classification-checkboxes{display:flex;flex-wrap:wrap;gap:10px 22px;padding:6px 0 12px}

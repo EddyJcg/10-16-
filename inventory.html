@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isummerly 매출/재고관리</title><link rel="icon" type="image/png" href="/isummerly-logo.png"><link rel="stylesheet" href="/inventory.css?v=20261022-login-input-font-120-targeted-classification-label-size"><link rel="stylesheet" href="/purchase-folder-icon.css?v=20261102-hide-purchase-subfolder-icons"><link rel="stylesheet" href="/inventory-datepicker.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isummerly 매출/재고관리</title><link rel="icon" type="image/png" href="/isummerly-logo.png"><link rel="stylesheet" href="/inventory.css?v=20261022-login-input-font-120-targeted-classification-label-size"><link rel="stylesheet" href="/purchase-folder-icon.css?v=20261102-hide-purchase-subfolder-icons"><link rel="stylesheet" href="/purchase-order.css"><link rel="stylesheet" href="/inventory-datepicker.css"></head>
 <body>
   <header><div class="brand"><img class="brand-logo" src="/isummerly-logo.png" alt="Isummerly 로고"> ISUMMERLY<span>통합관리시스템</span></div><button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true" hidden>☰ 메뉴 숨기기</button></header>
   <div id="app-layout" class="app-layout">
@@ -175,7 +175,7 @@
       <div class="dialog-header"><div><h2 id="purchase-order-title">발주 등록·입고 처리</h2><p id="purchase-order-description">발주 품목을 입력하고, 입고 시 재고관리 품목은 FIFO 원장에 반영하며 관리 안함 품목은 별도 이력으로 저장합니다.</p></div><button type="button" class="close" id="close-purchase-order" aria-label="발주 창 닫기">닫기</button></div>
       <p id="purchase-order-status" class="product-list-status" role="status" aria-live="polite"></p>
       <fieldset id="purchase-order-editor">
-        <div id="purchase-order-entry" class="dialog-body">
+        <div class="dialog-body" id="purchase-order-entry">
           <div class="form-grid">
             <div class="field"><label for="purchase-order-number">발주번호</label><input id="purchase-order-number" required maxlength="80"></div>
             <div class="field"><label for="purchase-order-supplier">납품업체</label><input id="purchase-order-supplier" required maxlength="120"></div>
@@ -191,9 +191,16 @@
             <div class="field"><label for="purchase-line-expected-date">품목 납기예정일 (선택)</label><input id="purchase-line-expected-date" type="date" min="1900-01-01"></div>
             <button type="button" class="secondary" id="add-purchase-line">품목 추가</button>
           </div>
+          <div class="purchase-product-details" aria-label="선택한 품목의 등록 정보">
+            <div class="field"><label for="purchase-product-category">품목자산분류</label><input id="purchase-product-category" readonly placeholder="품목 선택 시 자동 표시"></div>
+            <div class="field"><label for="purchase-inventory-asset-type">재고자산분류</label><input id="purchase-inventory-asset-type" readonly placeholder="품목 선택 시 자동 표시"></div>
+            <div class="field"><label for="purchase-product-unit">단위</label><input id="purchase-product-unit" readonly placeholder="품목 선택 시 자동 표시"></div>
+            <div class="field"><label for="purchase-product-material">재질</label><input id="purchase-product-material" readonly placeholder="품목 선택 시 자동 표시"></div>
+            <div class="field"><label for="purchase-product-color">색상</label><input id="purchase-product-color" readonly placeholder="품목 선택 시 자동 표시"></div>
+          </div>
           <div class="table-wrap purchase-order-table"><table aria-label="이번 발주 품목"><thead><tr><th>품번</th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>납기예정일</th><th>관리</th></tr></thead><tbody id="purchase-draft-items"></tbody></table></div>
         </div>
-        <div id="purchase-order-view" class="dialog-body">
+        <div class="dialog-body" id="purchase-order-view">
           <h3>발주 및 입고 현황</h3>
           <div class="table-wrap purchase-order-table"><table aria-label="발주 및 입고 현황"><thead><tr><th>일련번호</th><th>발주일자</th><th>발주번호</th><th>업체</th><th>품번</th><th>품명</th><th>규격</th><th>발주수량</th><th>입고수량</th><th>잔량</th><th>단가</th><th>상태</th><th>입고</th></tr></thead><tbody id="purchase-order-items"></tbody></table></div>
           <h3>입고 기록</h3>

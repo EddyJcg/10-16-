@@ -19,7 +19,7 @@ test('classification management flags remove items from inventory reports',()=>{
 
 test('classification and procurement UI permits incomplete classification selection and separates unmanaged receipts',()=>{
   const app=readFileSync('inventory-app.js','utf8'),html=readFileSync('inventory.html','utf8'),importer=readFileSync('inventory-import.js','utf8');
-  const style=readFileSync('inventory.css','utf8');
+  const style=readFileSync('inventory.css','utf8'),purchaseStyle=readFileSync('purchase-order.css','utf8');
   assert.match(app,/option\.textContent=classification\.name\+\(classification\.inventory_asset_type\?/);
   assert.doesNotMatch(app,/option\.disabled=!classification\.inventory_asset_type/);
   assert.match(app,/if\(!selectedClassification\?\.inventory_asset_type\)/);
@@ -29,6 +29,17 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(app,/\$\('purchase-entry-button'\)\.addEventListener\('click',\(\)=>showPurchaseOrders\('entry'\)\)/);
   assert.match(app,/\$\('purchase-query-button'\)\.addEventListener\('click',\(\)=>showPurchaseOrders\('query'\)\)/);
   assert.match(html,/id="purchase-draft-items"/);
+  assert.match(html,/id="purchase-product-category" readonly/);
+  assert.match(html,/id="purchase-inventory-asset-type" readonly/);
+  assert.match(html,/id="purchase-product-unit" readonly/);
+  assert.match(html,/id="purchase-product-material" readonly/);
+  assert.match(html,/id="purchase-product-color" readonly/);
+  assert.match(app,/function updatePurchaseProductDetails\(\)[\s\S]*item\?\.classification_name\|\|item\?\.product_category[\s\S]*item\?\.inventory_asset_type[\s\S]*item\?\.unit[\s\S]*item\?\.material[\s\S]*item\?\.color/);
+  assert.match(app,/\$\('purchase-line-product'\)\.addEventListener\('change',updatePurchaseProductDetails\)/);
+  assert.match(purchaseStyle,/\.purchase-order-line-form>button\{height:42px;margin-bottom:16px/);
+  assert.match(purchaseStyle,/\.purchase-order-dialog \.dialog-footer #save-purchase-order\{transform:scale\(\.8\)/);
+  assert.match(purchaseStyle,/\.purchase-product-details\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(purchaseStyle,/@media\(max-width:520px\)\{\.purchase-product-details\{grid-template-columns:1fr\}\}/);
   assert.match(html,/id="purchase-receive-form"/);
   assert.match(app,/client\.rpc\('create_purchase_order'/);
   assert.match(app,/client\.rpc\('receive_purchase_order_line'/);

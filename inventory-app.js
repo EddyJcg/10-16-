@@ -379,6 +379,15 @@ function populatePurchaseProductOptions(){
     select.append(option);
   });
   select.value=[...select.options].some(option=>option.value===selected)?selected:'';
+  updatePurchaseProductDetails();
+}
+function updatePurchaseProductDetails(){
+  const item=items.find(row=>row.id===$('purchase-line-product').value);
+  $('purchase-product-category').value=item?.classification_name||item?.product_category||'';
+  $('purchase-inventory-asset-type').value=item?.inventory_asset_type||'';
+  $('purchase-product-unit').value=item?.unit||'';
+  $('purchase-product-material').value=item?.material||'';
+  $('purchase-product-color').value=item?.color||'';
 }
 function renderPurchaseDraftLines(){
   const body=$('purchase-draft-items');body.replaceChildren();
@@ -402,6 +411,7 @@ function addPurchaseDraftLine(){
   if(purchaseDraftLines.length>=100){$('purchase-order-status').textContent='한 번에 등록할 수 있는 발주 품목은 최대 100개입니다.';return;}
   purchaseDraftLines.push({product_id:productId,quantity,unit_cost:unitCost,expected_date:expectedDate||$('purchase-order-expected-date').value||null});
   $('purchase-line-product').value='';$('purchase-line-quantity').value='';$('purchase-line-unit-cost').value='';$('purchase-line-expected-date').value='';
+  updatePurchaseProductDetails();
   $('purchase-order-status').textContent='';renderPurchaseDraftLines();
 }
 function renderPurchaseOrders(){
@@ -1810,6 +1820,7 @@ async function startApp(){
   $('close-purchase-order').addEventListener('click',()=>$('purchase-order-dialog').close());
   $('purchase-order-form').addEventListener('submit',savePurchaseOrder);
   $('add-purchase-line').addEventListener('click',addPurchaseDraftLine);
+  $('purchase-line-product').addEventListener('change',updatePurchaseProductDetails);
   $('purchase-draft-items').addEventListener('click',event=>{
     const button=event.target.closest('[data-remove-purchase-line]');
     if(!button)return;

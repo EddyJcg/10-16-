@@ -68,6 +68,51 @@ test('receipt dialog uses the registration title and hides its history edit shor
   assert.match(app,/receipt:\['입고등록','입고','입고일자'\]/);
   assert.match(app,/edit-existing-movement'\)\.hidden=mode==='receipt'/);
 });
+test('receipt save asks for missing storage location and supplier before saving',async()=>{
+  const nodes=new Map();
+  const element=id=>{
+    if(!nodes.has(id))nodes.set(id,{value:'',textContent:'',disabled:false,readOnly:false,open:false,focused:false,
+      showModal(){this.open=true;},close(){this.open=false;},focus(){this.focused=true;}});
+    return nodes.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:element},window:{alert(){}},validDate:()=>true});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`currentUser={id:'user'};items=[{product_code:'SKU'}];mode='receipt';
+    $('product_code').value='SKU';$('movement_quantity').value='1';$('movement_cost').value='2';
+    $('movement_date').value='2026-01-01';$('storage_location').value='A-1';`,context);
+  await vm.runInContext('saveMovement({preventDefault(){}})',context);
+  assert.equal(element('receipt-details-dialog').open,true);
+  assert.equal(element('receipt-details-missing').textContent,'납품업체');
+});
+test('receipt prompt fill action focuses the first missing detail',()=>{
+  const nodes=new Map(),element=id=>{
+    if(!nodes.has(id))nodes.set(id,{value:'',open:false,focused:false,close(){this.open=false;},focus(){this.focused=true;}});
+    return nodes.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:element}});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext('focusMissingReceiptDetail()',context);
+  assert.equal(element('receipt-details-dialog').open,false);
+  assert.equal(element('storage_location').focused,true);
+});
+test('receipt prompt ignore action submits once without reopening the prompt',async()=>{
+  const nodes=new Map(),element=id=>{
+    if(!nodes.has(id))nodes.set(id,{value:'',textContent:'',disabled:false,readOnly:false,open:false,
+      showModal(){this.open=true;},close(){this.open=false;},focus(){},requestSubmit(){this.submission=vm.runInContext('saveMovement({preventDefault(){}})',context);}});
+    return nodes.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:element},window:{alert(){}},validDate:()=>true,rpcCalls:0,PRODUCT_FIELDS});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`currentUser={id:'user'};items=[{product_code:'SKU'}];mode='receipt';
+    client={rpc:async()=>{rpcCalls++;return {data:null,error:{message:'test failure'}};}};
+    $('product_code').value='SKU';$('movement_quantity').value='1';$('movement_cost').value='2';
+    $('movement_date').value='2026-01-01';`,context);
+  element('receipt-details-dialog').open=true;
+  vm.runInContext('ignoreReceiptDetailsAndSave()',context);
+  await element('movement-form').submission;
+  assert.equal(vm.runInContext('rpcCalls',context),1);
+  assert.equal(element('receipt-details-dialog').open,false);
+});
 test('issue dialog uses the registration title and hides its history edit shortcut',()=>{
   const app=fs.readFileSync('inventory-app.js','utf8');
   assert.match(app,/issue:\['출고등록','출고','출고일자'\]/);

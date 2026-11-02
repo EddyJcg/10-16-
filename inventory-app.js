@@ -22,6 +22,7 @@ const columnWidthDefaults={
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0,productLotsReady = false;
 let selectedProductInfoCode = '';
 let editingProductInfoId='',editingAssetClassificationId='',editingSalesOrderId='',editingMovementId='';
+let ignoreMissingReceiptDetailsOnce=false;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function errorText(error) {
   const message = error?.message || '';
@@ -1040,6 +1041,20 @@ function startProductListPrintSettings() {
   $('product-list-print-scale').addEventListener('input',()=>applyProductListPrintSettings());
 }
 function closeMovement() { if (!busy) {lotsGeneration++;editingMovementId='';$('save-movement').textContent='저장';$('movement-dialog').close();} }
+function missingReceiptDetails(){
+  return [['storage_location','저장위치'],['supplier','납품업체']]
+    .filter(([id])=>!$(id).value.trim()).map(([id,label])=>({id,label}));
+}
+function focusMissingReceiptDetail(){
+  $('receipt-details-dialog').close();
+  const missing=missingReceiptDetails();
+  $(missing[0]?.id||'storage_location').focus();
+}
+function ignoreReceiptDetailsAndSave(){
+  ignoreMissingReceiptDetailsOnce=true;
+  $('receipt-details-dialog').close();
+  $('movement-form').requestSubmit();
+}
 async function editMovement(id){
   const movement=movementListRows.find(row=>row.id===id);if(!movement||!currentUser||busy)return;
   openMovement(movement.kind);
@@ -1093,6 +1108,16 @@ async function saveMovement(event) {
   }
   if (mode==='issue' && !activeProduct()) {$('form-message').textContent='출고할 기존 품번을 선택하세요.';return;}
   if (mode==='issue' && !editingMovementId && !validateIssueQuantity(true)) return;
+  const skipReceiptDetailsPrompt=ignoreMissingReceiptDetailsOnce;
+  ignoreMissingReceiptDetailsOnce=false;
+  if(mode==='receipt'&&!editingMovementId&&!skipReceiptDetailsPrompt){
+    const missing=missingReceiptDetails();
+    if(missing.length){
+      $('receipt-details-missing').textContent=missing.map(field=>field.label).join(', ');
+      $('receipt-details-dialog').showModal();
+      return;
+    }
+  }
   const details=Object.fromEntries(PRODUCT_FIELDS.map(key=>[key,$(key).value.trim()])); details.product_code=details.product_code.toUpperCase();
   const salesOrderId=mode==='issue'?$('issue-sales-order')?.value:'';
   if(salesOrderId&&!editingMovementId){
@@ -1272,6 +1297,8 @@ async function startApp(){
   installMovementHistoryButton();
   $('close-dialog').addEventListener('click',closeMovement);$('cancel-dialog').addEventListener('click',closeMovement);$('movement-dialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();});
   $('movement-form').addEventListener('submit',saveMovement);
+  $('receipt-details-fill').addEventListener('click',focusMissingReceiptDetail);
+  $('receipt-details-ignore').addEventListener('click',ignoreReceiptDetailsAndSave);
   $('movement-list-items').addEventListener('click',event=>{const button=event.target.closest('[data-movement-id]');if(button)editMovement(button.dataset.movementId);});
   $('movement-form').addEventListener('input',()=>{requestId=crypto.randomUUID();if(mode!=='issue')$('form-message').textContent='';});
   $('product_code').addEventListener('input',()=>populateProduct('product_code'));

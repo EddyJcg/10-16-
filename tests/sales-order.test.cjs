@@ -147,6 +147,44 @@ test('sales orders filter inclusively by date, type and completion, and summariz
   assert.equal(filterSalesOrders(orders,{salesStatus:'매출미완료'}).length,2);
 });
 
+test('issue sales-order selector lists in-progress orders only and selects the linked product',()=>{
+  const fields={
+    'issue-sales-order':{
+      value:'',disabled:true,options:[],
+      replaceChildren(...options){this.options=[...options];},
+      append(option){this.options.push(option);}
+    },
+    product_code:{value:''},movement_quantity:{value:''},'form-message':{textContent:''}
+  };
+  const context=vm.createContext({
+    document:{
+      getElementById:id=>fields[id],
+      createElement:()=>({value:'',textContent:'',disabled:false})
+    },
+    number:value=>Number(value||0).toLocaleString('ko-KR'),
+    crypto:{randomUUID:()=> 'request-id'},
+    updateAmounts(){}
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`mode='issue';salesOrders=[
+    {id:'active',order_number:'SO-OPEN',vendor_name:'고객',product_name:'Shirt',specification:'Blue',unit:'EA(개)',quantity:5,shipped_quantity:2,sales_status:'매출미완료',due_date:'2026-11-10'},
+    {id:'complete',order_number:'SO-DONE',product_name:'Shirt',specification:'Blue',unit:'EA(개)',quantity:2,shipped_quantity:2,sales_status:'매출완료'},
+    {id:'manual-complete',order_number:'SO-MANUAL-DONE',product_name:'Hat',specification:'',unit:'EA(개)',quantity:1,shipped_quantity:0,sales_status:'매출완료'}
+  ];updateIssueSalesOrders()`,context);
+  assert.equal(fields['issue-sales-order'].options.length,2);
+  assert.equal(fields['issue-sales-order'].options[1].value,'active');
+  assert.match(fields['issue-sales-order'].options[1].textContent,/SO-OPEN.*고객.*Shirt.*잔여 3 EA\(개\)/);
+  assert.equal(fields['issue-sales-order'].disabled,false);
+
+  vm.runInContext(`items=[{id:'p1',product_code:'SHIRT',product_name:'Shirt',specification:'Blue',unit:'EA(개)'}];
+    populateProduct=()=>{};updateAmounts=()=>{};`,context);
+  fields['issue-sales-order'].value='active';
+  vm.runInContext('selectIssueSalesOrder()',context);
+  assert.equal(fields.product_code.value,'SHIRT');
+  assert.equal(fields.movement_quantity.value,'3');
+  assert.equal(fields['form-message'].textContent,'');
+});
+
 test('sales order amount updates from quantity and unit price',()=>{
   const fields={sales_quantity:{value:'3'},sales_unit_price:{value:'1250.5'},sales_amount:{value:''}};
   const context=vm.createContext({document:{getElementById:id=>fields[id]},money:value=>Number(value).toLocaleString('ko-KR',{maximumFractionDigits:2})});

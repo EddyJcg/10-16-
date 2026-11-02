@@ -124,13 +124,13 @@ test('issue dialog uses the registration title and hides its history edit shortc
   assert.match(app,/issue:\['출고등록','출고','출고일자'\]/);
   assert.match(app,/edit-existing-movement'\)\.hidden=true/);
 });
-test('all dialogs can be dragged by the header and resized with the corner handle',()=>{
+test('all dialogs can be dragged by the header and resized from every edge and corner',()=>{
   const handlers={},header={offsetHeight:40,handlers,addEventListener(event,handler){handlers[event]=handler;},setPointerCapture(){}};
-  const handle={handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},setAttribute(name,value){this[name]=value;},setPointerCapture(){}};
+  const handles=[];
   const style={setProperty(name,value,priority){this[name]=value;this[name+'Priority']=priority;}};
-  const dialog={open:true,style,querySelector:selector=>{assert.equal(selector,'.dialog-header,.calendar-title');return header;},append(node){this.resizeHandle=node;},getBoundingClientRect:()=>({left:100,top:100,width:600,height:400})};
+  const dialog={open:true,style,querySelector:selector=>{assert.equal(selector,'.dialog-header,.calendar-title');return header;},append(node){handles.push(node);},getBoundingClientRect:()=>({left:100,top:100,right:700,bottom:500,width:600,height:400})};
   const context=vm.createContext({
-    document:{querySelectorAll:selector=>{assert.equal(selector,'dialog');return[dialog];},createElement:()=>handle},
+    document:{querySelectorAll:selector=>{assert.equal(selector,'dialog');return[dialog];},createElement:()=>{const handle={handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},setAttribute(name,value){this[name]=value;},setPointerCapture(){}};handles.push(handle);return handle;}},
     window:{innerWidth:1200,innerHeight:900}
   });
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
@@ -141,7 +141,11 @@ test('all dialogs can be dragged by the header and resized with the corner handl
   handlers.pointerup(pointer(header,210,220));
   assert.equal(style.left,'200px');
   assert.equal(style.top,'200px');
-  assert.equal(dialog.resizeHandle['aria-label'],'창 크기 조절');
+  const handle=handles.find(node=>node.className==='dialog-resize-handle');
+  const edges=Object.fromEntries(handles.filter(node=>node.className?.includes('dialog-resize-')).map(node=>[node.className.split('-').at(-1),node]));
+  assert.equal(handle['aria-label'],'창 크기 조절');
+  for(const [side,label] of [['top','위쪽'],['right','오른쪽'],['bottom','아래쪽'],['left','왼쪽']])
+    assert.equal(edges[side]['aria-label'],'창 '+label+' 가장자리 크기 조절');
   handle.handlers.pointerdown(pointer(handle,700,500));
   handle.handlers.pointermove(pointer(handle,760,560));
   handle.handlers.pointerup(pointer(handle,760,560));
@@ -149,12 +153,48 @@ test('all dialogs can be dragged by the header and resized with the corner handl
   assert.equal(style.height,'460px');
   assert.equal(style.widthPriority,'important');
   assert.equal(style.heightPriority,'important');
+  edges.left.handlers.pointerdown(pointer(edges.left,100,300));
+  edges.left.handlers.pointermove(pointer(edges.left,80,300));
+  edges.left.handlers.pointerup(pointer(edges.left,80,300));
+  assert.equal(style.width,'620px');
+  assert.equal(style.left,'80px');
+  edges.right.handlers.pointerdown(pointer(edges.right,700,300));
+  edges.right.handlers.pointermove(pointer(edges.right,720,300));
+  edges.right.handlers.pointerup(pointer(edges.right,720,300));
+  assert.equal(style.width,'620px');
+  edges.top.handlers.pointerdown(pointer(edges.top,300,100));
+  edges.top.handlers.pointermove(pointer(edges.top,300,80));
+  edges.top.handlers.pointerup(pointer(edges.top,300,80));
+  assert.equal(style.height,'420px');
+  assert.equal(style.top,'80px');
+  edges.bottom.handlers.pointerdown(pointer(edges.bottom,300,500));
+  edges.bottom.handlers.pointermove(pointer(edges.bottom,300,520));
+  edges.bottom.handlers.pointerup(pointer(edges.bottom,300,520));
+  assert.equal(style.height,'420px');
+});
+test('dialogs without a header still receive all four resize edges',()=>{
+  const handles=[],style={setProperty(name,value){this[name]=value;}};
+  const dialog={open:true,style,querySelector:()=>null,append(node){handles.push(node);},getBoundingClientRect:()=>({left:40,top:50,right:440,bottom:350,width:400,height:300})};
+  const context=vm.createContext({
+    document:{querySelectorAll:()=>[dialog],createElement:()=>({handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},setAttribute(name,value){this[name]=value;},setPointerCapture(){}})},
+    window:{innerWidth:1000,innerHeight:800}
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext('installDialogInteractions()',context);
+  assert.equal(handles.length,5,'four side handles and the existing corner handle should be installed');
+  assert.deepEqual(handles.slice(1).map(handle=>handle['aria-label']),[
+    '창 위쪽 가장자리 크기 조절','창 오른쪽 가장자리 크기 조절',
+    '창 아래쪽 가장자리 크기 조절','창 왼쪽 가장자리 크기 조절'
+  ]);
 });
 test('popup layout keeps desktop size and mobile initial sizing while showing resize control',()=>{
-  const css=fs.readFileSync('inventory.css','utf8');
+  const css=fs.readFileSync('inventory.css','utf8'),resizeCss=fs.readFileSync('dialog-resize.css','utf8'),html=fs.readFileSync('inventory.html','utf8');
   assert.match(css,/@media screen and \(min-width:851px\)\{\s*dialog:not\(\.search-calendar\)\{[\s\S]*?width:66\.6667vw!important;height:66\.6667vh!important/);
   assert.match(css,/@media screen and \(max-width:850px\)\{\s*dialog:not\(\.search-calendar\)\{[\s\S]*?width:var\(--popup-width,calc\(100vw - 32px\)\)!important;height:auto!important;aspect-ratio:16\/9/);
   assert.match(css,/\.dialog-resize-handle\{[\s\S]*?cursor:nwse-resize/);
+  assert.match(resizeCss,/\.dialog-resize-top,\.dialog-resize-bottom\{[^}]*width:auto;height:12px;cursor:ns-resize/);
+  assert.match(resizeCss,/\.dialog-resize-left,\.dialog-resize-right\{[^}]*width:12px;height:auto;cursor:ew-resize/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*four-edge-resize/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

@@ -1,0 +1,10 @@
+.dialog-resize-edge{position:absolute;z-index:5;margin:0;padding:0;border:0;background:transparent;touch-action:none}
+.dialog-resize-top,.dialog-resize-bottom{left:12px;right:12px;width:auto;height:12px;cursor:ns-resize}
+.dialog-resize-top{top:0}
+.dialog-resize-bottom{bottom:0}
+.dialog-resize-left,.dialog-resize-right{top:12px;bottom:12px;width:12px;height:auto;cursor:ew-resize}
+.dialog-resize-left{left:0}
+.dialog-resize-right{right:0}
+.dialog-resize-top:hover,.dialog-resize-bottom:hover{background:linear-gradient(transparent 45%,#23654e55 45% 55%,transparent 55%)}
+.dialog-resize-left:hover,.dialog-resize-right:hover{background:linear-gradient(90deg,transparent 45%,#23654e55 45% 55%,transparent 55%)}
+.dialog-resize-edge:focus-visible{outline:2px solid #23654e;outline-offset:-2px}

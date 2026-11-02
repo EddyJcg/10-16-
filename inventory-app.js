@@ -6,7 +6,6 @@ function stockLedgerManaged(item) {
 function installDialogInteractions(){
   document.querySelectorAll('dialog').forEach(dialog=>{
     const header=dialog.querySelector('.dialog-header,.calendar-title');
-    if(!header)return;
     let activePointerId=null,interaction=null;
     const pinToRect=rect=>{
       dialog.style.left=rect.left+'px';dialog.style.top=rect.top+'px';dialog.style.transform='none';
@@ -23,10 +22,13 @@ function installDialogInteractions(){
         dialog.style.left=left+'px';dialog.style.top=top+'px';
         return;
       }
-      const maxWidth=Math.max(100,window.innerWidth-interaction.left-16);
-      const maxHeight=Math.max(100,window.innerHeight-interaction.top-16);
-      const width=Math.max(Math.min(280,maxWidth),Math.min(maxWidth,interaction.width+event.clientX-interaction.x));
-      const height=Math.max(Math.min(180,maxHeight),Math.min(maxHeight,interaction.height+event.clientY-interaction.y));
+      const dx=event.clientX-interaction.x,dy=event.clientY-interaction.y;
+      const maxWidth=Math.max(100,interaction.type==='left'?interaction.right-16:window.innerWidth-interaction.left-16);
+      const maxHeight=Math.max(100,interaction.type==='top'?interaction.bottom-16:window.innerHeight-interaction.top-16);
+      const width=Math.max(Math.min(280,maxWidth),Math.min(maxWidth,interaction.width+(interaction.type==='left'?-dx:interaction.type==='right'||interaction.type==='bottom-right'?dx:0)));
+      const height=Math.max(Math.min(180,maxHeight),Math.min(maxHeight,interaction.height+(interaction.type==='top'?-dy:interaction.type==='bottom'||interaction.type==='bottom-right'?dy:0)));
+      if(interaction.type==='left')dialog.style.left=(interaction.right-width)+'px';
+      if(interaction.type==='top')dialog.style.top=(interaction.bottom-height)+'px';
       dialog.style.setProperty('width',width+'px','important');
       dialog.style.setProperty('height',height+'px','important');
     };
@@ -39,25 +41,38 @@ function installDialogInteractions(){
       else{
         dialog.style.setProperty('width',rect.width+'px','important');
         dialog.style.setProperty('height',rect.height+'px','important');
-        interaction={type,width:rect.width,height:rect.height,left:rect.left,top:rect.top,x:event.clientX,y:event.clientY};
+        interaction={type,width:rect.width,height:rect.height,left:rect.left,top:rect.top,
+          right:rect.right??rect.left+rect.width,bottom:rect.bottom??rect.top+rect.height,x:event.clientX,y:event.clientY};
       }
       event.currentTarget.setPointerCapture?.(event.pointerId);
     };
-    header.addEventListener('pointerdown',event=>{
-      if(event.target.closest('button,a,input,select,textarea,[contenteditable="true"]'))return;
-      begin(event,'drag');
-    });
-    header.addEventListener('pointermove',move);
-    header.addEventListener('pointerup',finish);
-    header.addEventListener('pointercancel',finish);
+    if(header){
+      header.addEventListener('pointerdown',event=>{
+        if(event.target.closest('button,a,input,select,textarea,[contenteditable="true"]'))return;
+        begin(event,'drag');
+      });
+      header.addEventListener('pointermove',move);
+      header.addEventListener('pointerup',finish);
+      header.addEventListener('pointercancel',finish);
+    }
     const resizeHandle=document.createElement('button');
     resizeHandle.type='button';resizeHandle.className='dialog-resize-handle';
     resizeHandle.setAttribute('aria-label','창 크기 조절');
-    resizeHandle.addEventListener('pointerdown',event=>begin(event,'resize'));
+    resizeHandle.addEventListener('pointerdown',event=>begin(event,'bottom-right'));
     resizeHandle.addEventListener('pointermove',move);
     resizeHandle.addEventListener('pointerup',finish);
     resizeHandle.addEventListener('pointercancel',finish);
     dialog.append(resizeHandle);
+    [['top','위쪽'],['right','오른쪽'],['bottom','아래쪽'],['left','왼쪽']].forEach(([side,label])=>{
+      const edge=document.createElement('button');
+      edge.type='button';edge.className='dialog-resize-edge dialog-resize-'+side;
+      edge.setAttribute('aria-label','창 '+label+' 가장자리 크기 조절');
+      edge.addEventListener('pointerdown',event=>begin(event,side));
+      edge.addEventListener('pointermove',move);
+      edge.addEventListener('pointerup',finish);
+      edge.addEventListener('pointercancel',finish);
+      dialog.append(edge);
+    });
   });
 }
 function installPopupTableTools(){

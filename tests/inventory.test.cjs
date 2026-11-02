@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,planFifo,validDate,filterInventoryItems,stockRiskItems,stockAgingRows,sixMonthsAgoDate}=require('../inventory-model.js');
+const {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,planFifo,validDate,filterInventoryItems,stockRiskItems,stockAgingRows,sixMonthsAgoDate,salesOrderStatus}=require('../inventory-model.js');
 const {CURRENT_STOCK_FIELDS,currentStockRows}=require('../inventory-model.js');
 
 test('current stock keeps all workbook fields except opening, receipt and issue totals',()=>{
@@ -210,8 +210,8 @@ test('main dashboard replaces recent movement history with a printable sales bal
   for(const id of ['sales-balance-start-date','sales-balance-end-date','sales-balance-type-filter','apply-sales-balance-search','clear-sales-balance-search'])
     assert.match(html,new RegExp(`id="${id}"`),id);
   assert.match(html,/id="sales-balance-type-filter"[^>]*><option value="">전체 수주<\/option><option value="온라인 수주">온라인 수주<\/option><option value="오프라인 수주">오프라인 수주<\/option>/);
-  assert.match(script,/order=>\(order\.sales_status\|\|'매출미완료'\)==='매출미완료'/);
-  assert.match(script,/filterSalesOrders\(outstanding,\{\.\.\.appliedSalesBalanceFilters,salesStatus:'매출미완료'\}\)/);
+  assert.match(script,/order=>salesOrderStatus\(order\)!=='완료'/);
+  assert.match(script,/filterSalesOrders\(outstanding,\{\.\.\.appliedSalesBalanceFilters,salesStatus:''\}\)/);
   assert.match(script,/function applySalesBalanceSearch\(clear=false\)/);
   assert.match(style,/body\[data-print-target="sales-balance"\] #sales-balance/);
   assert.match(style,/#sales-balance \.sales-balance-search/);

@@ -23,3 +23,7 @@
 @media print{
   .sales-status-order-search{display:none!important}
 }
+.sales-status-table input[type="checkbox"],.sales-balance-table input[type="checkbox"]{
+  width:20px;height:20px;margin:0;accent-color:#24824b;vertical-align:middle;cursor:pointer
+}
+.sales-status-table input[type="checkbox"]:disabled,.sales-balance-table input[type="checkbox"]:disabled{cursor:not-allowed}

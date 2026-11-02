@@ -13,6 +13,8 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       create function public.inventory_access_allowed() returns boolean language sql as $$ select current_setting('test.active',true) is distinct from 'false' $$;`);
     const migration = readFileSync('supabase/fifo.sql','utf8');
     await db.exec(migration); await db.exec(migration);
+    const salesStatusMigration=readFileSync('supabase/sales-status-workflow.sql','utf8');
+    await db.exec(salesStatusMigration); await db.exec(salesStatusMigration);
     const details = (code,color='자연색',unit='EA(개)') => ({product_category:'BAG',product_code:code,product_name:'Eco Bag',specification:'450*300 자연색',material:'니나리찌',color,unit,standard_stock_quantity:10,storage_location:'A-1-3-1',supplier:'종로가방'});
     const register = async productDetails => (await db.query('select public.register_stock_product($1) as result',[productDetails])).rows[0].result;
     const ensureProduct = async productDetails => {
@@ -45,8 +47,9 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       assert.equal(order.delivery_method,'택배');
       assert.equal(order.address,'서울시 중구');
       assert.equal(order.notes,'선물 포장');
-      const completed=(await db.query('select public.set_sales_order_status($1,$2) as result',[order.id,'매출완료'])).rows[0].result;
+      const completed=(await db.query('select public.set_sales_order_status($1,$2) as result',[order.id,'완료'])).rows[0].result;
       assert.equal(completed.sales_status,'매출완료');
+      assert.equal(completed.sales_progress_status,'완료');
       assert.equal((await db.query('select sales_status from public.sales_orders where id=$1',[order.id])).rows[0].sales_status,'매출완료');
       await assert.rejects(db.query('select public.set_sales_order_status($1,$2)',[order.id,'진행중']),/INVALID_SALES_STATUS/);
       await assert.rejects(db.query(`select public.register_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
@@ -78,19 +81,29 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       assert.equal((await state(order.id)).sales_status,'매출미완료');
       await post('LINKED','issue',1,0,'2020-02-01',request,linked);
       assert.equal((await state(order.id)).shipped_quantity,1,'retry must not double count');
-      await assert.rejects(db.query('select public.set_sales_order_status($1,$2)',[order.id,'매출완료']),/SHIPMENT_STATUS_LOCKED/);
+      await assert.rejects(db.query('select public.set_sales_order_status($1,$2)',[order.id,'완료']),/SALES_ORDER_HAS_SHIPMENTS/);
       await assert.rejects(post('LINKED','issue',3,0,'2020-02-02',randomUUID(),linked),/SALES_ORDER_QUANTITY_EXCEEDED/);
       await post('LINKED','issue',2,0,'2020-02-02',randomUUID(),linked);
       assert.equal((await state(order.id)).shipped_quantity,3);
       assert.equal((await state(order.id)).shipped_date,'2020-02-02');
       assert.equal((await state(order.id)).sales_status,'매출완료');
+      assert.equal((await state(order.id)).sales_progress_status,'완료');
       await db.exec(migration);
+      await db.exec(salesStatusMigration);
       assert.equal((await state(order.id)).shipped_quantity,3,'migration preserves shipping history');
       const tooLarge=await registerOrder('SO-SHORTAGE',20);
       await assert.rejects(post('LINKED','issue',15,0,'2020-02-03',randomUUID(),{...product,sales_order_id:tooLarge.id}),/INSUFFICIENT_STOCK/);
       assert.equal((await state(tooLarge.id)).shipped_quantity,0,'failed issue must roll back the order update');
       assert.equal((await state(tooLarge.id)).shipped_date,null);
       assert.equal(Number((await summary('LINKED')).stock_quantity),7);
+      const stopped=await registerOrder('SO-STOPPED',2);
+      await db.query('select public.set_sales_order_status($1,$2)',[stopped.id,'중단']);
+      assert.equal((await state(stopped.id)).sales_progress_status,'중단');
+      await assert.rejects(post('LINKED','issue',1,0,'2020-02-03',randomUUID(),{...product,sales_order_id:stopped.id}),/SALES_ORDER_STOPPED/);
+      await db.query('select public.set_sales_order_status($1,$2)',[stopped.id,'진행']);
+      await post('LINKED','issue',2,0,'2020-02-03',randomUUID(),{...product,sales_order_id:stopped.id});
+      assert.equal((await state(stopped.id)).sales_progress_status,'완료','full shipment automatically completes an in-progress order');
+      await assert.rejects(db.query('select public.set_sales_order_status($1,$2)',[stopped.id,'중단']),/SHIPMENT_STATUS_LOCKED/);
       const unrelated=(await db.query('select id from public.sales_orders where order_number=$1',['SO-DATED'])).rows[0];
       await assert.rejects(post('LINKED','issue',1,0,'2020-02-03',randomUUID(),{...product,sales_order_id:unrelated.id}),/SALES_ORDER_PRODUCT_MISMATCH/);
       await assert.rejects(post('LINKED','receipt',1,100,'2020-02-03',randomUUID(),linked),/INVALID_SALES_ORDER_LINK/);

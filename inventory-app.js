@@ -202,8 +202,8 @@ function errorText(error) {
     INVALID_PRODUCT_DETAILS:'품목분류·품명 등 품목 정보를 확인하세요.',
     PRODUCT_HAS_LEDGER_HISTORY:'거래 이력이 있는 품목의 단위는 변경할 수 없습니다.',
     PRODUCT_HAS_LINKED_SHIPMENTS:'수주 출고가 연결된 품목의 품명·규격은 변경할 수 없습니다.',
-    SALES_ORDER_HAS_SHIPMENTS:'출고가 연결된 수주는 출고수량을 줄이거나 품명·규격·단위를 바꿀 수 없습니다.',
-    SALES_ORDER_QUANTITY_EXCEEDED:'수정 후 출고수량이 수주수량을 초과합니다.',
+    SALES_ORDER_HAS_SHIPMENTS:'출고가 연결된 수주의 품목 정보·수량 또는 매출 완료 상태를 변경할 수 없습니다.',
+    SALES_ORDER_QUANTITY_EXCEEDED:'출고수량이 해당 수주의 잔여 수량을 초과했거나 이미 매출 완료된 수주입니다.',
     MOVEMENT_NOT_FOUND:'수정할 거래 내역을 찾을 수 없습니다. 목록을 새로고침하세요.',
     PRODUCT_CLASSIFICATION_TYPE_REQUIRED:'품목자산분류의 재고자산종류를 먼저 설정하세요.',
     INVALID_PRODUCT_CODE:'품번을 입력하세요.',
@@ -211,10 +211,11 @@ function errorText(error) {
     INVALID_SALES_ORDER_LINE:'수주 품목의 품명, 단위, 수량, 단가와 납기일자를 확인하세요.',
     SALES_ORDER_LINE_NOT_FOUND:'수정할 수주 품목을 찾을 수 없습니다. 수주 목록을 새로고침하세요.',
     DUPLICATE_SALES_ORDER_LINE:'같은 수주 품목이 중복으로 전달되었습니다. 창을 새로고침하세요.',
+    SALES_ORDER_STOPPED:'중단된 수주는 출고할 수 없습니다. 매출 상태를 진행으로 바꾸세요.',
+    INVALID_SALES_STATUS:'매출 상태는 진행·완료·중단 중에서 선택하세요.',
     INVALID_SALES_ORDER_LINK:'출고에 연결할 수주번호를 확인하세요.',
     SALES_ORDER_NOT_FOUND:'연결할 수주를 찾을 수 없습니다. 수주 목록을 새로 확인하세요.',
     SALES_ORDER_PRODUCT_MISMATCH:'선택한 수주의 품명·규격·단위가 출고 품목과 다릅니다.',
-    SALES_ORDER_QUANTITY_EXCEEDED:'출고수량이 해당 수주의 잔여 수량을 초과했거나 이미 매출 완료된 수주입니다.',
     SHIPMENT_STATUS_LOCKED:'연결된 출고가 있는 수주는 누적 출고 수량에 따라 매출 상태가 자동 결정됩니다.',
     PRODUCT_CLASSIFICATION_REQUIRED:'품목 자산 분류를 선택하세요.',
     PRODUCT_CLASSIFICATION_TYPE_REQUIRED:'품목 자산 분류의 재고자산종류를 먼저 설정하세요.',
@@ -237,7 +238,7 @@ function errorText(error) {
     ACCESS_DENIED:'발주·입고를 저장할 권한이 없습니다. 로그인 상태와 계정 권한을 확인하세요.'
   };
   for (const [key,text] of Object.entries(errors)) if (message.includes(key)) return text;
-  if (['PGRST205','PGRST202','42P01','42703'].includes(error?.code)) return 'DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql, supabase/item-asset-classification.sql, supabase/edit-records.sql, supabase/vendor-management.sql, supabase/sales-order-vendor.sql, supabase/sales-order-groups.sql, supabase/procurement-schema.sql, supabase/classification-procurement-workflow.sql을 README.md 안내 순서대로 실행하세요.';
+  if (['PGRST205','PGRST202','42P01','42703'].includes(error?.code)) return 'DB 설정이 필요합니다. Supabase SQL Editor에서 supabase/fifo.sql, supabase/item-asset-classification.sql, supabase/edit-records.sql, supabase/vendor-management.sql, supabase/sales-order-vendor.sql, supabase/sales-order-groups.sql, supabase/sales-status-workflow.sql, supabase/procurement-schema.sql, supabase/classification-procurement-workflow.sql을 README.md 안내 순서대로 실행하세요.';
   return '요청을 완료하지 못했습니다. 네트워크와 로그인 상태를 확인하세요. 저장 응답이 끊겼다면 내역을 확인하거나 같은 내용으로 다시 저장하세요.';
 }
 function ensureMovementEditColumn(){
@@ -295,25 +296,41 @@ function renderSalesDraftLines(){
     action.append(button);row.append(action);body.append(row);
   });
 }
+function salesOrderStatusSelect(order){
+  const select=document.createElement('select'),status=salesOrderStatus(order);
+  select.dataset.orderId=order.id;select.setAttribute('aria-label',order.order_number+' 매출 상태');
+  [['진행','진행'],['완료','완료'],['중단','중단']].forEach(([value,label])=>{
+    const option=document.createElement('option');option.value=value;option.textContent=label;
+    if(value==='완료'&&Number(order.shipped_quantity||0)>0&&Number(order.shipped_quantity)<Number(order.quantity))option.disabled=true;
+    if(value!=='완료'&&Number(order.shipped_quantity||0)>=Number(order.quantity)&&Number(order.shipped_quantity||0)>0)option.disabled=true;
+    select.append(option);
+  });
+  select.value=status;select.disabled=salesStatusUpdating;
+  return select;
+}
+function salesOrderCompleteCheckbox(order){
+  const checkbox=document.createElement('input');
+  checkbox.type='checkbox';checkbox.checked=salesOrderStatus(order)==='완료';
+  checkbox.dataset.orderId=order.id;checkbox.dataset.salesOrderComplete='true';
+  checkbox.setAttribute('aria-label',order.order_number+' '+order.product_name+' 매출 완료 체크');
+  checkbox.disabled=salesStatusUpdating||Number(order.shipped_quantity||0)>0;
+  return checkbox;
+}
 function renderSalesBalance(){
-  const body=$('sales-balance-items'),outstanding=salesOrders.filter(order=>(order.sales_status||'매출미완료')==='매출미완료');
-  const visibleOrders=filterSalesOrders(outstanding,{...appliedSalesBalanceFilters,salesStatus:'매출미완료'});
+  const body=$('sales-balance-items'),outstanding=salesOrders.filter(order=>salesOrderStatus(order)!=='완료');
+  const visibleOrders=filterSalesOrders(outstanding,{...appliedSalesBalanceFilters,salesStatus:''});
   const totalCents=outstanding.reduce((sum,order)=>sum+Math.round(Number(order.amount||0)*100),0);
   const visibleCents=visibleOrders.reduce((sum,order)=>sum+Math.round(Number(order.amount||0)*100),0);
   body.replaceChildren();
   $('total-sales-backlog-count').textContent=outstanding.length.toLocaleString('ko-KR')+'건';
   $('total-sales-backlog-amount').textContent='합계 '+money(totalCents/100)+'원';
-  $('sales-balance-summary').textContent=visibleOrders.length.toLocaleString('ko-KR')+'건 · 수주 잔고 '+money(visibleCents/100)+'원';
-  if(!visibleOrders.length){emptyRow(body,19,outstanding.length?'검색 조건에 해당하는 수주잔고가 없습니다.':'현재 매출미완료 수주가 없습니다.');return;}
+  $('sales-balance-summary').textContent=visibleOrders.length.toLocaleString('ko-KR')+'건 · 진행·중단 수주 잔고 '+money(visibleCents/100)+'원';
+  if(!visibleOrders.length){emptyRow(body,20,outstanding.length?'검색 조건에 해당하는 수주잔고가 없습니다.':'현재 완료되지 않은 수주가 없습니다.');return;}
   visibleOrders.forEach(order=>{
     const row=document.createElement('tr');
     [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',String(order.shipped_date||'').slice(0,10)].forEach((value,index)=>row.append(makeCell(value,index===0)));
-    const statusCell=document.createElement('td'),select=document.createElement('select');
-    select.dataset.orderId=order.id;select.setAttribute('aria-label',order.order_number+' 매출 상태');
-    [['매출완료','매출 완료수주'],['매출미완료','매출 미완료']].forEach(([value,label])=>{
-      const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option);
-    });
-    select.value='매출미완료';select.disabled=salesStatusUpdating||Number(order.shipped_quantity||0)>0;statusCell.append(select);row.append(statusCell);
+    const completeCell=document.createElement('td');completeCell.append(salesOrderCompleteCheckbox(order));row.append(completeCell);
+    const statusCell=document.createElement('td');statusCell.append(salesOrderStatusSelect(order));row.append(statusCell);
     [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
       money(order.amount),String(order.due_date).slice(0,10),order.delivery_method,order.address,order.notes]
       .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
@@ -345,16 +362,12 @@ function renderSalesStatus(){
   $('sales-status-total').textContent='총수주액 '+money(totals.total)+'원';
   $('sales-status-completed-total').textContent=money(totals.completed)+'원';
   $('sales-status-outstanding-total').textContent=money(totals.outstanding)+'원';
-  if(!visibleOrders.length){emptyRow(body,19,'검색 조건에 해당하는 수주가 없습니다.');return;}
+  if(!visibleOrders.length){emptyRow(body,20,'검색 조건에 해당하는 수주가 없습니다.');return;}
   visibleOrders.forEach(order=>{
     const row=document.createElement('tr');
     [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',String(order.shipped_date||'').slice(0,10)].forEach((value,index)=>row.append(makeCell(value,index===0)));
-    const statusCell=document.createElement('td'),select=document.createElement('select');
-    select.dataset.orderId=order.id;select.setAttribute('aria-label',order.order_number+' 매출 상태');
-    [['매출완료','매출 완료수주'],['매출미완료','매출 미완료']].forEach(([value,label])=>{
-      const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option);
-    });
-    select.value=order.sales_status||'매출미완료';select.disabled=salesStatusUpdating||Number(order.shipped_quantity||0)>0;statusCell.append(select);row.append(statusCell);
+    const completeCell=document.createElement('td');completeCell.append(salesOrderCompleteCheckbox(order));row.append(completeCell);
+    const statusCell=document.createElement('td');statusCell.append(salesOrderStatusSelect(order));row.append(statusCell);
     [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
       money(order.amount),String(order.due_date).slice(0,10),order.delivery_method,order.address,order.notes]
       .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
@@ -653,16 +666,19 @@ function applySalesStatusSearch(clear=false){
 async function changeSalesOrderStatus(event){
   const select=event.target,order=salesOrders.find(row=>row.id===select.dataset.orderId);
   if(!order||!currentUser||salesStatusUpdating)return;
-  const previousStatus=order.sales_status||'매출미완료',generation=authGeneration;
+  const nextStatus=select.dataset.salesOrderComplete
+    ? select.checked?'완료':'진행'
+    : select.value;
+  const previousStatus=salesOrderStatus(order),generation=authGeneration;
   salesStatusUpdating=true;renderSalesStatus();renderSalesBalance();$('sales-status-message').textContent='매출 상태를 저장하는 중…';
   try{
-    const {data,error}=await client.rpc('set_sales_order_status',{p_order_id:order.id,p_sales_status:select.value});
+    const {data,error}=await client.rpc('set_sales_order_status',{p_order_id:order.id,p_sales_status:nextStatus});
     if(error)throw error;
     if(generation!==authGeneration)return;
     salesOrders=salesOrders.map(row=>row.id===data.id?data:row);renderSalesOrders();renderSalesStatus();renderSalesBalance();updateIssueSalesOrders();
-    $('sales-status-message').textContent='수주 '+order.order_number+'의 매출 상태를 저장했습니다.';
+    $('sales-status-message').textContent='수주 '+order.order_number+' 품목의 매출 상태를 '+nextStatus+'(으)로 변경했습니다.';
   }catch(error){
-    if(generation===authGeneration){salesOrders=salesOrders.map(row=>row.id===order.id?{...row,sales_status:previousStatus}:row);renderSalesStatus();renderSalesBalance();updateIssueSalesOrders();$('sales-status-message').textContent='매출 상태 저장에 실패했습니다. '+errorText(error);}
+    if(generation===authGeneration){salesOrders=salesOrders.map(row=>row.id===order.id?{...row,sales_progress_status:previousStatus}:row);renderSalesStatus();renderSalesBalance();updateIssueSalesOrders();$('sales-status-message').textContent='매출 상태 저장에 실패했습니다. '+errorText(error);}
   }finally{salesStatusUpdating=false;renderSalesStatus();renderSalesBalance();}
 }
 function updateSalesAmount(){
@@ -931,7 +947,7 @@ function activeProduct() {
   return items.find(item=>item.product_code===code&&stockLedgerManaged(item));
 }
 function inProgressSalesOrders(){
-  return salesOrders.filter(order=>(order.sales_status||'매출미완료')==='매출미완료'
+  return salesOrders.filter(order=>salesOrderStatus(order)==='진행'
     &&Number(order.quantity)>Number(order.shipped_quantity||0));
 }
 function salesOrdersForIssue(product){
@@ -1906,7 +1922,7 @@ function exportSalesStatusExcel(){
   const rows=filterSalesOrders(salesOrders,appliedSalesStatusFilters);
   const headers=['일련번호','수주일자','수주번호','수주형태','거래처','연락처','출고일자','매출 상태','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'];
   return downloadDataWorkbook('export-sales-status','수주현황','수주현황',headers,rows.map(order=>[
-    Number(order.sequence_id),String(order.order_date||'').slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',String(order.shipped_date||'').slice(0,10),order.sales_status||'매출미완료',
+    Number(order.sequence_id),String(order.order_date||'').slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',String(order.shipped_date||'').slice(0,10),salesOrderStatus(order),
     order.product_name,order.specification,order.unit,Number(order.quantity||0),Number(order.unit_price||0),
     Number(order.amount||0),String(order.due_date||'').slice(0,10),order.delivery_method,order.address,order.notes
   ]),[0,11,12,13],'내보낼 수주 내역이 없습니다.');

@@ -39,15 +39,19 @@ function filterSalesOrders(rows,{startDate='',endDate='',orderType='',salesStatu
     const matchesSearch=!search||[order.order_number,order.vendor_name]
       .some(value=>String(value||'').toLocaleLowerCase().includes(search));
     return (!startDate||date>=startDate)&&(!endDate||date<=endDate)&&
-      (!orderType||order.order_type===orderType)&&(!salesStatus||order.sales_status===salesStatus)&&matchesSearch;
+      (!orderType||order.order_type===orderType)&&(!salesStatus||salesOrderStatus(order)===salesStatus)&&matchesSearch;
   });
+}
+function salesOrderStatus(order) {
+  if(['진행','완료','중단'].includes(order.sales_progress_status))return order.sales_progress_status;
+  return order.sales_status==='매출완료'?'완료':'진행';
 }
 function summarizeSalesOrders(rows,filters={}) {
   const orders=filterSalesOrders(rows,{...filters,salesStatus:''});
   const cents=orders.reduce((totals,order)=>{
     const amount=Math.round(Number(order.amount||0)*100);
     totals.total+=amount;
-    if(order.sales_status==='매출완료')totals.completed+=amount;
+    if(salesOrderStatus(order)==='완료')totals.completed+=amount;
     else totals.outstanding+=amount;
     return totals;
   },{total:0,completed:0,outstanding:0});
@@ -101,4 +105,4 @@ function planFifo(lots,quantity,date) {
   const amount = Number(amountCents)/100;
   return {allocations,shortage:Math.max(left,0),amount,unitCost:quantity>0 ? amount/quantity : 0};
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,isStockLedgerManaged,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,filterSalesOrders,summarizeSalesOrders,todayDate,validDate,validOrderDueDate,nextPurchaseOrderNumber,planFifo};
+if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,isStockLedgerManaged,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,filterSalesOrders,salesOrderStatus,summarizeSalesOrders,todayDate,validDate,validOrderDueDate,nextPurchaseOrderNumber,planFifo};

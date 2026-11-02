@@ -22,6 +22,9 @@ test('record editing preserves product, sales and FIFO ledger consistency',async
     const salesGroupsMigration=readFileSync('supabase/sales-order-groups.sql','utf8');
     await db.exec(salesGroupsMigration);
     await db.exec(salesGroupsMigration);
+    const salesStatusMigration=readFileSync('supabase/sales-status-workflow.sql','utf8');
+    await db.exec(salesStatusMigration);
+    await db.exec(salesStatusMigration);
 
     const classification=(await db.query(`select id,name from public.stock_product_classifications
       where inventory_asset_type is not null and not quantity_management_disabled

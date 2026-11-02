@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const {PRODUCT_UNITS,filterSalesOrders,summarizeSalesOrders,validOrderDueDate}=require('../inventory-model.js');
+const {PRODUCT_UNITS,filterSalesOrders,salesOrderStatus,summarizeSalesOrders,validOrderDueDate}=require('../inventory-model.js');
 
 test('sales entry provides an editable order date before the order number',()=>{
   const form=fs.readFileSync('inventory.html','utf8').match(/<form id="sales-order-form" novalidate>([\s\S]*?)<\/form>/)[1];
@@ -74,8 +74,8 @@ test('sales status view includes every order field and completion control after 
   assert.match(html,/id="sales-status-button"[^>]*>수주 현황<\/button>/);
   assert.match(search,/for="sales-status-order-query">수주번호 또는 거래처\(성명\) 검색<\/label><input id="sales-status-order-query" type="search"/);
   assert.match(search,/id="search-sales-status-orders"[^>]*>검색<\/button>/);
-  assert.match(table,/<th>수주번호<\/th><th>수주형태<\/th><th>거래처<\/th><th>연락처<\/th><th>출고일자<\/th><th>매출 상태<\/th>/);
-  for(const label of ['일련번호','수주일자','수주번호','매출 상태','수주형태','거래처','연락처','출고일자','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
+  assert.match(table,/<th>수주번호<\/th><th>수주형태<\/th><th>거래처<\/th><th>연락처<\/th><th>출고일자<\/th><th>완료 체크<\/th><th>매출 상태<\/th>/);
+  for(const label of ['일련번호','수주일자','수주번호','완료 체크','매출 상태','수주형태','거래처','연락처','출고일자','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
     assert.ok(table.includes(`<th>${label}</th>`),label);
   for(const id of ['sales-status-start-date','sales-status-end-date','sales-status-type-filter','sales-status-filter','sales-status-total','sales-status-completed-total','sales-status-outstanding-total'])
     assert.match(html,new RegExp(`id="${id}"`),id);
@@ -85,13 +85,46 @@ test('sales status view includes every order field and completion control after 
   assert.match(app,/function editSalesOrderFromStatus\(id\)/);
 });
 
+test('sales item completion checkbox saves the selected order status',async()=>{
+  const elements=new Map(),calls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{textContent:''});
+    return elements.get(id);
+  };
+  const context=vm.createContext({
+    document:{getElementById:element},
+    salesOrderStatus,
+    testClient:{rpc:async(name,args)=>{
+      calls.push([name,args]);
+      return {data:{id:'line',order_number:'SO-1',sales_progress_status:args.p_sales_status,sales_status:'매출완료'},error:null};
+    }},
+    renderSalesOrders(){},renderSalesStatus(){},renderSalesBalance(){},updateIssueSalesOrders(){}
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext('client=testClient',context);
+  context.renderSalesOrders=()=>{};
+  context.renderSalesStatus=()=>{};
+  context.renderSalesBalance=()=>{};
+  context.updateIssueSalesOrders=()=>{};
+  vm.runInContext("salesOrders=[{id:'line',order_number:'SO-1',sales_status:'매출미완료'}];currentUser={id:'user'}",context);
+  context.completionCheckbox={dataset:{orderId:'line',salesOrderComplete:'true'},checked:true};
+  await vm.runInContext("changeSalesOrderStatus({target:completionCheckbox})",context);
+  assert.equal(calls.length,1);
+  assert.equal(calls[0][0],'set_sales_order_status');
+  assert.equal(calls[0][1].p_order_id,'line');
+  assert.equal(calls[0][1].p_sales_status,'완료');
+  assert.equal(vm.runInContext('salesOrders[0].sales_progress_status',context),'완료');
+  assert.match(element('sales-status-message').textContent,/완료/);
+});
+
 test('dashboard sales balance uses the same sales-order columns and status selection',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const statusHeaders=html.match(/<table aria-label="전체 수주현황"[^>]*><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
   const balanceHeaders=html.match(/<table aria-label="수주잔고 현황"[^>]*><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
   assert.equal(balanceHeaders,statusHeaders);
   assert.match(html,/id="sales-balance-items"/);
-  assert.match(fs.readFileSync('inventory-app.js','utf8'),/select\.value='매출미완료';select\.disabled=salesStatusUpdating\|\|Number\(order\.shipped_quantity\|\|0\)>0/);
+  assert.match(fs.readFileSync('inventory-app.js','utf8'),/select\.value=status;select\.disabled=salesStatusUpdating/);
+  assert.match(fs.readFileSync('inventory-app.js','utf8'),/checkbox\.disabled=salesStatusUpdating\|\|Number\(order\.shipped_quantity\|\|0\)>0/);
 });
 
 test('dashboard backlog card shows live outstanding order count and exact total',()=>{
@@ -105,6 +138,7 @@ test('dashboard backlog card shows live outstanding order count and exact total'
     number:value=>Number(value||0).toLocaleString('ko-KR',{maximumFractionDigits:2}),
     money:value=>Number(value||0).toLocaleString('ko-KR',{maximumFractionDigits:2}),
     filterSalesOrders,
+    salesOrderStatus,
     validOrderDueDate,
     makeCell:text=>({textContent:String(text),className:''}),
     emptyRow(){}
@@ -123,7 +157,7 @@ test('dashboard backlog card shows live outstanding order count and exact total'
   element('sales-balance-type-filter').value='온라인 수주';
   vm.runInContext('applySalesBalanceSearch()',context);
   assert.equal(element('sales-balance-items').children.length,1);
-  assert.equal(element('sales-balance-summary').textContent,'1건 · 수주 잔고 10.25원');
+  assert.equal(element('sales-balance-summary').textContent,'1건 · 진행·중단 수주 잔고 10.25원');
   assert.equal(element('total-sales-backlog-count').textContent,'2건');
   assert.equal(element('total-sales-backlog-amount').textContent,'합계 30.35원');
   element('sales-balance-start-date').value='2026-10-02';
@@ -145,12 +179,13 @@ test('sales orders filter inclusively by date, type and completion, and summariz
     {order_date:'2026-10-20',order_number:'SO-300',vendor_name:'홍길동',order_type:'오프라인 수주',sales_status:'매출미완료',amount:'30.00'}
   ];
   const filters={startDate:'2026-10-01',endDate:'2026-10-19',orderType:'온라인 수주'};
-  assert.equal(filterSalesOrders(orders,{...filters,salesStatus:'매출완료'}).length,1);
+  assert.equal(filterSalesOrders(orders,{...filters,salesStatus:'완료'}).length,1);
   assert.deepEqual(summarizeSalesOrders(orders,filters),{total:30.35,completed:10.25,outstanding:20.1});
-  assert.equal(filterSalesOrders(orders,{salesStatus:'매출미완료'}).length,2);
+  assert.equal(filterSalesOrders(orders,{salesStatus:'진행'}).length,2);
   assert.deepEqual(filterSalesOrders(orders,{query:'so-20'}).map(order=>order.order_number),['SO-200']);
   assert.deepEqual(filterSalesOrders(orders,{query:'홍길동'}).map(order=>order.order_number),['SO-100','SO-300']);
-  assert.equal(filterSalesOrders(orders,{query:'  김철수  ',salesStatus:'매출미완료'}).length,1);
+  assert.equal(filterSalesOrders(orders,{query:'  김철수  ',salesStatus:'진행'}).length,1);
+  assert.equal(salesOrderStatus({sales_progress_status:'중단',sales_status:'매출미완료'}),'중단');
 });
 
 test('issue sales-order selector lists in-progress orders only and selects the linked product',()=>{
@@ -167,6 +202,7 @@ test('issue sales-order selector lists in-progress orders only and selects the l
       getElementById:id=>fields[id],
       createElement:()=>({value:'',textContent:'',disabled:false})
     },
+    salesOrderStatus,
     number:value=>Number(value||0).toLocaleString('ko-KR'),
     crypto:{randomUUID:()=> 'request-id'},
     updateAmounts(){}
@@ -175,7 +211,8 @@ test('issue sales-order selector lists in-progress orders only and selects the l
   vm.runInContext(`mode='issue';salesOrders=[
     {id:'active',order_number:'SO-OPEN',vendor_name:'고객',product_name:'Shirt',specification:'Blue',unit:'EA(개)',quantity:5,shipped_quantity:2,sales_status:'매출미완료',due_date:'2026-11-10'},
     {id:'complete',order_number:'SO-DONE',product_name:'Shirt',specification:'Blue',unit:'EA(개)',quantity:2,shipped_quantity:2,sales_status:'매출완료'},
-    {id:'manual-complete',order_number:'SO-MANUAL-DONE',product_name:'Hat',specification:'',unit:'EA(개)',quantity:1,shipped_quantity:0,sales_status:'매출완료'}
+    {id:'manual-complete',order_number:'SO-MANUAL-DONE',product_name:'Hat',specification:'',unit:'EA(개)',quantity:1,shipped_quantity:0,sales_status:'매출완료'},
+    {id:'stopped',order_number:'SO-STOPPED',product_name:'Bag',specification:'',unit:'EA(개)',quantity:1,shipped_quantity:0,sales_progress_status:'중단',sales_status:'매출미완료'}
   ];updateIssueSalesOrders()`,context);
   assert.equal(fields['issue-sales-order'].options.length,2);
   assert.equal(fields['issue-sales-order'].options[1].value,'active');

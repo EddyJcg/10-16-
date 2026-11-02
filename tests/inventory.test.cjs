@@ -336,13 +336,18 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(css,/\.dialog-resize-handle\{[\s\S]*?cursor:nwse-resize/);
   assert.match(resizeCss,/\.dialog-resize-top,\.dialog-resize-bottom\{[^}]*width:auto;height:12px;cursor:ns-resize/);
   assert.match(resizeCss,/\.dialog-resize-left,\.dialog-resize-right\{[^}]*width:12px;height:auto;cursor:ew-resize/);
-  assert.match(resizeCss,/\.dialog-window-controls\{[^}]*gap:18px;[^}]*margin-left:auto;[^}]*margin-right:18px;[^}]*padding-left:18px/);
+  assert.match(resizeCss,/\.dialog-window-controls\{[^}]*gap:36px;[^}]*margin-left:auto;[^}]*margin-right:36px;[^}]*padding-left:36px/);
   assert.match(resizeCss,/\.dialog-window-controls\+\.close\{margin-left:0!important/);
+  assert.match(resizeCss,/dialog \.dialog-header\{column-gap:32px\}/);
+  assert.match(resizeCss,/dialog \.product-list-toolbar,dialog \.dialog-header-actions,dialog \.print-toolbar\{gap:16px\}/);
+  assert.match(resizeCss,/dialog \.vendor-query-toolbar\{gap:9px\}/);
+  assert.match(resizeCss,/dialog \.vendor-toolbar\{gap:13px\}/);
+  assert.match(resizeCss,/@media\(max-width:600px\)\{dialog \.vendor-toolbar\{gap:5\.2px\}\}/);
   assert.match(resizeCss,/\.dialog-minimize-icon\{[^}]*transform:scale\(1\.5\)/);
   assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*transform:scale\(1\.5\)/);
-  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4px;right:-4px;[^}]*border:1px solid currentColor/);
+  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4px;left:-4px;[^}]*border:1px solid currentColor;background:Canvas;box-shadow:none/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon::after\{display:block\}/);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*window-controls-18px-expanded-double/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*window-controls-36px-outlined/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

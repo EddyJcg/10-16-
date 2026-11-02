@@ -1221,14 +1221,17 @@ function renderProductInfoItems() {
     if(item.specification){const specOption=document.createElement('option');specOption.value=item.specification;specOption.label=item.product_code+' · '+item.product_name;$('product-info-specifications').append(specOption);}
   });
 }
-function renderProductInfoStatus() {
-  const body=$('product-info-status-items');
+function filteredProductInfoStatusItems() {
   const filters=[
     ['product_code',$('product-info-status-code-query').value],
     ['product_name',$('product-info-status-name-query').value],
     ['specification',$('product-info-status-specification-query').value]
   ].map(([key,value])=>[key,value.trim().toLocaleLowerCase('ko-KR')]).filter(([,value])=>value);
-  const filtered=items.filter(item=>!filters.length||filters.some(([key,value])=>String(item[key]||'').toLocaleLowerCase('ko-KR').includes(value)));
+  return items.filter(item=>!filters.length||filters.some(([key,value])=>String(item[key]||'').toLocaleLowerCase('ko-KR').includes(value)));
+}
+function renderProductInfoStatus() {
+  const body=$('product-info-status-items');
+  const filtered=filteredProductInfoStatusItems();
   body.replaceChildren();
   if(!filtered.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=9;cell.className='empty';cell.textContent=items.length?'검색 결과가 없습니다.':'등록된 품목정보가 없습니다.';row.append(cell);body.append(row);return;}
   filtered.forEach(item=>{
@@ -1240,6 +1243,13 @@ function renderProductInfoStatus() {
     button.setAttribute('aria-label',item.product_code+' 품목 선택');
     action.append(button);row.append(action);body.append(row);
   });
+}
+function exportProductInfoStatusExcel() {
+  const rows=filteredProductInfoStatusItems();
+  return downloadDataWorkbook('export-product-info-status','품목정보 현황','품목정보 현황',
+    ['품목분류','품번','품명','규격','재질','색상','단위','적정재고'],
+    rows.map(item=>[item.product_category||'',item.product_code||'',item.product_name||'',item.specification||'',item.material||'',item.color||'',item.unit||'',Number(item.standard_stock_quantity||0)]),
+    [7],'내보낼 품목정보가 없습니다.');
 }
 async function showProductInfo() {
   if(!currentUser||busy)return;
@@ -2062,6 +2072,7 @@ async function startApp(){
   $('import-product-info-button').addEventListener('click',openProductInfoFilePicker);
   $('product-info-import-file').addEventListener('change',importProductInfoFile);
   $('close-product-info-status').addEventListener('click',()=>$('product-info-status-dialog').close());
+  $('export-product-info-status').addEventListener('click',exportProductInfoStatusExcel);
   ['product-info-status-code-query','product-info-status-name-query','product-info-status-specification-query'].forEach(id=>$(id).addEventListener('input',renderProductInfoStatus));
   $('clear-product-info-status-search').addEventListener('click',()=>{
     ['product-info-status-code-query','product-info-status-name-query','product-info-status-specification-query'].forEach(id=>$(id).value='');

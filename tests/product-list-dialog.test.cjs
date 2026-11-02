@@ -105,15 +105,17 @@ test('product list dialog searches all stock fields and prints the displayed lis
 
 test('all requested status and inventory dialogs offer Excel downloads using visible result sets',()=>{
   const html=readFileSync('inventory.html','utf8'),script=readFileSync('inventory-app.js','utf8');
-  for(const id of ['export-sales-status','export-current-stock','export-product-list','export-movement-list'])
+  for(const id of ['export-sales-status','export-current-stock','export-product-list','export-product-info-status','export-movement-list'])
     assert.match(html,new RegExp(`id="${id}"[^>]*>↓ Excel 다운로드`),id);
   for(const [id,handler] of [
     ['export-sales-status','exportSalesStatusExcel'],['export-current-stock','exportCurrentStockExcel'],
-    ['export-product-list','exportProductListExcel'],['export-movement-list','exportMovementListExcel']
+    ['export-product-list','exportProductListExcel'],['export-product-info-status','exportProductInfoStatusExcel'],
+    ['export-movement-list','exportMovementListExcel']
   ])assert.match(script,new RegExp(`\\$\\('${id}'\\)\\.addEventListener\\('click',${handler}\\)`),id);
   assert.match(script,/filterSalesOrders\(salesOrders,appliedSalesStatusFilters\)/);
   assert.match(script,/currentStockRows\(items\)/);
   assert.match(script,/filterInventoryItems\(items\.filter\(stockLedgerManaged\),\{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds\}\)/);
+  assert.match(script,/function exportProductInfoStatusExcel\(\)[\s\S]*?filteredProductInfoStatusItems\(\)/);
   assert.match(script,/const rows=filteredMovementListRows\(\)/);
 });
 
@@ -328,6 +330,15 @@ test('product information status searches each condition independently and allow
   assert.match(html,/for="product-info-status-name-query">품명<input id="product-info-status-name-query"/);
   assert.match(html,/for="product-info-status-specification-query">규격<input id="product-info-status-specification-query"/);
   assert.match(html,/검색 결과에서 품목을 선택하면 등록 창에서 내용을 확인하거나 수정할 수 있습니다/);
+  vm.runInContext(`downloadDataWorkbook=(...args)=>args`,context);
+  queries['product-info-status-code-query'].value='';
+  queries['product-info-status-name-query'].value='backpack beta';
+  queries['product-info-status-specification-query'].value='';
+  const exported=vm.runInContext('exportProductInfoStatusExcel()',context);
+  assert.equal(exported[0],'export-product-info-status');
+  assert.deepEqual(Array.from(exported[3]),['품목분류','품번','품명','규격','재질','색상','단위','적정재고']);
+  assert.deepEqual(Array.from(exported[4],row=>Array.from(row)),[['','SKU-2','Backpack Beta','Spec-3','','','',0]]);
+  assert.deepEqual(Array.from(exported[5]),[7]);
 });
 test('current stock and movement history table cell text is centered',()=>{
   const style=readFileSync('inventory.css','utf8');

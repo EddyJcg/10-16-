@@ -35,12 +35,12 @@
 .vendor-dialog .dialog-footer{flex:none}
 #vendor-list-dialog{width:min(1800px,99vw);height:min(850px,96vh);max-height:96vh;padding:0;overflow:hidden}
 #vendor-list-dialog[open]{display:flex;flex-direction:column}
-.vendor-query-toolbar{display:flex;align-items:center;gap:4px;flex:none;min-height:52px;padding:5px 10px;background:#41494e;color:#fff}
-.vendor-query-toolbar button{display:inline-flex;align-items:center;gap:8px;min-height:39px;padding:7px 10px;border:0;border-radius:3px;background:transparent;color:#fff;font-size:15.6px}
+.vendor-query-toolbar{display:flex;align-items:center;gap:5px;flex:none;min-height:68px;padding:7px 13px;background:#41494e;color:#fff}
+.vendor-query-toolbar button{display:inline-flex;align-items:center;gap:10px;min-height:51px;padding:9px 13px;border:0;border-radius:3px;background:transparent;color:#fff;font-size:20.3px}
 .vendor-query-toolbar button:hover{background:#626c72}
-.vendor-query-toolbar button span{font-size:20.8px}
+.vendor-query-toolbar button span{font-size:27px}
 .vendor-query-toolbar .close{margin-left:auto;background:#566168}
-.vendor-query-toolbar .close{width:42px;height:42px;font-size:26px}
+.vendor-query-toolbar .close{width:84px;min-width:84px;height:55px;border-radius:4px;font-size:26px}
 .vendor-query-content{display:flex;flex:1;flex-direction:column;gap:6px;min-height:0;max-height:none;padding:5px;overflow:hidden;background:#fff}
 .vendor-query-conditions,.vendor-query-additional{flex:none;border:0;border-bottom:1px solid #c9cdd0}
 .vendor-query-conditions>summary,.vendor-query-additional>summary{list-style:none;cursor:pointer;min-height:38px;padding:5px 9px;color:#34454e;font-size:16.9px;font-weight:650}

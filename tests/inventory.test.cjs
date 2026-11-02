@@ -81,7 +81,7 @@ test('receipt save asks for missing storage location and supplier before saving'
       showModal(){this.open=true;},close(){this.open=false;},focus(){this.focused=true;}});
     return nodes.get(id);
   };
-  const context=vm.createContext({document:{getElementById:element},window:{alert(){}},validDate:()=>true});
+  const context=vm.createContext({document:{getElementById:element,querySelector:()=>({querySelectorAll:()=>[]})},window:{alert(){}},validDate:()=>true});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`currentUser={id:'user'};items=[{product_code:'SKU'}];mode='receipt';
     $('product_code').value='SKU';$('movement_quantity').value='1';$('movement_cost').value='2';
@@ -107,7 +107,7 @@ test('receipt prompt ignore action submits once without reopening the prompt',as
       showModal(){this.open=true;},close(){this.open=false;},focus(){},requestSubmit(){this.submission=vm.runInContext('saveMovement({preventDefault(){}})',context);}});
     return nodes.get(id);
   };
-  const context=vm.createContext({document:{getElementById:element},window:{alert(){}},validDate:()=>true,rpcCalls:0,PRODUCT_FIELDS});
+  const context=vm.createContext({document:{getElementById:element,querySelector:()=>({querySelectorAll:()=>[]})},window:{alert(){}},validDate:()=>true,rpcCalls:0,PRODUCT_FIELDS});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`currentUser={id:'user'};items=[{product_code:'SKU'}];mode='receipt';
     client={rpc:async()=>{rpcCalls++;return {data:null,error:{message:'test failure'}};}};
@@ -335,7 +335,7 @@ test('insufficient FIFO preview does not present a misleading unit price',()=>{
 test('issue quantity exceeding available stock warns and blocks validation',()=>{
   const alerts=[],fields={product_code:{value:'SKU'},unit:{value:'Kg'},movement_quantity:{value:'6'},movement_date:{value:'2020-01-02'}};
   let rpcCalls=0;
-  const ctx=vm.createContext({document:{getElementById:id=>fields[id]},window:{alert:message=>alerts.push(message)},planFifo,validDate:value=>value==='2020-01-02',PRODUCT_FIELDS:['product_code'],client:{rpc(){rpcCalls++;}}});
+  const ctx=vm.createContext({document:{getElementById:id=>fields[id],querySelector:()=>({querySelectorAll:()=>[]})},window:{alert:message=>alerts.push(message)},planFifo,validDate:value=>value==='2020-01-02',PRODUCT_FIELDS:['product_code'],client:{rpc(){rpcCalls++;}}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),ctx);
   vm.runInContext('mode="issue";currentUser={id:"user"};items=[{product_code:"SKU"}];productLots=[{id:1,received_date:"2020-01-01",remaining_quantity:5,unit_cost:100}];productLotsReady=true',ctx);
   assert.equal(vm.runInContext('validateIssueQuantity(true)',ctx),false);

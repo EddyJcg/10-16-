@@ -71,8 +71,8 @@ test('sales status view includes every order field and completion control after 
 
 test('dashboard sales balance uses the same sales-order columns and status selection',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
-  const statusHeaders=html.match(/<table aria-label="전체 수주현황"><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
-  const balanceHeaders=html.match(/<table aria-label="수주잔고 현황"><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
+  const statusHeaders=html.match(/<table aria-label="전체 수주현황"[^>]*><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
+  const balanceHeaders=html.match(/<table aria-label="수주잔고 현황"[^>]*><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
   assert.equal(balanceHeaders,statusHeaders);
   assert.match(html,/id="sales-balance-items"/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/select\.value='매출미완료';select\.disabled=salesStatusUpdating\|\|Number\(order\.shipped_quantity\|\|0\)>0/);

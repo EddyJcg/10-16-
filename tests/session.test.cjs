@@ -10,7 +10,7 @@ async function boot(file){
   const element=id=>{if(!elements.has(id))elements.set(id,{value:'',textContent:'',hidden:false,disabled:false,handlers:{},addEventListener(event,handler){this.handlers[event]=handler;},querySelectorAll(){return[];},replaceChildren(){},reset(){},classList:{toggle(){}}});return elements.get(id);};
   const context=vm.createContext({
     SUPABASE_URL:'https://example.supabase.co',SUPABASE_PUBLISHABLE_KEY:'test-key',
-    document:{getElementById:element,querySelectorAll(){return[];},addEventListener(){}},
+    document:{getElementById:element,querySelectorAll(){return[];},querySelector(){return{querySelectorAll(){return[];}};},addEventListener(){}},
     window:{sessionStorage:storage,supabase:{createClient:(url,key,value)=>{options=value;return {auth:{onAuthStateChange(){}},removeAllChannels(){}};}},addEventListener(){},alert:message=>alerts.push(message)},
     render(){},renderHeaders(){},setInterval(){return 1;},clearInterval(){},clearTimeout(){},setTimeout(){return 1;}
   });

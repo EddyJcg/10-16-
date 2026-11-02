@@ -2012,6 +2012,7 @@ async function startApp(){
   $('purchase-receive-dialog').addEventListener('cancel',event=>{if(purchaseSaving)event.preventDefault();});
   $('sales-status-button').addEventListener('click',showSalesStatus);
   $('sales-register-button').addEventListener('click',showSalesStatus);
+  $('sales-status-query-button').addEventListener('click',showSalesStatus);
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
   $('sales-order-form').addEventListener('submit',saveSalesOrder);
   $('add-sales-line-footer').addEventListener('click',addSalesOrderLine);

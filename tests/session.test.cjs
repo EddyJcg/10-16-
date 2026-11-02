@@ -92,6 +92,7 @@ test('sales order menu opens its dialog and binds save and amount calculation',a
 test('sales status menu opens its list and binds searches and status updates',async()=>{
   const app=await boot('inventory-app.js');
   assert.equal(typeof app.element('sales-register-button').handlers.click,'function');
+  assert.equal(typeof app.element('sales-status-query-button').handlers.click,'function');
   assert.equal(typeof app.element('sales-status-button').handlers.click,'function');
   assert.equal(typeof app.element('close-sales-status').handlers.click,'function');
   assert.equal(typeof app.element('apply-sales-status-search').handlers.click,'function');

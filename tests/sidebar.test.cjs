@@ -44,6 +44,12 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),nav=html.match(/<nav aria-label="재고관리 메뉴">([\s\S]*?)<\/nav>/)[1];
   assert.ok(nav.indexOf('id="basic-info-folder"')<nav.indexOf('id="sales-folder"'),'기본정보 should appear before 매출관리');
   assert.match(nav,/<details id="product-info-folder"[^>]*data-sidebar-folder><summary>품목정보 입력<\/summary><div class="folder-children"><button[^>]*id="product-info-button"[^>]*>품목정보 등록<\/button><button[^>]*id="product-info-status-button"[^>]*>품목정보 현황<\/button><\/div><\/details>/);
+  const basicStart=nav.indexOf('<details id="basic-info-folder"'),salesPosition=nav.indexOf('id="sales-folder"');
+  assert.ok(basicStart>=0&&salesPosition>basicStart);
+  const basicMenu=nav.slice(basicStart,salesPosition);
+  assert.match(basicMenu,/<details id="vendor-info-entry-folder"[^>]*><summary>거래처정보 입력<\/summary><\/details>/);
+  assert.match(basicMenu,/<details id="vendor-status-folder"[^>]*><summary>거래처 현황<\/summary><\/details>/);
+  assert.ok(nav.indexOf('id="basic-info-folder"')<nav.indexOf('id="vendor-info-entry-folder"')&&nav.indexOf('id="vendor-status-folder"')<nav.indexOf('id="sales-folder"'),'vendor folders should be inside 기본정보');
   assert.ok(nav.indexOf('id="sales-folder"')<nav.indexOf('id="inventory-folder"'),'매출관리 should appear above 재고관리');
   assert.match(nav,/<details id="sales-folder"[^>]*data-sidebar-folder><summary>매출관리<\/summary><div class="folder-children"><button[^>]*id="sales-order-button"[^>]*>수주 입력<\/button><button[^>]*id="sales-status-button"[^>]*>수주 현황<\/button><\/div><\/details>/);
   const purchasePosition=nav.indexOf('id="purchase-folder"'),inventoryPosition=nav.indexOf('id="inventory-folder"');
@@ -64,6 +70,12 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   const adminFolderStart=nav.lastIndexOf('<details',adminPosition);
   assert.equal(nav.slice(adminFolderStart).match(/<details\b/g).length,1,'관리자 should be the last menu folder');
   assert.match(nav,/id="inventory-folder"[^>]*data-sidebar-folder open/);
+});
+test('vendor folders reuse the asset classification icon at the same size',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  const style=fs.readFileSync('vendor-folder-icon.css','utf8');
+  assert.match(html,/href="\/vendor-folder-icon\.css\?v=20261102-vendor-folders"/);
+  assert.match(style,/#vendor-info-entry-folder>summary::before,#vendor-status-folder>summary::before\{content:'';display:inline-block;flex:0 0 28\.6px;width:28\.6px;height:28\.6px;background:currentColor;-webkit-mask:url\('\/product-bag\.svg'\) center\/contain no-repeat;mask:url\('\/product-bag\.svg'\) center\/contain no-repeat\}/);
 });
 test('sidebar text sizes are increased by approximately twenty percent',()=>{
   const style=fs.readFileSync('inventory.css','utf8');

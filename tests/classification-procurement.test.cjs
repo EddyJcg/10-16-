@@ -1,6 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
+const vm=require('node:vm');
 const {randomUUID}=require('node:crypto');
 const {currentStockRows,isStockLedgerManaged,stockRiskItems,nextPurchaseOrderNumber}=require('../inventory-model.js');
 
@@ -41,6 +42,11 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(html,/id="purchase-query-button"/);
   assert.match(html,/id="purchase-order-number" required maxlength="17" readonly/);
   assert.match(html,/id="purchase-order-date" type="date" required/);
+  assert.match(html,/id="purchase-order-supplier" required><option value="">등록 거래처 선택<\/option><\/select>/);
+  assert.match(app,/async function loadRegisteredVendors\(\)[\s\S]*from\('business_partners'\)/);
+  assert.match(app,/async function loadPurchaseOrderVendors\(\)[\s\S]*populatePurchaseOrderVendorOptions\(\)/);
+  assert.match(app,/const supplier=String\(selectedVendor\?\.legal_name\|\|selectedVendor\?\.vendor_name\|\|''\)\.trim\(\)/);
+  assert.match(app,/p_order_number:orderNumber,p_supplier:supplier/);
   assert.match(app,/async function showPurchaseOrders\(mode='entry'\)[\s\S]*purchase-order-entry'\)\.hidden=isQuery[\s\S]*purchase-order-view'\)\.hidden=!isQuery/);
   assert.match(app,/\$\('purchase-entry-button'\)\.addEventListener\('click',\(\)=>showPurchaseOrders\('entry'\)\)/);
   assert.match(app,/\$\('purchase-query-button'\)\.addEventListener\('click',\(\)=>showPurchaseOrders\('query'\)\)/);
@@ -76,6 +82,28 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(style,/dialog-footer>#save-asset-classification\{transform:scale\(\.81\)/);
   assert.match(html,/inventory\.css\?v=20261022-login-input-font-120-targeted-classification-label-size/);
   assert.doesNotMatch(html,/선택하면 원자재 수불부에 반영하지 않습니다|변경해도 기존 거래의 단가·금액은 수정되지 않습니다|선택 시 적정재고 미달 품목을 품절위험 목록에 표시합니다/);
+});
+
+test('purchase order supplier options are limited to registered business partners',()=>{
+  const supplier={value:'',options:[],disabled:true,replaceChildren(...options){this.options=options;},add(option){this.options.push(option);},focus(){}};
+  const context=vm.createContext({
+    document:{getElementById:id=>id==='purchase-order-supplier'?supplier:null},
+    Option:function(text,value){return {textContent:text,value};}
+  });
+  vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`purchaseOrderVendors=[
+    {id:'partner-1',legal_name:'상호 A',vendor_name:'등록 거래처 A'},
+    {id:'partner-2',legal_name:'등록 거래처 B',vendor_name:'등록 거래처 B'}
+  ];purchaseOrderVendorsLoaded=true;populatePurchaseOrderVendorOptions()`,context);
+  assert.equal(supplier.disabled,false);
+  assert.deepEqual(supplier.options.map(option=>option.value),['','partner-1','partner-2']);
+  assert.deepEqual(supplier.options.map(option=>option.textContent),['등록 거래처 선택','상호 A · 등록 거래처 A','등록 거래처 B']);
+  supplier.value='partner-2';
+  vm.runInContext('populatePurchaseOrderVendorOptions()',context);
+  assert.equal(supplier.value,'partner-2','repopulating options preserves a still-registered selection');
+  vm.runInContext('purchaseOrderVendors=[];purchaseOrderVendorsLoaded=false;populatePurchaseOrderVendorOptions()',context);
+  assert.equal(supplier.disabled,true);
+  assert.deepEqual(supplier.options.map(option=>option.value),['']);
 });
 
 test('purchase order receipts update stock only for fully managed products',async()=>{

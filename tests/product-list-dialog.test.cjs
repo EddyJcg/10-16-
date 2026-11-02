@@ -247,6 +247,13 @@ test('current stock dialog title is shown without the item count',()=>{
   assert.doesNotMatch(html,/id="current-stock-count"/);
   assert.doesNotMatch(renderer,/current-stock-count/);
 });
+test('product information status title remains without the item count',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  const script=readFileSync('inventory-app.js','utf8');
+  assert.match(html,/<h2 id="product-info-status-title">품목정보 현황<\/h2>/);
+  assert.doesNotMatch(html,/product-info-status-count/);
+  assert.doesNotMatch(script,/product-info-status-count/);
+});
 test('current stock and movement history table cell text is centered',()=>{
   const style=readFileSync('inventory.css','utf8');
   assert.match(style,/#current-stock-table th,#current-stock-table td,#movement-list-table th,#movement-list-table td\{text-align:center\}/);

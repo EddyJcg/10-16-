@@ -36,6 +36,7 @@ test('sales status prints with shared settings and places print controls after E
 
 test('sales order dialog contains all requested fields and choices',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
+  const style=fs.readFileSync('sales-order.css','utf8');
   const form=html.match(/<form id="sales-order-form" novalidate>([\s\S]*?)<\/form>/)?.[1]||'';
   assert.ok(form);
   for(const [id,label] of [
@@ -55,7 +56,12 @@ test('sales order dialog contains all requested fields and choices',()=>{
   assert.match(html,/<th>거래처<\/th><th>연락처<\/th>/);
   assert.match(html,/id="sales-order-items"/);
   assert.match(html,/<th>일련번호<\/th><th>수주일자<\/th><th>수주번호<\/th>/);
+  assert.match(html,/<link rel="stylesheet" href="\/sales-order\.css/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);
+  assert.match(style,/@media\(min-width:851px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(style,/\.sales-order-dialog \.sales-order-wide\{grid-column:span 5\}/);
+  assert.match(style,/@media\(max-width:850px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(style,/@media\(max-width:520px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:1fr\}/);
 });
 
 test('sales status view includes every order field and completion control after order number',()=>{

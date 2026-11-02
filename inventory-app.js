@@ -835,7 +835,7 @@ function renderProductListHeaders() {
 function productListFields() { return STOCK_DISPLAY_FIELDS.flatMap(field=>field.key==='material'?[field,{key:'color',label:'색상',numeric:false}]:[field]); }
 function renderProductList() {
   const shown=filterInventoryItems(items,{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds});
-  const fields=productListFields(),body=$('product-list-items');body.replaceChildren();$('product-list-count').textContent=shown.length?shown.length.toLocaleString('ko-KR')+'개':'';
+  const fields=productListFields(),body=$('product-list-items');body.replaceChildren();
   if(!shown.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=fields.length+1;cell.className='empty';cell.textContent=items.length?'검색 조건에 맞는 품목이 없습니다.':'등록된 품목이 없습니다.';row.append(cell);body.append(row);return;}
   shown.forEach((item,index)=>{const row=document.createElement('tr'),serial=document.createElement('td');serial.className='numeric';serial.textContent=number(index+1);row.append(serial);fields.forEach(field=>{const cell=document.createElement('td');if(field.numeric)cell.className='numeric';cell.textContent=field.numeric?number(item[field.key]):item[field.key]||'';row.append(cell);});body.append(row);});
 }

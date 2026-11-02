@@ -34,8 +34,10 @@ test('separate receipt and issue histories preserve their kind through reset and
 
 test('sidebar opens the searchable full product list in a modal dialog',()=>{
   const html=readFileSync('inventory.html','utf8');
-  assert.match(html,/<button type="button" class="sidebar-action" id="product-list-button" aria-haspopup="dialog">품목 목록<\/button>/);
+  assert.match(html,/<button type="button" class="sidebar-action" id="product-list-button" aria-haspopup="dialog">재고수불부<\/button>/);
   assert.match(html,/<dialog id="product-list-dialog" aria-labelledby="product-list-title">/);
+  assert.match(html,/<h2 id="product-list-title">재고수불부<\/h2>/);
+  assert.doesNotMatch(html,/id="product-list-count"/);
   for(const id of ['product-list-start-date','product-list-end-date','product-list-supplier','product-list-query','product-list-head','product-list-items'])
     assert.match(html,new RegExp(`id="${id}"`));
   for(const detail of ['품번','품명','규격','저장위치'])
@@ -53,6 +55,7 @@ test('product list dialog searches all stock fields and prints the displayed lis
   assert.match(script,/window\.print\(\)/);
   assert.match(style,/@media print/);
   assert.match(style,/#product-list-dialog \.product-list-search,#product-list-dialog \.product-list-status/);
+  assert.doesNotMatch(script,/product-list-count/);
 });
 
 test('all requested status and inventory dialogs offer Excel downloads using visible result sets',()=>{

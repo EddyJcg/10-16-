@@ -173,7 +173,7 @@ function movementListLabel(){return movementListKind==='opening'?'기초재고 �
 let salesOrders = [],salesDraftLines=[],salesOrdersLoading = false,salesOrderSaving = false;
 let purchaseOrders=[],purchaseOrderLines=[],purchaseReceipts=[],purchaseDraftLines=[],purchaseOrderVendors=[],purchaseOrderVendorsLoaded=false,purchaseLoading=false,purchaseSaving=false,purchaseSyncTimer=null;
 let receivingPurchaseLineId='',receivingPurchaseRequestId='';
-let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:''},salesStatusUpdating=false;
+let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''},salesStatusUpdating=false;
 let appliedSalesBalanceFilters={startDate:'',endDate:'',orderType:''};
 const printMargins = {top:10,right:10,bottom:10,left:10};
 let printMarginDrag = null,activePrintTarget='product-list';
@@ -620,9 +620,10 @@ function schedulePurchaseOrderSync(){
 }
 async function showSalesStatus(){
   if(!currentUser||busy||salesOrderSaving)return;
-  appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:''};
+  appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''};
   $('sales-status-start-date').value='';$('sales-status-end-date').value='';
   $('sales-status-type-filter').value='';$('sales-status-filter').value='';
+  $('sales-status-order-query').value='';
   $('sales-status-message').textContent='';renderSalesStatus();$('sales-status-dialog').showModal();
   await loadSalesOrders();
 }
@@ -641,12 +642,13 @@ async function openMovementHistoryForEdit(){
 function applySalesStatusSearch(clear=false){
   const startDate=clear?'':$('sales-status-start-date').value,endDate=clear?'':$('sales-status-end-date').value;
   const orderType=clear?'':$('sales-status-type-filter').value,salesStatus=clear?'':$('sales-status-filter').value;
+  const query=clear?'':$('sales-status-order-query').value.trim();
   if((startDate&&!validOrderDueDate(startDate))||(endDate&&!validOrderDueDate(endDate))){
     $('sales-status-message').textContent='올바른 시작일과 종료일을 입력하세요.';return;
   }
   if(startDate&&endDate&&startDate>endDate){$('sales-status-message').textContent='시작일은 종료일보다 늦을 수 없습니다.';return;}
-  if(clear){$('sales-status-start-date').value='';$('sales-status-end-date').value='';$('sales-status-type-filter').value='';$('sales-status-filter').value='';}
-  appliedSalesStatusFilters={startDate,endDate,orderType,salesStatus};$('sales-status-message').textContent='';renderSalesStatus();
+  if(clear){$('sales-status-start-date').value='';$('sales-status-end-date').value='';$('sales-status-type-filter').value='';$('sales-status-filter').value='';$('sales-status-order-query').value='';}
+  appliedSalesStatusFilters={startDate,endDate,orderType,salesStatus,query};$('sales-status-message').textContent='';renderSalesStatus();
 }
 async function changeSalesOrderStatus(event){
   const select=event.target,order=salesOrders.find(row=>row.id===select.dataset.orderId);
@@ -1971,6 +1973,7 @@ async function startApp(){
   $('purchase-receive-form').addEventListener('input',()=>{receivingPurchaseRequestId=crypto.randomUUID();});
   $('purchase-receive-dialog').addEventListener('cancel',event=>{if(purchaseSaving)event.preventDefault();});
   $('sales-status-button').addEventListener('click',showSalesStatus);
+  $('sales-register-button').addEventListener('click',showSalesStatus);
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
   $('sales-order-form').addEventListener('submit',saveSalesOrder);
   $('add-sales-line-footer').addEventListener('click',addSalesOrderLine);
@@ -1982,6 +1985,7 @@ async function startApp(){
   $('sales-order-items').addEventListener('click',event=>{const button=event.target.closest('[data-sales-order-id]');if(button)editSalesOrder(button.dataset.salesOrderId);});
   $('close-sales-status').addEventListener('click',()=>$('sales-status-dialog').close());
   $('apply-sales-status-search').addEventListener('click',()=>applySalesStatusSearch());
+  $('search-sales-status-orders').addEventListener('click',()=>applySalesStatusSearch());
   $('clear-sales-status-search').addEventListener('click',()=>applySalesStatusSearch(true));
   $('sales-status-items').addEventListener('change',changeSalesOrderStatus);
   $('sales-status-items').addEventListener('click',event=>{

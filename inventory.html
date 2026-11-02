@@ -8,7 +8,7 @@
     <div class="sidebar-heading">업무 메뉴<span>폴더를 눌러 메뉴를 펼치세요.</span></div>
     <nav aria-label="재고관리 메뉴">
       <details id="basic-info-folder" class="menu-folder" data-sidebar-folder><summary>기본정보</summary><div class="folder-children"><details id="asset-classification-folder" class="menu-folder" data-sidebar-folder><summary>품목 자산 분류</summary><div class="folder-children"><button type="button" class="sidebar-action" id="asset-classification-button" aria-haspopup="dialog">분류 설정</button></div></details><details id="product-info-folder" class="menu-folder" data-sidebar-folder><summary>품목정보 입력</summary><div class="folder-children"><button type="button" class="sidebar-action" id="product-info-button" aria-haspopup="dialog">품목정보 등록</button><button type="button" class="sidebar-action" id="product-info-status-button" aria-haspopup="dialog">품목정보 현황</button></div></details><details id="vendor-info-entry-folder" class="menu-folder" data-sidebar-folder><summary>거래처정보 입력</summary><div class="folder-children"><button type="button" class="sidebar-action" id="vendor-entry-button" aria-haspopup="dialog">거래처 등록</button><button type="button" class="sidebar-action" id="vendor-status-button" aria-haspopup="dialog">거래처 조회</button></div></details></div></details>
-      <details id="sales-folder" class="menu-folder" data-sidebar-folder><summary>매출관리</summary><div class="folder-children"><button type="button" class="sidebar-action" id="sales-order-button" aria-haspopup="dialog">수주 입력</button><button type="button" class="sidebar-action" id="sales-status-button" aria-haspopup="dialog">수주 현황</button></div></details>
+      <details id="sales-folder" class="menu-folder" data-sidebar-folder><summary>매출관리</summary><div class="folder-children"><details id="sales-registration-folder" class="menu-folder" data-sidebar-folder><summary>매출등록</summary><div class="folder-children"><button type="button" class="sidebar-action" id="sales-register-button" aria-haspopup="dialog">매출 등록/조회</button></div></details><button type="button" class="sidebar-action" id="sales-order-button" aria-haspopup="dialog">수주 입력</button><button type="button" class="sidebar-action" id="sales-status-button" aria-haspopup="dialog">수주 현황</button></div></details>
       <details id="purchase-folder" class="menu-folder" data-sidebar-folder><summary>발주관리</summary><div class="folder-children">
         <details id="purchase-entry-folder" class="menu-folder" data-sidebar-folder><summary>구매발주 품목입력</summary><div class="folder-children"><button type="button" class="sidebar-action" id="purchase-entry-button" aria-haspopup="dialog">품목 입력</button></div></details>
         <details id="purchase-query-folder" class="menu-folder" data-sidebar-folder><summary>구매발주 품목조회</summary><div class="folder-children"><button type="button" class="sidebar-action" id="purchase-query-button" aria-haspopup="dialog">품목 조회</button></div></details>
@@ -284,6 +284,10 @@
   <dialog id="sales-status-dialog" aria-labelledby="sales-status-title" class="sales-status-dialog">
     <div class="dialog-header"><div><h2 id="sales-status-title">수주현황</h2><p>전체 수주내역과 매출 진행 상태를 조회하고, 날짜·수주형태·매출 상태로 검색합니다.</p></div><div class="product-list-toolbar"><button id="export-sales-status" class="secondary" type="button">↓ Excel 다운로드</button><button class="secondary" type="button" data-print-settings="sales-status">인쇄 설정</button><button class="secondary" type="button" data-print="sales-status">인쇄</button><button type="button" class="close" id="close-sales-status" aria-label="수주현황 창 닫기">닫기</button></div></div>
     <div class="dialog-body">
+      <div class="sales-status-order-search">
+        <div class="field"><label for="sales-status-order-query">수주번호 또는 거래처(성명) 검색</label><input id="sales-status-order-query" type="search" placeholder="수주번호 또는 거래처(성명) 입력"></div>
+        <button id="search-sales-status-orders" class="primary" type="button">검색</button>
+      </div>
       <div class="sales-status-filters">
         <div class="field"><label for="sales-status-start-date">수주일 시작</label><input id="sales-status-start-date" type="date"></div>
         <div class="field"><label for="sales-status-end-date">수주일 종료</label><input id="sales-status-end-date" type="date"></div>
@@ -297,7 +301,7 @@
         <div><span>매출완료</span><strong id="sales-status-completed-total">0원</strong></div>
         <div><span>수주 잔고</span><strong id="sales-status-outstanding-total">0원</strong></div>
       </div>
-      <p class="search-hint">금액 요약은 선택한 날짜와 수주형태 기준이며, 매출 상태 조건은 아래 목록에 적용됩니다.</p>
+      <p class="search-hint">검색어는 수주번호 또는 거래처(성명)와 일치하는 수주를 찾습니다. 금액 요약은 검색어·날짜·수주형태 기준이며, 매출 상태 조건은 아래 목록에 적용됩니다.</p>
       <div class="table-wrap sales-status-table"><table aria-label="전체 수주현황"><thead><tr><th>일련번호</th><th>수주일자</th><th>수주번호</th><th>수주형태</th><th>거래처</th><th>연락처</th><th>출고일자</th><th>매출 상태</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>납기일자</th><th>배송방법</th><th>주소</th><th>기타사항</th><th>관리</th></tr></thead><tbody id="sales-status-items"></tbody></table></div>
     </div>
   </dialog>

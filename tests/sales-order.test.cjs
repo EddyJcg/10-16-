@@ -69,8 +69,11 @@ test('sales order dialog separates free-text header details from repeatable orde
 
 test('sales status view includes every order field and completion control after order number',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
+  const search=html.match(/<div class="sales-status-order-search">([\s\S]*?)<div class="sales-status-filters">/)?.[1]||'';
   const table=html.match(/<table aria-label="전체 수주현황">([\s\S]*?)<\/table>/)?.[1]||'';
   assert.match(html,/id="sales-status-button"[^>]*>수주 현황<\/button>/);
+  assert.match(search,/for="sales-status-order-query">수주번호 또는 거래처\(성명\) 검색<\/label><input id="sales-status-order-query" type="search"/);
+  assert.match(search,/id="search-sales-status-orders"[^>]*>검색<\/button>/);
   assert.match(table,/<th>수주번호<\/th><th>수주형태<\/th><th>거래처<\/th><th>연락처<\/th><th>출고일자<\/th><th>매출 상태<\/th>/);
   for(const label of ['일련번호','수주일자','수주번호','매출 상태','수주형태','거래처','연락처','출고일자','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
     assert.ok(table.includes(`<th>${label}</th>`),label);
@@ -137,14 +140,17 @@ test('dashboard backlog card shows live outstanding order count and exact total'
 
 test('sales orders filter inclusively by date, type and completion, and summarize period totals',()=>{
   const orders=[
-    {order_date:'2026-10-01',order_type:'온라인 수주',sales_status:'매출완료',amount:'10.25'},
-    {order_date:'2026-10-19',order_type:'온라인 수주',sales_status:'매출미완료',amount:'20.10'},
-    {order_date:'2026-10-20',order_type:'오프라인 수주',sales_status:'매출미완료',amount:'30.00'}
+    {order_date:'2026-10-01',order_number:'SO-100',vendor_name:'홍길동',order_type:'온라인 수주',sales_status:'매출완료',amount:'10.25'},
+    {order_date:'2026-10-19',order_number:'SO-200',vendor_name:'김철수',order_type:'온라인 수주',sales_status:'매출미완료',amount:'20.10'},
+    {order_date:'2026-10-20',order_number:'SO-300',vendor_name:'홍길동',order_type:'오프라인 수주',sales_status:'매출미완료',amount:'30.00'}
   ];
   const filters={startDate:'2026-10-01',endDate:'2026-10-19',orderType:'온라인 수주'};
   assert.equal(filterSalesOrders(orders,{...filters,salesStatus:'매출완료'}).length,1);
   assert.deepEqual(summarizeSalesOrders(orders,filters),{total:30.35,completed:10.25,outstanding:20.1});
   assert.equal(filterSalesOrders(orders,{salesStatus:'매출미완료'}).length,2);
+  assert.deepEqual(filterSalesOrders(orders,{query:'so-20'}).map(order=>order.order_number),['SO-200']);
+  assert.deepEqual(filterSalesOrders(orders,{query:'홍길동'}).map(order=>order.order_number),['SO-100','SO-300']);
+  assert.equal(filterSalesOrders(orders,{query:'  김철수  ',salesStatus:'매출미완료'}).length,1);
 });
 
 test('issue sales-order selector lists in-progress orders only and selects the linked product',()=>{

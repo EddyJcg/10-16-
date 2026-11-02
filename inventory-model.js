@@ -32,11 +32,14 @@ function filterInventoryItems(rows,{query='',availability='all',dateProductIds=n
     String(item.supplier||'').toLowerCase().includes(vendor)
   );
 }
-function filterSalesOrders(rows,{startDate='',endDate='',orderType='',salesStatus=''}={}) {
+function filterSalesOrders(rows,{startDate='',endDate='',orderType='',salesStatus='',query=''}={}) {
+  const search=String(query).trim().toLocaleLowerCase();
   return rows.filter(order=>{
     const date=String(order.order_date||'').slice(0,10);
+    const matchesSearch=!search||[order.order_number,order.vendor_name]
+      .some(value=>String(value||'').toLocaleLowerCase().includes(search));
     return (!startDate||date>=startDate)&&(!endDate||date<=endDate)&&
-      (!orderType||order.order_type===orderType)&&(!salesStatus||order.sales_status===salesStatus);
+      (!orderType||order.order_type===orderType)&&(!salesStatus||order.sales_status===salesStatus)&&matchesSearch;
   });
 }
 function summarizeSalesOrders(rows,filters={}) {

@@ -63,6 +63,7 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   assert.ok(parentStart>=0);
   assert.ok(parentEnd>parentStart);
   assert.match(nav.slice(parentStart,parentEnd),/<summary>재고관리<\/summary>/);
+  assert.match(nav,/<details id="stock-folder"[^>]*><summary>재고 현황<\/summary>/);
   for(const folder of ['opening-folder','receipt-folder','issue-folder','stock-folder'])
     assert.ok(nav.indexOf(`id="${folder}"`)>parentStart,`${folder} should be nested under 재고관리`);
   assert.ok(nav.indexOf('id="purchase-folder"')<parentStart,'발주관리 should be outside 재고관리');

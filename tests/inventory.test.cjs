@@ -343,11 +343,14 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(resizeCss,/dialog \.vendor-query-toolbar\{gap:9px\}/);
   assert.match(resizeCss,/dialog \.vendor-toolbar\{gap:13px\}/);
   assert.match(resizeCss,/@media\(max-width:600px\)\{dialog \.vendor-toolbar\{gap:5\.2px\}\}/);
+  assert.match(resizeCss,/dialog \.close\{width:48px!important;min-width:48px/);
+  assert.match(resizeCss,/dialog \.dialog-header \.close\{[\s\S]*?width:calc\(3em \+ 53\.7px\)!important;min-width:calc\(3em \+ 53\.7px\);[\s\S]*?padding-left:0;padding-right:0/);
+  assert.match(resizeCss,/dialog \.vendor-query-toolbar \.close\{width:100\.8px!important;min-width:100\.8px\}/);
   assert.match(resizeCss,/\.dialog-minimize-icon\{[^}]*transform:scale\(1\.5\)/);
   assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*transform:scale\(1\.5\)/);
-  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4px;left:-4px;[^}]*border:1px solid currentColor;background:Canvas;box-shadow:none/);
+  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4px;right:-4px;[^}]*border:1px solid currentColor;background:transparent;box-shadow:none/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon::after\{display:block\}/);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*window-controls-36px-outlined/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-close-width-150-clean-outline/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

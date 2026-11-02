@@ -17,6 +17,12 @@ dialog .product-list-toolbar,dialog .dialog-header-actions,dialog .print-toolbar
 dialog .vendor-query-toolbar{gap:9px}
 dialog .vendor-toolbar{gap:13px}
 @media(max-width:600px){dialog .vendor-toolbar{gap:5.2px}}
+dialog .close{width:48px!important;min-width:48px}
+dialog .dialog-header .close{
+  width:calc(3em + 53.7px)!important;min-width:calc(3em + 53.7px);
+  padding-left:0;padding-right:0;flex:0 0 auto
+}
+dialog .vendor-query-toolbar .close{width:100.8px!important;min-width:100.8px}
 .dialog-window-button{
   display:inline-flex!important;align-items:center;justify-content:center;
   width:28px!important;height:28px!important;min-width:28px;padding:0!important;
@@ -27,7 +33,7 @@ dialog .vendor-toolbar{gap:13px}
 .dialog-window-button:active{background:#dce7df!important}
 .dialog-minimize-icon{width:10px;height:1px;background:currentColor;transform:scale(1.5)}
 .dialog-expand-icon{position:relative;width:9px;height:9px;border:1px solid currentColor;transform:scale(1.5)}
-.dialog-expand-icon::after{content:"";display:none;position:absolute;top:-4px;left:-4px;width:7px;height:7px;border:1px solid currentColor;background:Canvas;box-shadow:none}
+.dialog-expand-icon::after{content:"";display:none;position:absolute;top:-4px;right:-4px;width:7px;height:7px;border:1px solid currentColor;background:transparent;box-shadow:none}
 .dialog-expanded .dialog-expand-icon::after{display:block}
 dialog.dialog-minimizing{opacity:0;transform:scale(.97);transition:opacity 180ms ease,transform 180ms ease}
 dialog.dialog-expanded[open]:not(.search-calendar){

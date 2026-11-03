@@ -82,3 +82,13 @@ test('floating popups can be dragged from anywhere and recentre on double click'
 test('floating popups cancel the centring transform so left/top positioning works',()=>{
   assert.match(fs.readFileSync('popup-floating.css','utf8'),/dialog\.popup-floating\[open\]\{transform:none\}/);
 });
+
+test('popups stay inside the dashboard area right of the sidebar and cap at 95 percent',()=>{
+  const js=fs.readFileSync('popup-floating.js','utf8');
+  assert.match(js,/getElementById\('sidebar'\)/);
+  assert.match(js,/window\.popupArea=area/);
+  const css=fs.readFileSync('popup-floating.css','utf8');
+  assert.match(css,/max-width:calc\(var\(--popup-area-width,100vw\)\*\.95\)!important/);
+  assert.match(css,/dialog\.popup-floating\.dialog-expanded\[open\]:not\(\.search-calendar\)\{[^}]*width:calc\(var\(--popup-area-width,100vw\)\*\.95\)!important/);
+  assert.match(fs.readFileSync('inventory-app.js','utf8'),/area\.width\*\.95/);
+});

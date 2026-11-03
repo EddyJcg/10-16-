@@ -7,3 +7,6 @@ dialog.popup-floating{cursor:move}
 dialog.popup-floating :is(button,input,select,textarea,a,label,summary){cursor:auto}
 dialog.popup-floating :is(button,a,summary,label){cursor:pointer}
 dialog.popup-floating[open]{transform:none}
+dialog.popup-floating{max-width:calc(var(--popup-area-width,100vw)*.95)!important;max-height:calc(var(--popup-area-height,100vh)*.95)!important}
+dialog.popup-floating.dialog-expanded[open]:not(.search-calendar){position:fixed!important;inset:auto!important;left:calc(var(--popup-area-left,0px) + var(--popup-area-width,100vw)*.025)!important;top:calc(var(--popup-area-height,100vh)*.025)!important;width:calc(var(--popup-area-width,100vw)*.95)!important;height:calc(var(--popup-area-height,100vh)*.95)!important;max-width:calc(var(--popup-area-width,100vw)*.95)!important;max-height:calc(var(--popup-area-height,100vh)*.95)!important;border-radius:12px!important}
+dialog.popup-floating.dialog-expanded[open]:not(.search-calendar) .dialog-body{max-height:calc(var(--popup-area-height,100vh)*.95 - 180px)}

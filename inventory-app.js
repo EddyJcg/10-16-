@@ -117,8 +117,9 @@ function installDialogInteractions(){
       try{
         const saved=JSON.parse(window.localStorage.getItem(sizeStorageKey)||'null');
         if(Number.isFinite(saved?.width)&&saved.width>0&&Number.isFinite(saved?.height)&&saved.height>0){
-          const width=Math.min(saved.width,Math.max(100,window.innerWidth-32));
-          const height=Math.min(saved.height,Math.max(100,window.innerHeight-32));
+          const area=window.popupArea?window.popupArea():{left:0,top:0,width:window.innerWidth,height:window.innerHeight};
+          const width=Math.min(saved.width,Math.max(100,Math.min(window.innerWidth-32,area.width*.95)));
+          const height=Math.min(saved.height,Math.max(100,Math.min(window.innerHeight-32,area.height*.95)));
           dialog.style.setProperty('width',width+'px','important');
           dialog.style.setProperty('height',height+'px','important');
         }
@@ -142,14 +143,16 @@ function installDialogInteractions(){
     const move=event=>{
       if(event.pointerId!==activePointerId||!interaction)return;
       if(interaction.type==='drag'){
-        const left=Math.max(0,Math.min(window.innerWidth-interaction.width,event.clientX-interaction.offsetX));
-        const top=Math.max(0,Math.min(window.innerHeight-interaction.height,event.clientY-interaction.offsetY));
+        const dragArea=window.popupArea?window.popupArea():{left:0,top:0,width:window.innerWidth,height:window.innerHeight};
+        const left=Math.max(dragArea.left,Math.min(dragArea.left+dragArea.width-interaction.width,event.clientX-interaction.offsetX));
+        const top=Math.max(dragArea.top,Math.min(dragArea.top+dragArea.height-interaction.height,event.clientY-interaction.offsetY));
         dialog.style.left=left+'px';dialog.style.top=top+'px';
         return;
       }
       const dx=event.clientX-interaction.x,dy=event.clientY-interaction.y;
-      const maxWidth=Math.max(100,interaction.type==='left'?interaction.right-16:window.innerWidth-interaction.left-16);
-      const maxHeight=Math.max(100,interaction.type==='top'?interaction.bottom-16:window.innerHeight-interaction.top-16);
+      const area=window.popupArea?window.popupArea():{left:0,top:0,width:window.innerWidth,height:window.innerHeight};
+      const maxWidth=Math.max(100,Math.min(area.width*.95,interaction.type==='left'?interaction.right-area.left:area.left+area.width-interaction.left));
+      const maxHeight=Math.max(100,Math.min(area.height*.95,interaction.type==='top'?interaction.bottom-area.top:area.top+area.height-interaction.top));
       const width=Math.max(Math.min(280,maxWidth),Math.min(maxWidth,interaction.width+(interaction.type==='left'?-dx:interaction.type==='right'||interaction.type==='bottom-right'?dx:0)));
       const height=Math.max(Math.min(180,maxHeight),Math.min(maxHeight,interaction.height+(interaction.type==='top'?-dy:interaction.type==='bottom'||interaction.type==='bottom-right'?dy:0)));
       if(interaction.type==='left')dialog.style.left=(interaction.right-width)+'px';

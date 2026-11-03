@@ -15,7 +15,7 @@ test('main popups are non-modal so sidebar menus stay clickable',()=>{
 test('showModal override opens main popups without modal and keeps them open on sidebar click',()=>{
   const calls=[];
   const closed=[];
-  const dialog={id:'sales-order-dialog',open:false,style:{},classList:{add:c=>calls.push('class:'+c),contains:()=>false},show(){calls.push('show');this.open=true;},close(){closed.push(this.id);}};
+  const dialog={id:'sales-order-dialog',open:false,style:{},classList:{add:c=>calls.push('class:'+c),remove(){},contains:()=>false},show(){calls.push('show');this.open=true;},close(){closed.push(this.id);}};
   const confirmDialog={id:'sales-register-confirm-dialog',open:false,classList:{contains:()=>false}};
   const proto={showModal(){calls.push('native');}};
   let clickHandler;
@@ -36,7 +36,7 @@ test('already open popup flashes instead of reopening',()=>{
 
 test('later popups cascade from top-left to bottom-right and stack above earlier ones',()=>{
   const open=[];
-  const make=id=>({id,open:false,style:{},classList:{add(){},contains:()=>false},show(){this.open=true;open.push(this);}});
+  const make=id=>({id,open:false,style:{},classList:{add(){},remove(){},contains:()=>false},show(){this.open=true;open.push(this);}});
   const proto={showModal(){}};
   const Ctor=function(){};Ctor.prototype=proto;
   new Function('HTMLDialogElement','document',fs.readFileSync('popup-floating.js','utf8'))(Ctor,{addEventListener(){},querySelectorAll:()=>open});
@@ -49,7 +49,7 @@ test('later popups cascade from top-left to bottom-right and stack above earlier
 
 test('floating popups are clamped inside the viewport',()=>{
   const js=fs.readFileSync('popup-floating.js','utf8');
-  const dialog={id:'x',open:false,style:{},classList:{add(){},contains:()=>false},show(){this.open=true;},getBoundingClientRect:()=>({left:900,top:700,width:400,height:300})};
+  const dialog={id:'x',open:false,style:{},classList:{add(){},remove(){},contains:()=>false},show(){this.open=true;},getBoundingClientRect:()=>({left:900,top:700,width:400,height:300})};
   const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
   new Function('HTMLDialogElement','document','innerWidth','innerHeight',js)(Ctor,{addEventListener(){},querySelectorAll:()=>[]},1000,800);
   proto.showModal.call(dialog);
@@ -59,7 +59,7 @@ test('floating popups are clamped inside the viewport',()=>{
 
 test('floating popups can be dragged from anywhere and recentre on double click',()=>{
   const handlers={};
-  const dialog={id:'x',open:true,style:{left:'100px',top:'100px'},getBoundingClientRect:()=>({left:100,top:100,right:500,bottom:400,width:400,height:300}),classList:{add(){},contains:()=>false}};
+  const dialog={id:'x',open:true,style:{left:'100px',top:'100px'},getBoundingClientRect:()=>({left:100,top:100,right:500,bottom:400,width:400,height:300}),classList:{add(){},remove(){},contains:()=>false}};
   const body={clientWidth:0,clientHeight:0,closest:s=>s.startsWith('dialog.popup-floating')?dialog:null};
   const button={closest:s=>s.startsWith('dialog.popup-floating')?dialog:s.includes('button')?button:null};
   const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;

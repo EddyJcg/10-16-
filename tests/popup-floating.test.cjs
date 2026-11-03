@@ -28,3 +28,8 @@ test('showModal override opens main popups without modal and keeps them open on 
   assert.equal(clickHandler,undefined);
   assert.deepEqual(closed,[]);
 });
+test('already open popup flashes instead of reopening',()=>{
+  const js=fs.readFileSync('popup-floating.js','utf8');
+  assert.match(js,/this\.open\)\{[^}]*popup-flash/);
+  assert.match(fs.readFileSync('popup-floating.css','utf8'),/dialog\.popup-flash\{animation:popup-flash/);
+});

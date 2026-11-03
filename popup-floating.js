@@ -5,8 +5,9 @@
   const nativeShowModal=HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal=function(){
     if(modalIds.has(this.id)||this.classList.contains('search-calendar'))return nativeShowModal.call(this);
-    if(this.open)return;
+    if(this.open){this.classList.remove('popup-flash');void this.offsetWidth;this.classList.add('popup-flash');return;}
     this.classList.add('popup-floating');
     this.show();
   };
+  document.addEventListener('animationend',event=>{if(event.target.classList)event.target.classList.remove('popup-flash');},true);
 })();

@@ -14,6 +14,7 @@
     dialog.style.top=offset+'px';
     dialog.style.zIndex=String(++stack);
     keepInViewport(dialog);
+    watchSize(dialog);
   }
   // 팝업이 화면 밖으로 나가지 않도록 위치를 보정합니다.
   function keepInViewport(dialog){
@@ -23,6 +24,14 @@
     const top=Math.max(0,Math.min(rect.top,innerHeight-rect.height));
     dialog.style.left=left+'px';
     dialog.style.top=top+'px';
+  }
+  // 내용이 늦게 채워지거나 크기가 바뀌어도 네 면이 화면 안에 있도록 다시 보정합니다.
+  const watched=new WeakSet();
+  function watchSize(dialog){
+    if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>keepInViewport(dialog));
+    if(typeof ResizeObserver!=='function'||watched.has(dialog))return;
+    watched.add(dialog);
+    new ResizeObserver(()=>{if(dialog.open&&!drag)keepInViewport(dialog);}).observe(dialog);
   }
   const nativeShowModal=HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal=function(){

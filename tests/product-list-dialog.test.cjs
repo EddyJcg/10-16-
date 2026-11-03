@@ -62,7 +62,7 @@ test('every popup has a text close button in its header without a duplicate foot
     assert.match(header,/<button\b[^>]*class="close"[^>]*>닫기<\/button>/);
     assert.doesNotMatch(header,/>×<\/button>/);
   }
-  assert.doesNotMatch(html,/id="(?:cancel-product-info|cancel-sales-order|cancel-dialog)"/);
+  assert.doesNotMatch(html,/id="(?:cancel-sales-order|cancel-dialog)"/);
   assert.match(readFileSync('inventory-app.js','utf8'),/\$\('close-receipt-details'\)\.addEventListener\('click'/);
 });
 
@@ -428,7 +428,7 @@ test('table dialogs omit the shared header filter and retain draggable persisted
   assert.doesNotMatch(style,/dialog-header-has-filter|dialog-table-filter/);
   assert.match(style,/\.dialog-header-actions\{display:flex;align-items:center;gap:8px;flex:0 0 auto\}/);
   assert.match(style,/\.intro,\.toolbar,\.session,\.dialog-header,\.dialog-footer\{[^}]*justify-content:space-between/);
-  assert.match(html,/<div class="dialog-footer"><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소<\/button><button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button id="save-product-info" class="primary">품목정보 저장<\/button><\/div>/);
+  assert.match(html,/<div class="dialog-footer"><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소<\/button><button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="cancel-product-info" class="secondary">취소<\/button><button id="save-product-info" class="primary">품목정보 저장<\/button><\/div>/);
   assert.match(html,/<div class="dialog-footer"><button type="button" class="secondary" id="import-receipt-button" hidden>Excel 업로드<\/button><button id="save-movement" class="primary">저장<\/button><\/div>/);
   assert.match(script,/table\.addEventListener\('dragstart'/);
   assert.match(script,/table\.addEventListener\('drop'/);

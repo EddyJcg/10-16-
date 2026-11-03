@@ -126,10 +126,12 @@ test('product import opens the native XLSX picker directly without an intermedia
   const html=fs.readFileSync('inventory.html','utf8');
   const dialog=html.match(/<dialog id="product-info-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
   assert.match(dialog,/<div class="dialog-header">[\s\S]*?<button type="button" class="close" id="close-product-info"/);
-  assert.match(dialog,/<div class="dialog-footer">[\s\S]*?<button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button id="save-product-info" class="primary">품목정보 저장<\/button>/);
+  assert.match(dialog,/<div class="dialog-footer">[\s\S]*?<button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="cancel-product-info" class="secondary">취소<\/button><button id="save-product-info" class="primary">품목정보 저장<\/button>/);
   assert.match(dialog,/id="product-info-import-file" type="file" accept="[^"]*\.xlsx/);
   assert.doesNotMatch(html,/product-info-import-dialog|product-import-dialog/);
-  assert.match(fs.readFileSync('inventory-app.js','utf8'),/function openProductInfoFilePicker\(\)/);
+  const script=fs.readFileSync('inventory-app.js','utf8');
+  assert.match(script,/function openProductInfoFilePicker\(\)/);
+  assert.match(script,/\$\('close-product-info'\)\.addEventListener\('click',closeProductInfo\);\s*\$\('cancel-product-info'\)\.addEventListener\('click',closeProductInfo\)/);
   assert.match(html,/src="inventory-import\.js"><\/script>/);
 });
 

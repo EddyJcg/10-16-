@@ -2214,7 +2214,9 @@ async function startApp(){
   $('apply-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch());
   $('clear-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch(true));
   ['sales_quantity','sales_unit_price'].forEach(id=>$(id).addEventListener('input',updateSalesAmount));
-  $('close-product-info').addEventListener('click',()=>{resetProductInfoForm();$('product-info-dialog').close();});
+  const closeProductInfo=()=>{resetProductInfoForm();$('product-info-dialog').close();};
+  $('close-product-info').addEventListener('click',closeProductInfo);
+  $('cancel-product-info').addEventListener('click',closeProductInfo);
   $('import-product-info-button').addEventListener('click',openProductInfoFilePicker);
   $('product-info-import-file').addEventListener('change',importProductInfoFile);
   $('close-product-info-status').addEventListener('click',()=>$('product-info-status-dialog').close());

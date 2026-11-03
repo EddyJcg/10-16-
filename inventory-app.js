@@ -2161,7 +2161,7 @@ function renderMovementList() {
 async function revertReceipt(id){
   const movement=movementListRows.find(row=>row.id===id);
   if(!movement||movement.kind!=='receipt'||!currentUser||busy)return false;
-  const item=itemsById.get(movement.product_id);
+  const item=items.find(row=>row.id===movement.product_id);
   try{
     const reason=await movementUsedDownstream(movement);
     if(reason){alertBlocked(reason);return false;}

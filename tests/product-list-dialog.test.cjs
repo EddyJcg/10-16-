@@ -455,3 +455,9 @@ test('table dialogs omit the shared header filter and retain draggable persisted
   assert.match(script,/installPopupTableTools\(\);/);
   assert.match(style,/th\[draggable="true"\]\{cursor:grab/);
 });
+
+test('vendor lookup dialog shows a 36px title above the toolbar',()=>{
+  const html=readFileSync('inventory.html','utf8'),style=readFileSync('vendor-management.css','utf8');
+  assert.match(html,/<h2 id="vendor-list-title" class="vendor-list-title">거래처 조회<\/h2>\s*<div class="vendor-query-toolbar"/);
+  assert.match(style,/\.vendor-list-title\{[^}]*font-size:36px/);
+});

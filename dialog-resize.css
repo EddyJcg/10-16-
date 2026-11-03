@@ -50,8 +50,8 @@ dialog .vendor-query-toolbar .close{width:131.04px!important;min-width:131.04px}
 .dialog-minimize-icon{width:10px;height:1.53px;background:currentColor;transform:scale(1.5);color:#fff}
 .dialog-expand-icon{display:block;width:14px;height:14px;border:3.06px solid currentColor;color:#fff}
 .dialog-expanded .dialog-expand-icon{
-  width:12px;height:17px;border:0;background-color:transparent;
-  background-image:url('/popup-expand-icon.png');background-position:center;background-repeat:no-repeat;background-size:12px 17px
+  width:18px;height:25.5px;border:0;background-color:transparent;
+  background-image:url('/popup-expand-icon.png');background-position:center;background-repeat:no-repeat;background-size:18px 25.5px
 }
 dialog.dialog-minimizing{opacity:0;transform:scale(.97);transition:opacity 180ms ease,transform 180ms ease}
 dialog.dialog-expanded[open]:not(.search-calendar){

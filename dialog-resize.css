@@ -53,8 +53,8 @@ dialog .vendor-query-toolbar .close{width:131.04px!important;min-width:131.04px}
   content:"";display:none;position:absolute;box-sizing:border-box;top:-4.3px;left:4px;width:14px;height:14px;
   background:linear-gradient(currentColor,currentColor) 0 0/100% 3.06px no-repeat,
     linear-gradient(currentColor,currentColor) 100% 0/3.06px 100% no-repeat,
-    linear-gradient(currentColor,currentColor) 0 0/3.06px 4px no-repeat,
-    linear-gradient(currentColor,currentColor) 100% 100%/4.6px 3.06px no-repeat
+    linear-gradient(currentColor,currentColor) 0 0/3.06px 4.3px no-repeat,
+    linear-gradient(currentColor,currentColor) 100% 100%/4px 3.06px no-repeat
 }
 .dialog-expanded .dialog-expand-icon::after{display:block}
 dialog.dialog-minimizing{opacity:0;transform:scale(.97);transition:opacity 180ms ease,transform 180ms ease}

@@ -350,9 +350,9 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(resizeCss,/dialog \.vendor-query-toolbar \.close\{width:131\.04px!important;min-width:131\.04px\}/);
   assert.match(resizeCss,/\.dialog-minimize-icon\{[^}]*height:1\.53px;background:currentColor;transform:scale\(1\.5\);color:#fff/);
   assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*width:14px;height:14px;border:3\.06px solid currentColor;color:#fff/);
-  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4\.3px;left:4px;width:14px;height:14px;[\s\S]*?linear-gradient\(currentColor,currentColor\) 0 0\/100% 3\.06px no-repeat,[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 0\/3\.06px 100% no-repeat,[\s\S]*?linear-gradient\(currentColor,currentColor\) 0 0\/3\.06px 4px no-repeat,[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 100%\/4\.6px 3\.06px no-repeat/);
+  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4\.3px;left:4px;width:14px;height:14px;[\s\S]*?linear-gradient\(currentColor,currentColor\) 0 0\/100% 3\.06px no-repeat,[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 0\/3\.06px 100% no-repeat,[\s\S]*?linear-gradient\(currentColor,currentColor\) 0 0\/3\.06px 4\.3px no-repeat,[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 100%\/4px 3\.06px no-repeat/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon::after\{display:block\}/);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*window-icons-refined-white-strokes/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*window-icons-matched-squares/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

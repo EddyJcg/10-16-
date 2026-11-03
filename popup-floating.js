@@ -68,11 +68,13 @@
   HTMLDialogElement.prototype.showModal=function(){
     if(modalIds.has(this.id)||this.classList.contains('search-calendar'))return nativeShowModal.call(this);
     if(this.open){this.classList.remove('popup-flash');void this.offsetWidth;this.classList.add('popup-flash');return;}
+    this.classList.remove('popup-flash');
     this.classList.add('popup-floating');
     this.show();
     cascade(this);
   };
   document.addEventListener('animationend',event=>{if(event.target.classList)event.target.classList.remove('popup-flash');},true);
+  document.addEventListener('close',event=>{if(event.target.classList)event.target.classList.remove('popup-flash');},true);
   // 팝업 안 아무 곳이나 누른 채 끌면 팝업이 따라 움직입니다.
   const interactive='button,input,select,textarea,a,label,summary,[contenteditable=true]';
   function onScrollbarOrResizeGrip(event,dialog){

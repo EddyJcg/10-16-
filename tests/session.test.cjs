@@ -45,7 +45,7 @@ test('main screen identifies the integrated management system and dashboard',()=
   const html=readFileSync('inventory.html','utf8');
   assert.match(html,/<title>Isummerly 매출\/재고관리<\/title>/);
   assert.match(html,/<header>[\s\S]*?<span>통합관리시스템<\/span>/);
-  assert.match(html,/<h1><img src="\/isummerly-logo\.png" alt="회사 로고">Isummerly 데시보드<\/h1>/);
+  assert.match(html,/<h1><img src="\/isummerly-logo\.png" alt="회사 로고">Isummerly 대시보드<\/h1>/);
 });
 
 test('unknown receipt item displays the required product information alert',async()=>{

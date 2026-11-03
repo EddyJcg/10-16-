@@ -26,7 +26,7 @@ test('sales order cancel button sits beside save and clears the draft before clo
   assert.equal(vm.runInContext('salesDraftLines.length',context),0);
   assert.equal(vm.runInContext('editingSalesOrderId',context),'');
   assert.equal(element('sales-order-title').textContent,'수주 입력');
-  assert.equal(element('save-sales-order').textContent,'수주 저장');
+  assert.equal(element('save-sales-order').textContent,'수주 일괄저장');
 });
 
 test('sales status places print controls in the header and Excel export in the footer',()=>{
@@ -76,6 +76,9 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.doesNotMatch(form,/id="sales_vendor_contact" readonly/);
   assert.match(form,/id="sales_amount" readonly/);
   assert.match(form,/id="add-sales-line-footer"[^>]*>수주품목 추가<\/button>/);
+  assert.match(form,/id="import-sales-order-button"[^>]*>Excel 업로드<\/button>/);
+  assert.match(form,/id="sales-order-import-file" type="file" accept="[^"]*\.xlsx/);
+  assert.match(html,/<div class="dialog-footer sales-order-save-actions"><button id="import-sales-order-button"[^>]*>Excel 업로드<\/button><button id="add-sales-line-footer"[^>]*>수주품목 추가<\/button>[\s\S]*?<button id="save-sales-order" class="primary">수주 일괄저장<\/button>/);
   assert.match(form,/id="sales-order-draft-items"/);
   assert.match(html,/<th>거래처<\/th><th>연락처<\/th>/);
   assert.match(html,/id="sales-order-items"/);
@@ -86,6 +89,136 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(style,/@media\(min-width:851px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(style,/@media\(max-width:850px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(style,/@media\(max-width:520px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:1fr\}/);
+});
+
+test('individual sales order registration removes its draft and blocks repeated saves',async()=>{
+  const elements=new Map(),alerts=[],calls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false});
+    return elements.get(id);
+  };
+  let resolveSave;
+  const testClient={rpc:(name,args)=>{
+    calls.push([name,args]);
+    return new Promise(resolve=>{resolveSave=()=>resolve({data:{group_id:'group-1',orders:[{
+      ...args.p_lines[0],id:'saved-1',sequence_id:10,order_group_id:'group-1',order_number:args.p_order_number,amount:25
+    }]},error:null});});
+  }};
+  const context=vm.createContext({
+    document:{getElementById:element},window:{alert:message=>alerts.push(message)},
+    testClient,validOrderDueDate:value=>['2026-11-03','2026-12-01'].includes(value),number:value=>String(value),money:value=>String(value)
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`currentUser={id:'user'};authGeneration=1;client=testClient;
+    $('sales_order_date').value='2026-11-03';$('sales_order_number').value='SO-1';
+    $('sales_order_type').value='온라인 수주';$('sales_vendor_name').value='거래처';
+    salesDraftLines=[{draftId:'draft-1',product_name:'품목',specification:'규격',unit:'EA(개)',quantity:1,unit_price:25,due_date:'2026-12-01'}]`,context);
+  context.renderSalesDraftLines=()=>{};
+  context.renderSalesOrders=()=>{};
+  context.renderSalesStatus=()=>{};
+  context.renderSalesBalance=()=>{};
+  context.updateIssueSalesOrders=()=>{};
+  const first=vm.runInContext("registerSalesOrderLine('draft-1')",context);
+  await vm.runInContext("registerSalesOrderLine('draft-1')",context);
+  assert.equal(calls.length,1);
+  assert.match(alerts[0],/중복 등록되지 않았습니다/);
+  resolveSave();
+  await first;
+  assert.equal(vm.runInContext('salesDraftLines.length',context),0);
+  assert.equal(vm.runInContext('salesOrders.length',context),1);
+  await vm.runInContext("registerSalesOrderLine('draft-1')",context);
+  assert.equal(calls.length,1);
+});
+
+test('individual and batch sales registration retain the same order group',async()=>{
+  const elements=new Map(),calls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false,reset(){}});
+    return elements.get(id);
+  };
+  let sequence=0;
+  const testClient={rpc:async(name,args)=>{
+    calls.push([name,args]);
+    const orders=args.p_lines.map(line=>({
+      ...line,id:line.line_id||`saved-${++sequence}`,sequence_id:sequence,
+      order_group_id:args.p_group_id||'group-shared',order_number:args.p_order_number,amount:line.quantity*line.unit_price
+    }));
+    return {data:{group_id:args.p_group_id||'group-shared',orders},error:null};
+  }};
+  const context=vm.createContext({
+    document:{getElementById:element},window:{alert(){}},testClient,
+    validOrderDueDate:value=>['2026-11-03','2026-12-01'].includes(value),number:value=>String(value),money:value=>String(value)
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`client=testClient;currentUser={id:'user'};authGeneration=1;
+    $('sales_order_date').value='2026-11-03';$('sales_order_number').value='SO-3';
+    $('sales_order_type').value='온라인 수주';$('sales_vendor_name').value='거래처';
+    salesDraftLines=[{draftId:'draft-a',product_name:'품목 A',specification:'규격',unit:'EA(개)',quantity:1,unit_price:25,due_date:'2026-12-01'}]`,context);
+  context.renderSalesDraftLines=()=>{};
+  context.renderSalesOrders=()=>{};
+  context.renderSalesStatus=()=>{};
+  context.renderSalesBalance=()=>{};
+  context.updateIssueSalesOrders=()=>{};
+  await vm.runInContext("registerSalesOrderLine('draft-a')",context);
+  vm.runInContext(`salesDraftLines=[{draftId:'draft-b',product_name:'품목 B',specification:'',unit:'Box',quantity:2,unit_price:10,due_date:'2026-12-01'}]`,context);
+  await vm.runInContext("registerSalesOrderLine('draft-b')",context);
+  vm.runInContext(`salesDraftLines=[{draftId:'draft-c',product_name:'품목 C',specification:'',unit:'M',quantity:3,unit_price:5,due_date:'2026-12-01'}]`,context);
+  vm.runInContext('resetSalesOrderForm=()=>{salesDraftLines=[]}',context);
+  await vm.runInContext("saveSalesOrder({preventDefault(){}})",context);
+  assert.deepEqual(calls.map(([name])=>name),[
+    'register_sales_order_group','update_sales_order_group','update_sales_order_group'
+  ]);
+  assert.equal(calls[1][1].p_group_id,'group-shared');
+  assert.equal(calls[1][1].p_lines.length,2);
+  assert.equal(calls[1][1].p_lines.filter(line=>line.line_id).length,1);
+  assert.equal(calls[2][1].p_group_id,'group-shared');
+  assert.equal(calls[2][1].p_lines.length,3);
+  assert.equal(calls[2][1].p_lines.filter(line=>!line.line_id).length,1);
+  assert.equal(vm.runInContext('salesOrders.length',context),3);
+  assert.ok(vm.runInContext('salesOrders.every(order=>order.order_group_id==="group-shared")',context));
+});
+
+test('sales order batch save submits every draft once and displays a duplicate-save notice',async()=>{
+  const elements=new Map(),alerts=[],calls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false,reset(){}});
+    return elements.get(id);
+  };
+  let resolveSave;
+  const testClient={rpc:(name,args)=>{
+    calls.push([name,args]);
+    return new Promise(resolve=>{resolveSave=()=>resolve({data:{group_id:'group-2',orders:args.p_lines.map((line,index)=>({
+      ...line,id:'saved-'+index,sequence_id:index+1,order_group_id:'group-2',order_number:args.p_order_number
+    }))},error:null});});
+  }};
+  const context=vm.createContext({
+    document:{getElementById:element},window:{alert:message=>alerts.push(message)},
+    testClient,validOrderDueDate:value=>['2026-11-03','2026-12-01'].includes(value),number:value=>String(value),money:value=>String(value)
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`client=testClient;currentUser={id:'user'};authGeneration=1;
+    $('sales_order_date').value='2026-11-03';$('sales_order_number').value='SO-2';
+    $('sales_order_type').value='온라인 수주';$('sales_vendor_name').value='거래처';
+    salesDraftLines=[
+      {draftId:'draft-a',product_name:'품목 A',specification:'',unit:'EA(개)',quantity:1,unit_price:10,due_date:'2026-12-01'},
+      {draftId:'draft-b',product_name:'품목 B',specification:'',unit:'Box',quantity:2,unit_price:20,due_date:'2026-12-01'}
+    ]`,context);
+  context.renderSalesDraftLines=()=>{};
+  vm.runInContext('resetSalesOrderForm=()=>{salesDraftLines=[]}',context);
+  context.renderSalesOrders=()=>{};
+  context.renderSalesStatus=()=>{};
+  context.renderSalesBalance=()=>{};
+  context.updateIssueSalesOrders=()=>{};
+  const first=vm.runInContext("saveSalesOrder({preventDefault(){}})",context);
+  await vm.runInContext("saveSalesOrder({preventDefault(){}})",context);
+  assert.equal(calls.length,1);
+  assert.match(alerts[0],/중복 등록되지 않았습니다/);
+  assert.equal(calls[0][1].p_lines.length,2);
+  assert.equal('draftId'in calls[0][1].p_lines[0],false);
+  resolveSave();
+  await first;
+  assert.equal(vm.runInContext('salesOrders.length',context),2);
+  assert.equal(vm.runInContext('salesDraftLines.length',context),0);
 });
 
 test('sales status view includes every order field and completion control after order number',()=>{
@@ -426,7 +559,7 @@ test('sales order dialog is connected to the authenticated database save flow',(
   assert.match(script,/client\.rpc\('update_sales_order_group'/);
   assert.match(script,/function addSalesOrderLine\(\)/);
   assert.match(script,/p_vendor_name:\$\('sales_vendor_name'\)\.value\.trim\(\)/);
-  assert.match(script,/p_lines:salesDraftLines\.map/);
+  assert.match(script,/p_lines:\[\.\.\.existingGroupLines,\.\.\.salesDraftLines\.map/);
   assert.match(script,/client\.rpc\('set_sales_order_status'/);
   assert.match(script,/sales-order-form'\)\.addEventListener\('submit',saveSalesOrder\)/);
   assert.match(script,/\$\('cancel-sales-order'\)\.addEventListener\('click',cancelSalesOrder\)/);

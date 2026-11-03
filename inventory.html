@@ -280,12 +280,13 @@
             <div class="field"><label for="sales_amount">수주금액</label><input id="sales_amount" readonly aria-label="자동 계산 수주금액"></div>
             <div class="field"><label for="sales_due_date">납기일자</label><input id="sales_due_date" type="date" required min="1900-01-01"></div>
           </div>
+          <input id="sales-order-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
           <div class="table-wrap sales-order-draft-table"><table aria-label="작성 중인 수주 품목"><thead><tr><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>납기일자</th><th>관리</th></tr></thead><tbody id="sales-order-draft-items"></tbody></table></div>
           <p id="sales-order-status" class="product-list-status" role="status" aria-live="polite"></p>
           <h3>저장된 수주</h3>
           <div class="table-wrap sales-order-table"><table aria-label="저장된 수주 목록"><thead><tr><th>일련번호</th><th>수주일자</th><th>수주번호</th><th>수주형태</th><th>거래처</th><th>연락처</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>납기일자</th><th>배송방법</th><th>주소</th><th>기타사항</th><th>관리</th></tr></thead><tbody id="sales-order-items"></tbody></table></div>
         </div>
-        <div class="dialog-footer sales-order-save-actions"><button id="add-sales-line-footer" type="button" class="secondary">수주품목 추가</button><button id="cancel-sales-order" type="button" class="secondary">취소</button><button id="save-sales-order" class="primary">수주 저장</button></div>
+        <div class="dialog-footer sales-order-save-actions"><button id="import-sales-order-button" type="button" class="secondary">Excel 업로드</button><button id="add-sales-line-footer" type="button" class="secondary">수주품목 추가</button><button id="cancel-sales-order" type="button" class="secondary">취소</button><button id="save-sales-order" class="primary">수주 일괄저장</button></div>
       </fieldset>
     </form>
   </dialog>

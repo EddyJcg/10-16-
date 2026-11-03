@@ -4,7 +4,7 @@ const ExcelJS=require('exceljs');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const {
-  PRODUCT_IMPORT_FIELDS,RECEIPT_IMPORT_FIELDS,parseProductImportWorkbook,parseReceiptImportWorkbook
+  PRODUCT_IMPORT_FIELDS,RECEIPT_IMPORT_FIELDS,parseSalesOrderImportWorkbook,parseProductImportWorkbook,parseReceiptImportWorkbook
 }=require('../inventory-import.js');
 
 const classifications=[{id:'raw-id',name:'원자재',inventory_asset_type:'원자재'}];
@@ -17,6 +17,34 @@ async function workbookWith(headers,rows){
   rows.forEach(row=>sheet.addRow(row));
   return workbook;
 }
+
+test('sales order import accepts reordered headers and validates every draft line',async()=>{
+  const workbook=await workbookWith(['단가','납기일자','품명','단위','규격','수량'],[
+    [1250.5,new Date('2026-12-01T00:00:00Z'),'품목 A','EA(개)','규격 A',3],
+    [0,'2026-12-15','품목 B','Box','',1]
+  ]);
+  const result=parseSalesOrderImportWorkbook(workbook,units);
+  assert.deepEqual(result.errors,[]);
+  assert.deepEqual(result.rows,[
+    {product_name:'품목 A',specification:'규격 A',unit:'EA(개)',quantity:3,unit_price:1250.5,due_date:'2026-12-01'},
+    {product_name:'품목 B',specification:'',unit:'Box',quantity:1,unit_price:0,due_date:'2026-12-15'}
+  ]);
+});
+
+test('sales order import reports missing columns and all invalid rows before adding any',async()=>{
+  const missing=parseSalesOrderImportWorkbook(await workbookWith(['품명','단가'],[]),units);
+  assert.match(missing.errors[0],/필수 열 제목 누락: 규격, 단위, 수량, 납기일자/);
+  const invalid=parseSalesOrderImportWorkbook(await workbookWith(
+    ['품명','규격','단위','수량','단가','납기일자'],
+    [['','규격','invalid',0,-2,'2026-02-30']]
+  ),units);
+  assert.equal(invalid.rows.length,0);
+  assert.match(invalid.errors[0],/품명 누락/);
+  assert.match(invalid.errors[0],/지원하지 않는 단위/);
+  assert.match(invalid.errors[0],/수량은/);
+  assert.match(invalid.errors[0],/단가는/);
+  assert.match(invalid.errors[0],/납기일자는/);
+});
 
 test('product import accepts flexible header spacing and arbitrary column order',async()=>{
   const headers=[' 품번 ',' 재고 자산 종류 ','품목 자산분류','품명','규격','재질','색상','단 위','적정재고'];

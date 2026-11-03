@@ -24,9 +24,75 @@ const RECEIPT_IMPORT_FIELDS=[
   {key:'quantity',label:'입고수량'},
   {key:'unit_cost',label:'입고단가'}
 ];
+const SALES_ORDER_IMPORT_FIELDS=[
+  {key:'product_name',label:'품명'},
+  {key:'specification',label:'규격'},
+  {key:'unit',label:'단위'},
+  {key:'quantity',label:'수량'},
+  {key:'unit_price',label:'단가'},
+  {key:'due_date',label:'납기일자'}
+];
 
 function normalizeProductImportHeader(value){
   return String(value??'').trim().replace(/\s+/g,'').toLocaleLowerCase();
+}
+function importCellText(cell){
+  if(cell.value===null||cell.value===undefined)return '';
+  if(cell.value instanceof Date)return cell.value.toISOString().slice(0,10);
+  if(typeof cell.value==='object'&&'result'in cell.value)return String(cell.value.result??'').trim();
+  return String(cell.text??cell.value).trim();
+}
+function validSalesImportDate(value){
+  if(typeof value!=='string'||! /^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const date=new Date(value+'T00:00:00Z');
+  return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value&&value>='1900-01-01';
+}
+function parseSalesOrderImportWorkbook(workbook,units){
+  const sheet=workbook.worksheets?.[0];
+  if(!sheet)return {errors:['엑셀 파일에 시트가 없습니다.'],rows:[]};
+  const headerIndexes=new Map(),duplicateHeaders=[];
+  sheet.getRow(1).eachCell({includeEmpty:false},(cell,column)=>{
+    const header=normalizeProductImportHeader(importCellText(cell));
+    if(!header)return;
+    if(headerIndexes.has(header))duplicateHeaders.push(importCellText(cell));
+    else headerIndexes.set(header,column);
+  });
+  const missingHeaders=SALES_ORDER_IMPORT_FIELDS
+    .filter(field=>!headerIndexes.has(normalizeProductImportHeader(field.label)))
+    .map(field=>field.label);
+  if(missingHeaders.length||duplicateHeaders.length){
+    const errors=[];
+    if(missingHeaders.length)errors.push('필수 열 제목 누락: '+missingHeaders.join(', '));
+    if(duplicateHeaders.length)errors.push('중복된 열 제목: '+[...new Set(duplicateHeaders)].join(', '));
+    return {errors,rows:[]};
+  }
+  const allowedUnits=new Set(units),rows=[],errors=[];
+  sheet.eachRow((row,rowNumber)=>{
+    if(rowNumber===1)return;
+    const values=Object.fromEntries(SALES_ORDER_IMPORT_FIELDS.map(field=>[
+      field.key,importCellText(row.getCell(headerIndexes.get(normalizeProductImportHeader(field.label))))
+    ]));
+    if(Object.values(values).every(value=>!value))return;
+    const rowErrors=[];
+    if(!values.product_name)rowErrors.push('품명 누락');
+    if(values.product_name.length>120)rowErrors.push('품명은 120자 이하여야 함');
+    if(values.specification.length>200)rowErrors.push('규격은 200자 이하여야 함');
+    if(!values.unit)rowErrors.push('단위 누락');
+    else if(!allowedUnits.has(values.unit))rowErrors.push('지원하지 않는 단위');
+    const quantityText=values.quantity.replace(/,/g,'');
+    if(!/^\d{1,7}$/.test(quantityText)||Number(quantityText)<1||Number(quantityText)>1000000)
+      rowErrors.push('수량은 1~1,000,000의 정수여야 함');
+    else values.quantity=Number(quantityText);
+    const priceText=values.unit_price.replace(/[,₩원\s]/g,'');
+    if(!/^\d{1,10}(?:\.\d{1,2})?$/.test(priceText)||Number(priceText)>1000000000)
+      rowErrors.push('단가는 0~1,000,000,000의 소수점 둘째 자리까지 입력해야 함');
+    else values.unit_price=Number(priceText);
+    if(!validSalesImportDate(values.due_date))rowErrors.push('납기일자는 1900-01-01 이후의 올바른 날짜여야 함');
+    if(rowErrors.length)errors.push(`${row.number||rowNumber}행: ${rowErrors.join(', ')}`);
+    else rows.push(values);
+  });
+  if(!rows.length&&!errors.length)errors.push('업로드할 수주 품목이 없습니다.');
+  return {errors,rows};
 }
 
 function productImportCellText(cell){
@@ -229,8 +295,9 @@ function parseReceiptImportWorkbook(workbook,existingItems,today=new Date().toIS
   return {errors,missingProducts,rows};
 }
 
+if(typeof window!=='undefined')window.parseSalesOrderImportWorkbook=parseSalesOrderImportWorkbook;
 if(typeof window!=='undefined')window.parseProductImportWorkbook=parseProductImportWorkbook;
 if(typeof window!=='undefined')window.parseReceiptImportWorkbook=parseReceiptImportWorkbook;
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={PRODUCT_IMPORT_FIELDS,RECEIPT_IMPORT_FIELDS,normalizeProductImportHeader,parseProductImportWorkbook,parseReceiptImportWorkbook};
+  module.exports={PRODUCT_IMPORT_FIELDS,RECEIPT_IMPORT_FIELDS,SALES_ORDER_IMPORT_FIELDS,normalizeProductImportHeader,parseSalesOrderImportWorkbook,parseProductImportWorkbook,parseReceiptImportWorkbook};
 }

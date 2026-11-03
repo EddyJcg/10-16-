@@ -460,5 +460,5 @@ test('vendor lookup dialog shows a 36px title above the toolbar',()=>{
   const html=readFileSync('inventory.html','utf8'),style=readFileSync('vendor-management.css','utf8');
   assert.match(html,/<h2 id="vendor-list-title" class="vendor-list-title">거래처 조회<\/h2>\s*<div class="vendor-query-toolbar"/);
   assert.match(readFileSync('popup-typography.css','utf8'),/dialog \.vendor-list-title\{\s*font-size:36px!important/);
-  assert.match(style,/#vendor-list-dialog \.vendor-list-title\{[^}]*font-size:36px[^}]*background:#41494e/);
+  assert.match(style,/#vendor-list-dialog \.vendor-list-title\{[^}]*font-size:36px[^}]*background:#41494e;color:#fff!important/);
 });

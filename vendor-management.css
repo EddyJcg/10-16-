@@ -35,7 +35,7 @@
 .vendor-dialog .dialog-footer{flex:none}
 #vendor-list-dialog{width:min(1800px,99vw);height:min(850px,96vh);max-height:96vh;padding:0;overflow:hidden}
 #vendor-list-dialog[open]{display:flex;flex-direction:column}
-.vendor-query-toolbar{display:flex;align-items:center;gap:4.5px;flex:none;min-height:61.2px;padding:6.3px 11.7px;background:#41494e;color:#fff}
+.vendor-query-toolbar{display:flex;align-items:center;gap:4.5px;flex:none;min-height:61.2px;padding:6.3px 11.7px;background:#41494e;color:#fff!important}
 .vendor-query-toolbar button{display:inline-flex;align-items:center;gap:9px;min-height:45.9px;padding:8.1px 11.7px;border:0;border-radius:3px;background:transparent;color:#fff;font-size:18.27px}
 .vendor-query-toolbar button:hover{background:#626c72}
 .vendor-query-toolbar button span{font-size:24.3px}
@@ -93,4 +93,4 @@
   .vendor-toolbar{gap:2.6px;padding:7px 9px}
   .vendor-toolbar button{font-size:14.3px;padding:6.5px 6.5px}
 }
-#vendor-list-dialog .vendor-list-title{flex:none;margin:0;padding:10px 11.7px;font-size:36px;line-height:1.2;background:#41494e;color:#fff}
+#vendor-list-dialog .vendor-list-title{flex:none;margin:0;padding:10px 11.7px;font-size:36px;line-height:1.2;background:#41494e;color:#fff!important}

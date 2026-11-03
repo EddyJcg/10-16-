@@ -24,7 +24,7 @@ test('vendor registration screen wires toolbar, type checkboxes and settings',()
   assert.match(style,/\.vendor-dialog>form\{display:flex;flex-direction:column;max-height:78vh\}/);
   assert.match(baseStyle,/dialog \.dialog-header h2\{font-size:36px\}/);
   assert.match(style,/\.vendor-dialog \.dialog-header h2\{font-size:36px\}/);
-  assert.match(html,/vendor-management\.css\?v=[^"]*vendor-table-no-sticky-last-column/);
+  assert.match(html,/vendor-management\.css\?v=[^"]*vendor-list-title-white/);
 });
 
 test('vendor lookup matches the query toolbar, conditions and wide result grid',()=>{

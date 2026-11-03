@@ -154,7 +154,7 @@ test('product import opens the native XLSX picker directly without an intermedia
   const html=fs.readFileSync('inventory.html','utf8');
   const dialog=html.match(/<dialog id="product-info-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
   assert.match(dialog,/<div class="dialog-header">[\s\S]*?<button type="button" class="close" id="close-product-info"/);
-  assert.match(dialog,/<div class="dialog-footer">[\s\S]*?<button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="delete-product-info-drafts" class="secondary">일괄 삭제<\/button><button id="save-product-info" class="primary">일괄 저장<\/button>/);
+  assert.match(dialog,/<div class="dialog-footer">[\s\S]*?<button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소<\/button><button type="button" id="delete-product-info-drafts" class="secondary">일괄 삭제<\/button><button id="save-product-info" class="primary">일괄 저장<\/button>/);
   assert.match(dialog,/id="product-info-import-file" type="file" accept="[^"]*\.xlsx/);
   assert.doesNotMatch(html,/product-info-import-dialog|product-import-dialog/);
   const script=fs.readFileSync('inventory-app.js','utf8');

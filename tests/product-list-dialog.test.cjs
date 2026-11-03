@@ -354,8 +354,8 @@ test('product information status searches each condition independently and allow
   assert.deepEqual(Array.from(exported[5]),[7]);
   assert.match(html,/aria-label="등록된 품목정보"><thead><tr>[\s\S]*?<th>적정재고<\/th><th>관리<\/th><\/tr>/);
 });
-test('product edits require confirmation and lock assigned fields while allowing blank fields',()=>{
-  const elements=new Map(),confirmations=[];
+test('product edits require confirmation, are blocked after ordering and stage through drafts otherwise',async()=>{
+  const elements=new Map(),confirmations=[],alerts=[],calls=[];
   const element=id=>{
     if(!elements.has(id)){
       const current={value:'',textContent:'',disabled:false,readOnly:false,hidden:false,options:[{value:'',textContent:''}],
@@ -367,27 +367,42 @@ test('product edits require confirmation and lock assigned fields while allowing
   };
   const context=vm.createContext({
     document:{getElementById:element,createElement:()=>({value:'',textContent:''})},
-    window:{confirm:message=>{confirmations.push(message);return context.confirmResult;}}
+    window:{confirm:message=>{confirmations.push(message);return context.confirmResult;},alert:message=>alerts.push(message)},calls
   });
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`items=[{id:'p1',classification_id:'c1',product_category:'원자재',product_code:'SKU-1',
     product_name:'부품',specification:'규격',material:'철',color:'',unit:'EA(개)',standard_stock_quantity:5}];
-    assetClassifications=[{id:'c1',name:'원자재',inventory_asset_type:'원자재'}];confirmResult=false;`,context);
+    assetClassifications=[{id:'c1',name:'원자재',inventory_asset_type:'원자재'}];confirmResult=false;usedCount=0;currentUser={id:'u'};
+    renderProductInfoItems=()=>{};
+    client={from:()=>({select:()=>({eq:async()=>({count:usedCount,error:null})})}),
+      rpc:async(name,args)=>(calls.push([name,args]),{data:{id:args.p_product_id,...args.p_details},error:null})};`,context);
   element('product-info-status-dialog').open=true;
-  element('product-info-dialog').open=false;
-  vm.runInContext(`editProductInfo('p1')`,context);
+  await vm.runInContext(`editProductInfo('p1')`,context);
   assert.equal(element('product-info-status-dialog').open,true,'declining confirmation leaves the status dialog open');
-  assert.equal(element('product-info-dialog').open,false);
-  vm.runInContext('confirmResult=true;editProductInfo("p1")',context);
-  assert.deepEqual(confirmations,['품목정보를 수정하시겠습니까?','품목정보를 수정하시겠습니까?']);
+  assert.equal(element('product-info-dialog').open,undefined);
+  vm.runInContext('confirmResult=true;usedCount=1',context);
+  await vm.runInContext(`editProductInfo('p1')`,context);
+  assert.match(alerts[0],/발주 단계 이후.*삭제한 뒤/);
+  assert.equal(element('product-info-status-dialog').open,true);
+  vm.runInContext('usedCount=0',context);
+  await vm.runInContext(`editProductInfo('p1')`,context);
   assert.equal(element('product-info-status-dialog').open,false);
   assert.equal(element('product-info-dialog').open,true);
-  for(const id of ['info_product_code','info_product_name','info_specification','info_material','info_unit','info_standard_stock_quantity'])
-    assert.equal(element(id).readOnly||element(id).disabled,true,id+' should be locked');
-  assert.equal(element('info_color').readOnly,false,'an unassigned field remains editable');
-  assert.equal(element('info_product_category').disabled,true);
-});
-test('duplicate product codes and non-empty specifications are detected case-insensitively',()=>{
+  assert.equal(element('info_product_code').value,'SKU-1');
+  assert.equal(element('info_product_code').readOnly,false);
+  assert.equal(element('cancel-product-info-edit').hidden,false);
+  element('info_product_name').value='부품 수정';element('info_standard_stock_quantity').value='7';
+  element('info_product_category').value='c1';
+  vm.runInContext('addProductInfoDraft()',context);
+  assert.equal(vm.runInContext('productInfoDrafts[0].productId',context),'p1');
+  assert.equal(vm.runInContext('editingProductInfoId',context),'');
+  await vm.runInContext('saveProductInfo({preventDefault(){}})',context);
+  assert.equal(calls[0][0],'update_stock_product');
+  assert.equal(calls[0][1].p_product_id,'p1');
+  assert.equal('productId'in calls[0][1].p_details,false);
+  assert.equal(vm.runInContext('items[0].product_name',context),'부품 수정');
+  assert.equal(vm.runInContext('productInfoDrafts.length',context),0);
+});test('duplicate product codes and non-empty specifications are detected case-insensitively',()=>{
   const context=vm.createContext({});
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`items=[{id:'one',product_code:'SKU-1',specification:'Spec-A'}]`,context);
@@ -431,7 +446,7 @@ test('table dialogs omit the shared header filter and retain draggable persisted
   assert.doesNotMatch(style,/dialog-header-has-filter|dialog-table-filter/);
   assert.match(style,/\.dialog-header-actions\{display:flex;align-items:center;gap:8px;flex:0 0 auto\}/);
   assert.match(style,/\.intro,\.toolbar,\.session,\.dialog-header,\.dialog-footer\{[^}]*justify-content:space-between/);
-  assert.match(html,/<div class="dialog-footer"><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소<\/button><button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="delete-product-info-drafts" class="secondary">일괄 삭제<\/button><button id="save-product-info" class="primary">일괄 저장<\/button><\/div>/);
+  assert.match(html,/<div class="dialog-footer"><button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소<\/button><button type="button" id="delete-product-info-drafts" class="secondary">일괄 삭제<\/button><button id="save-product-info" class="primary">일괄 저장<\/button><\/div>/);
   assert.match(html,/<div class="dialog-footer"><button type="button" class="secondary" id="import-receipt-button" hidden>Excel 업로드<\/button><button id="save-movement" class="primary">저장<\/button><\/div>/);
   assert.match(script,/table\.addEventListener\('dragstart'/);
   assert.match(script,/table\.addEventListener\('drop'/);

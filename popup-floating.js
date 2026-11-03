@@ -33,13 +33,20 @@
     cascade(this);
   };
   document.addEventListener('animationend',event=>{if(event.target.classList)event.target.classList.remove('popup-flash');},true);
-  // 제목줄을 잡고 끌면 팝업이 따라 움직입니다.
+  // 팝업 안 아무 곳이나 누른 채 끌면 팝업이 따라 움직입니다.
+  const interactive='button,input,select,textarea,a,label,summary,[contenteditable=true]';
+  function onScrollbarOrResizeGrip(event,dialog){
+    const el=event.target;
+    if(el.clientWidth&&el.offsetWidth>el.clientWidth&&event.offsetX>=el.clientWidth)return true;
+    if(el.clientHeight&&el.offsetHeight>el.clientHeight&&event.offsetY>=el.clientHeight)return true;
+    const rect=dialog.getBoundingClientRect();
+    return event.clientX>rect.right-20&&event.clientY>rect.bottom-20;
+  }
   let drag=null;
   document.addEventListener('pointerdown',event=>{
     if(event.button>0||!event.target.closest)return;
-    const handle=event.target.closest('.dialog-header,.vendor-list-title');
-    const dialog=handle&&handle.closest('dialog.popup-floating[open]');
-    if(!dialog||event.target.closest('button,input,select,textarea,a,label'))return;
+    const dialog=event.target.closest('dialog.popup-floating[open]');
+    if(!dialog||event.target.closest(interactive)||onScrollbarOrResizeGrip(event,dialog))return;
     const rect=dialog.getBoundingClientRect();
     stack+=1;dialog.style.zIndex=String(stack);
     drag={dialog,dx:event.clientX-rect.left,dy:event.clientY-rect.top};
@@ -52,5 +59,15 @@
     drag.dialog.style.top=Math.max(0,Math.min(event.clientY-drag.dy,innerHeight-rect.height))+'px';
   },true);
   document.addEventListener('pointerup',()=>{drag=null;},true);
+  // 팝업을 더블클릭하면 화면 중앙으로 이동합니다.
+  document.addEventListener('dblclick',event=>{
+    if(!event.target.closest)return;
+    const dialog=event.target.closest('dialog.popup-floating[open]');
+    if(!dialog||event.target.closest(interactive)||onScrollbarOrResizeGrip(event,dialog))return;
+    const rect=dialog.getBoundingClientRect();
+    dialog.style.left=Math.max(0,(innerWidth-rect.width)/2)+'px';
+    dialog.style.top=Math.max(0,(innerHeight-rect.height)/2)+'px';
+    stack+=1;dialog.style.zIndex=String(stack);
+  },true);
   if(typeof addEventListener==='function')addEventListener('resize',()=>document.querySelectorAll('dialog.popup-floating[open]').forEach(keepInViewport));
 })();

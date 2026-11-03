@@ -57,17 +57,24 @@ test('floating popups are clamped inside the viewport',()=>{
   assert.equal(dialog.style.top,'500px');
 });
 
-test('floating popups can be dragged by their title bar',()=>{
+test('floating popups can be dragged from anywhere and recentre on double click',()=>{
   const handlers={};
-  const dialog={id:'x',open:true,style:{left:'100px',top:'100px'},getBoundingClientRect:()=>({left:100,top:100,width:400,height:300}),classList:{add(){},contains:()=>false}};
-  const handle={closest:s=>s.includes('dialog-header')?handle:s.startsWith('dialog.popup-floating')?dialog:null};
+  const dialog={id:'x',open:true,style:{left:'100px',top:'100px'},getBoundingClientRect:()=>({left:100,top:100,right:500,bottom:400,width:400,height:300}),classList:{add(){},contains:()=>false}};
+  const body={clientWidth:0,clientHeight:0,closest:s=>s.startsWith('dialog.popup-floating')?dialog:null};
+  const button={closest:s=>s.startsWith('dialog.popup-floating')?dialog:s.includes('button')?button:null};
   const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
   new Function('HTMLDialogElement','document','innerWidth','innerHeight',fs.readFileSync('popup-floating.js','utf8'))(Ctor,{addEventListener:(t,fn)=>{handlers[t]=fn;},querySelectorAll:()=>[]},1000,800);
-  handlers.pointerdown({button:0,clientX:150,clientY:120,target:{closest:s=>s.includes('dialog-header')?handle:s.includes('button')?null:null},preventDefault(){}});
+  handlers.pointerdown({button:0,clientX:150,clientY:120,target:button,preventDefault(){}});
+  handlers.pointermove({clientX:350,clientY:320});
+  assert.equal(dialog.style.left,'100px');
+  handlers.pointerdown({button:0,clientX:150,clientY:120,target:body,preventDefault(){}});
   handlers.pointermove({clientX:350,clientY:320});
   assert.equal(dialog.style.left,'300px');
   assert.equal(dialog.style.top,'300px');
   handlers.pointerup();
   handlers.pointermove({clientX:0,clientY:0});
   assert.equal(dialog.style.left,'300px');
+  handlers.dblclick({target:body,clientX:300,clientY:300});
+  assert.equal(dialog.style.left,'300px');
+  assert.equal(dialog.style.top,'250px');
 });

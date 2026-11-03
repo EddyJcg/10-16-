@@ -125,7 +125,8 @@ test('product import rejects specifications already in use or repeated in the wo
 test('product import opens the native XLSX picker directly without an intermediate dialog',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const dialog=html.match(/<dialog id="product-info-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
-  assert.match(dialog,/id="import-product-info-button"[^>]*>Excel 업로드<\/button><button type="button" class="close" id="close-product-info"/);
+  assert.match(dialog,/<div class="dialog-header">[\s\S]*?<button type="button" class="close" id="close-product-info"/);
+  assert.match(dialog,/<div class="dialog-footer">[\s\S]*?<button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button id="save-product-info" class="primary">품목정보 저장<\/button>/);
   assert.match(dialog,/id="product-info-import-file" type="file" accept="[^"]*\.xlsx/);
   assert.doesNotMatch(html,/product-info-import-dialog|product-import-dialog/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/function openProductInfoFilePicker\(\)/);
@@ -135,7 +136,8 @@ test('product import opens the native XLSX picker directly without an intermedia
 test('receipt dialog provides an XLSX picker and a missing-product details window',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const dialog=html.match(/<dialog id="movement-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
-  assert.match(dialog,/id="import-receipt-button" hidden>Excel 업로드<\/button><button type="button" class="close" id="close-dialog"/);
+  assert.match(dialog,/<div class="dialog-header">[\s\S]*?<button type="button" class="close" id="close-dialog"/);
+  assert.match(dialog,/<div class="dialog-footer"><button type="button" class="secondary" id="import-receipt-button" hidden>Excel 업로드<\/button><button id="save-movement" class="primary">저장<\/button><\/div>/);
   assert.match(dialog,/id="receipt-import-file" type="file" accept="[^"]*\.xlsx/);
   assert.match(html,/<dialog id="receipt-import-missing-dialog"/);
   assert.match(html,/id="receipt-import-missing-items"/);

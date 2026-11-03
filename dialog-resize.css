@@ -18,7 +18,7 @@ dialog .vendor-query-toolbar{gap:9px}
 dialog .vendor-toolbar{gap:13px}
 @media(max-width:600px){dialog .vendor-toolbar{gap:5.2px}}
 @media screen{
-  dialog thead th{background-color:#f2f6f1!important}
+  dialog thead th{background-color:#41494e!important;color:#fff!important}
 }
 dialog .close{
   display:inline-flex;align-items:center;justify-content:center;text-align:center;

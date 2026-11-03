@@ -343,7 +343,7 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(resizeCss,/dialog \.vendor-query-toolbar\{gap:9px\}/);
   assert.match(resizeCss,/dialog \.vendor-toolbar\{gap:13px\}/);
   assert.match(resizeCss,/@media\(max-width:600px\)\{dialog \.vendor-toolbar\{gap:5\.2px\}\}/);
-  assert.match(resizeCss,/@media screen\{\s*dialog thead th\{background-color:#f2f6f1!important\}\s*\}/);
+  assert.match(resizeCss,/@media screen\{\s*dialog thead th\{background-color:#41494e!important;color:#fff!important\}\s*\}/);
   assert.doesNotMatch(resizeCss,/dialog \.dialog-header\{[^}]*background-color:#41494e/);
   assert.match(resizeCss,/dialog \.close\{[\s\S]*?display:inline-flex;align-items:center;justify-content:center;text-align:center;[\s\S]*?letter-spacing:10px;text-indent:10px;[\s\S]*?width:62\.4px!important;min-width:62\.4px/);
   assert.match(resizeCss,/dialog \.dialog-header \.close\{[\s\S]*?width:calc\(3\.9em \+ 69\.81px\)!important;min-width:calc\(3\.9em \+ 69\.81px\);[\s\S]*?padding-left:0;padding-right:0/);
@@ -353,7 +353,7 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4px;left:4px;width:14px;height:14px;[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 100%\/4px 2px no-repeat/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon\{color:#929291\}/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon::after\{display:block\}/);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-table-header-f2f6f1/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-table-header-41494e/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

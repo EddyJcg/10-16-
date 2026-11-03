@@ -78,3 +78,7 @@ test('floating popups can be dragged from anywhere and recentre on double click'
   assert.equal(dialog.style.left,'300px');
   assert.equal(dialog.style.top,'250px');
 });
+
+test('floating popups cancel the centring transform so left/top positioning works',()=>{
+  assert.match(fs.readFileSync('popup-floating.css','utf8'),/dialog\.popup-floating\[open\]\{transform:none\}/);
+});

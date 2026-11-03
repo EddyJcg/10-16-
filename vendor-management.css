@@ -62,8 +62,8 @@
 .vendor-list-dialog th{position:sticky;top:0;z-index:2;background:#eceef1;color:#424a50;font-weight:600;text-align:center}
 .vendor-list-dialog td{max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .vendor-list-dialog td button{padding:8px 13px;font-size:15.6px}
-.vendor-list-dialog th:last-child,.vendor-list-dialog td:last-child{position:sticky;right:0;background:#f7f8f9}
-.vendor-list-dialog tbody td:last-child{background:#fff}
+.vendor-list-dialog th:last-child{background:#eceef1}
+.vendor-list-dialog td:last-child{background:#fff}
 @media(max-width:900px){
   #vendor-list-dialog{width:98vw;height:95vh}
   .vendor-query-grid{grid-template-columns:repeat(2,minmax(0,1fr))}

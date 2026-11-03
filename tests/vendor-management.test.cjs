@@ -24,7 +24,7 @@ test('vendor registration screen wires toolbar, type checkboxes and settings',()
   assert.match(style,/\.vendor-dialog>form\{display:flex;flex-direction:column;max-height:78vh\}/);
   assert.match(baseStyle,/dialog \.dialog-header h2\{font-size:36px\}/);
   assert.match(style,/\.vendor-dialog \.dialog-header h2\{font-size:36px\}/);
-  assert.match(html,/vendor-management\.css\?v=[^"]*vendor-dialog-scale-12/);
+  assert.match(html,/vendor-management\.css\?v=[^"]*vendor-table-no-sticky-last-column/);
 });
 
 test('vendor lookup matches the query toolbar, conditions and wide result grid',()=>{
@@ -54,6 +54,9 @@ test('vendor lookup matches the query toolbar, conditions and wide result grid',
   assert.match(style,/\.vendor-query-grid input,\.vendor-query-grid select\{height:36px;[^}]*font-size:15\.6px/);
   assert.match(style,/\.vendor-list-dialog table\{width:max-content;min-width:2200px;font-size:15\.6px/);
   assert.match(style,/\.vendor-list-dialog th,\.vendor-list-dialog td\{height:43px/);
+  assert.match(style,/\.vendor-list-dialog th:last-child\{background:#eceef1\}/);
+  assert.match(style,/\.vendor-list-dialog td:last-child\{background:#fff\}/);
+  assert.doesNotMatch(style,/\.vendor-list-dialog th:last-child,\.vendor-list-dialog td:last-child\{position:sticky;right:0/);
 });
 
 test('vendor database migration provides protected records and default vendor types',async()=>{

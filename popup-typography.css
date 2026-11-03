@@ -3,7 +3,8 @@ dialog *{
   font-size:18px!important;
 }
 dialog .dialog-header h2,
-dialog .dialog-header h2 *{
+dialog .dialog-header h2 *,
+dialog .vendor-list-title{
   font-size:36px!important;
 }
 dialog button,

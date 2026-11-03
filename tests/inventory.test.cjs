@@ -1,6 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const zlib=require('node:zlib');
 const vm=require('node:vm');
 const {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,planFifo,validDate,filterInventoryItems,stockRiskItems,stockAgingRows,sixMonthsAgoDate,salesOrderStatus}=require('../inventory-model.js');
 const {CURRENT_STOCK_FIELDS,currentStockRows}=require('../inventory-model.js');
@@ -350,9 +351,22 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(resizeCss,/dialog \.vendor-query-toolbar \.close\{width:131\.04px!important;min-width:131\.04px\}/);
   assert.match(resizeCss,/\.dialog-minimize-icon\{[^}]*height:1\.53px;background:currentColor;transform:scale\(1\.5\);color:#fff/);
   assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*width:14px;height:14px;border:3\.06px solid currentColor;color:#fff/);
-  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4\.3px;left:4px;width:14px;height:14px;[\s\S]*?linear-gradient\(currentColor,currentColor\) 0 0\/100% 3\.06px no-repeat,[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 0\/3\.06px 100% no-repeat,[\s\S]*?linear-gradient\(currentColor,currentColor\) 0 0\/3\.06px 4\.3px no-repeat,[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 100%\/4px 3\.06px no-repeat/);
-  assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon::after\{display:block\}/);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*window-icons-matched-squares/);
+  assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon\{[\s\S]*?width:12px;height:17px;border:0;background-color:transparent;[\s\S]*?background-image:url\('\/popup-expand-icon\.png'\)/);
+  assert.doesNotMatch(resizeCss,/\.dialog-expand-icon::after/);
+  const icon=fs.readFileSync('popup-expand-icon.png'),iconChunks=[];
+  assert.deepEqual([...icon.subarray(0,8)],[137,80,78,71,13,10,26,10]);
+  assert.equal(icon.readUInt32BE(16),12);
+  assert.equal(icon.readUInt32BE(20),17);
+  assert.equal(icon[25],6);
+  for(let offset=8;offset<icon.length;){
+    const length=icon.readUInt32BE(offset),type=icon.toString('ascii',offset+4,offset+8);
+    if(type==='IDAT')iconChunks.push(icon.subarray(offset+8,offset+8+length));
+    offset+=length+12;
+  }
+  const iconPixels=zlib.inflateSync(Buffer.concat(iconChunks));
+  assert.equal(iconPixels[1+3],0);
+  assert.ok([...iconPixels.entries()].some(([index,value])=>index%49>=4&&(index%49-4)%4===0&&value===255));
+  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-expand-image-transparent/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

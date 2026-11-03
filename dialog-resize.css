@@ -48,15 +48,11 @@ dialog .vendor-query-toolbar .close{width:131.04px!important;min-width:131.04px}
 .dialog-window-button:hover{background:#e8eee9!important;color:#294c3a}
 .dialog-window-button:active{background:#dce7df!important}
 .dialog-minimize-icon{width:10px;height:1.53px;background:currentColor;transform:scale(1.5);color:#fff}
-.dialog-expand-icon{position:relative;display:block;box-sizing:border-box;width:14px;height:14px;border:3.06px solid currentColor;color:#fff}
-.dialog-expand-icon::after{
-  content:"";display:none;position:absolute;box-sizing:border-box;top:-4.3px;left:4px;width:14px;height:14px;
-  background:linear-gradient(currentColor,currentColor) 0 0/100% 3.06px no-repeat,
-    linear-gradient(currentColor,currentColor) 100% 0/3.06px 100% no-repeat,
-    linear-gradient(currentColor,currentColor) 0 0/3.06px 4.3px no-repeat,
-    linear-gradient(currentColor,currentColor) 100% 100%/4px 3.06px no-repeat
+.dialog-expand-icon{display:block;width:14px;height:14px;border:3.06px solid currentColor;color:#fff}
+.dialog-expanded .dialog-expand-icon{
+  width:12px;height:17px;border:0;background-color:transparent;
+  background-image:url('/popup-expand-icon.png');background-position:center;background-repeat:no-repeat;background-size:12px 17px
 }
-.dialog-expanded .dialog-expand-icon::after{display:block}
 dialog.dialog-minimizing{opacity:0;transform:scale(.97);transition:opacity 180ms ease,transform 180ms ease}
 dialog.dialog-expanded[open]:not(.search-calendar){
   position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;

@@ -419,6 +419,13 @@ function installMovementHistoryButton(){
   button.textContent='저장된 내역 수정';
   button.addEventListener('click',openMovementHistoryForEdit);
   footer.insertBefore(button,save);
+  const bulkDelete=document.createElement('button');
+  bulkDelete.id='bulk-delete-movement';bulkDelete.type='button';bulkDelete.className='secondary danger';bulkDelete.hidden=true;
+  bulkDelete.textContent='일괄삭제';
+  bulkDelete.addEventListener('click',async()=>{
+    if(editingMovementId&&await revertReceipt(editingMovementId))closeMovement();
+  });
+  footer.insertBefore(bulkDelete,save);
 }
 async function showLongStock() {
   if(!currentUser||busy)return;
@@ -1565,7 +1572,7 @@ function validateIssueQuantity(showAlert=false) {
 function openMovement(kind) {
   if (!currentUser || busy) return;
   if(!items.some(stockLedgerManaged)){window.alert('수량·금액 관리 대상 품목정보를 먼저 등록해 주세요.');return;}
-  mode = kind;editingMovementId='';$('save-movement').textContent='저장';const [title,prefix,dateLabel] = MODE_LABELS[mode];
+  mode = kind;editingMovementId='';$('save-movement').textContent='저장';$('bulk-delete-movement').hidden=true;const [title,prefix,dateLabel] = MODE_LABELS[mode];
   $('movement-form').reset(); selectedCode=''; productLots=[]; productLotsReady=false; lotsGeneration++; requestId=crypto.randomUUID();
   $('dialog-title').textContent = mode==='opening'?'기초재고 등록':title;
   $('dialog-description').textContent = mode==='issue' ? '먼저 들어온 입고 건부터 자동 차감합니다.'
@@ -2153,25 +2160,26 @@ function renderMovementList() {
 }
 async function revertReceipt(id){
   const movement=movementListRows.find(row=>row.id===id);
-  if(!movement||movement.kind!=='receipt'||!currentUser||busy)return;
+  if(!movement||movement.kind!=='receipt'||!currentUser||busy)return false;
   const item=itemsById.get(movement.product_id);
   try{
     const reason=await movementUsedDownstream(movement);
-    if(reason){alertBlocked(reason);return;}
-  }catch(error){window.alert('이후 단계 사용 여부를 확인하지 못했습니다. 삭제를 진행하지 않습니다. '+errorText(error));return;}
-  if(!window.confirm(`입고 '${item?.product_code||''} ${item?.product_name||''}' ${number(movement.quantity)}${item?.unit||''} 내역을 삭제하고 미입고 상태로 되돌리시겠습니까?`))return;
+    if(reason){alertBlocked(reason);return false;}
+  }catch(error){window.alert('이후 단계 사용 여부를 확인하지 못했습니다. 삭제를 진행하지 않습니다. '+errorText(error));return false;}
+  if(!window.confirm(`입고 '${item?.product_code||''} ${item?.product_name||''}' ${number(movement.quantity)}${item?.unit||''} 내역을 삭제하고 미입고 상태로 되돌리시겠습니까?`))return false;
   const generation=authGeneration;busy=true;
   try{
     const {error}=await client.rpc('revert_stock_receipt',{p_movement_id:id});
     if(error)throw error;
-    if(generation!==authGeneration)return;
+    if(generation!==authGeneration)return true;
     movementListRows=(await readAll('stock_movements','sequence_id')).sort((a,b)=>Number(b.sequence_id)-Number(a.sequence_id));
     renderMovementList();
     $('movement-list-status').textContent='입고 내역을 삭제하고 미입고 상태로 되돌렸습니다.';
     try{await Promise.all([loadStock(),loadPurchaseOrders()]);}
     catch{$('movement-list-status').textContent+=' 목록 새로고침은 다시 시도해 주세요.';}
+    return true;
   }catch(error){
-    if(generation!==authGeneration)return;
+    if(generation!==authGeneration)return false;
     const missing=/PGRST202|revert_stock_receipt/.test((error?.code||'')+(error?.message||''))&&!/INSUFFICIENT_STOCK/.test(error?.message||'');
     window.alert(/INSUFFICIENT_STOCK/.test(error?.message||'')?'처리할 수 없습니다.\n이 입고(기초) 수량이 이미 출고에 사용되었습니다.\n이후 프로세스에서 먼저 처리한 뒤 다시 시도하세요.':missing?'입고 삭제 기능이 DB에 적용되지 않았습니다. Supabase SQL Editor에서 supabase/revert-stock-receipt.sql을 실행한 뒤 다시 시도하세요.':'입고 내역을 삭제하지 못했습니다. '+errorText(error));
   }finally{busy=false;}
@@ -2422,6 +2430,7 @@ async function editMovement(id){
   $('dialog-title').textContent=MODE_LABELS[movement.kind][0]+' 수정';
   $('dialog-description').textContent='수정 후 품목별 FIFO 원장을 다시 계산합니다. 재고 부족이 발생하면 변경되지 않습니다.';
   $('save-movement').textContent='변경 사항 저장';
+  $('bulk-delete-movement').hidden=movement.kind!=='receipt';
   if(movement.kind==='issue'){
     const select=$('issue-sales-order');
     if(movement.sales_order_id&&!Array.from(select.options).some(option=>option.value===movement.sales_order_id)){

@@ -28,3 +28,10 @@ test('sales order with shipments or completed sales is blocked from editing',()=
   assert.match(context.salesOrderDownstreamReason('c'),/매출 등록/);
   assert.match(context.salesOrderDownstreamReason('g1'),/출고/,'one shipped line blocks the whole order group');
 });
+
+test('receipt edit window has a bulk delete button left of the save button',()=>{
+  const app=readFileSync('inventory-app.js','utf8');
+  assert.match(app,/bulkDelete\.id='bulk-delete-movement'[\s\S]*?bulkDelete\.textContent='일괄삭제'[\s\S]*?revertReceipt\(editingMovementId\)[\s\S]*?footer\.insertBefore\(bulkDelete,save\)/);
+  assert.match(app,/\$\('bulk-delete-movement'\)\.hidden=movement\.kind!=='receipt'/);
+  assert.match(app,/\$\('bulk-delete-movement'\)\.hidden=true;const \[title,prefix,dateLabel\]/);
+});

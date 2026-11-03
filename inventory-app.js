@@ -769,6 +769,7 @@ async function showPurchaseOrders(mode='entry'){
   $('purchase-order-entry').hidden=isQuery;
   $('purchase-order-view').hidden=!isQuery;
   $('save-purchase-order').parentElement.hidden=isQuery;
+  $('purchase-print-settings').hidden=isQuery;$('purchase-print').hidden=isQuery;
   resetPurchaseOrderForm();PURCHASE_SEARCH_IDS.forEach(id=>{if($(id))$(id).value='';});$('purchase-order-dialog').showModal();
   try{await loadPurchaseOrderVendors();}
   catch(error){if(generation===authGeneration)$('purchase-order-status').textContent=registeredVendorDirectoryErrorText(error);return;}
@@ -2204,14 +2205,25 @@ function clearProductListSearch() {
   $('product-list-start-date').value='';$('product-list-end-date').value='';$('product-list-supplier').value='';$('product-list-query').value='';
   productListDateIds=null;productListSupplier='';productListQuery='';renderProductList();$('product-list-status').textContent='검색 조건을 초기화했습니다.';
 }
+function purchaseOrderPrintData(){
+  const vendor=purchaseOrderVendors.find(row=>row.id===$('purchase-order-supplier').value),profile=vendor?.profile||{};
+  const lines=purchaseDraftLines.map(line=>{
+    const item=items.find(row=>row.id===line.product_id)||{};
+    return {product_code:item.product_code,product_name:item.product_name,specification:item.specification,unit:item.unit,quantity:line.quantity,unit_cost:line.unit_cost,expected_date:line.expected_date};
+  });
+  return {orderNumber:$('purchase-order-number').value,orderDate:$('purchase-order-date').value,currency:'KRW',lines,
+    supplier:{name:vendor?String(vendor.legal_name||vendor.vendor_name||''):'',representative:profile.representative,address:profile.business_address,business_number:profile.business_registration_number,
+      phone:profile.phone,contact:profile.contact_person,contact_phone:profile.manager_phone,email:profile.email}};
+}
 function openPrintSettings(target) {
   activePrintTarget=target;
   $('print-settings-dialog').showModal();
 }
 function printInventoryList(target) {
-  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','long-stock':'long-stock-dialog','movement-list':'movement-list-dialog','sales-status':'sales-status-dialog'};
+  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','long-stock':'long-stock-dialog','movement-list':'movement-list-dialog','sales-status':'sales-status-dialog','purchase-order':'purchase-order-dialog'};
   if(target in targetDialogs&&!$(targetDialogs[target]).open)return;
   activePrintTarget=target;
+  if(target==='purchase-order')$('purchase-order-print').innerHTML=PurchaseOrderPrint.buildPurchaseOrderPrint(purchaseOrderPrintData());
   applyProductListPrintSettings();
   if($('print-settings-dialog').open)$('print-settings-dialog').close();
   document.body.dataset.printTarget=target;
@@ -2235,11 +2247,14 @@ function applyProductListPrintSettings() {
     'long-stock':'#long-stock-dialog table',
     'sales-balance':'#sales-balance table',
     'sales-status':'#sales-status-dialog table',
-    'movement-list':'#movement-list-dialog .product-list-table table'
+    'movement-list':'#movement-list-dialog .product-list-table table',
+    'purchase-order':'#purchase-order-print'
   };
   let style=document.getElementById('product-list-print-page-style');
   if(!style){style=document.createElement('style');style.id='product-list-print-page-style';document.head.append(style);}
-  style.textContent=`@page{size:A4 landscape;margin:${printMargins.top}mm ${printMargins.right}mm ${printMargins.bottom}mm ${printMargins.left}mm}@media print{${tables[activePrintTarget]}{zoom:${scale};width:${100/scale}%}}`;
+  const purchaseOrderPage=activePrintTarget==='purchase-order',pageNumber=purchaseOrderPage?'@bottom-center{content:counter(page) " / " counter(pages);font-size:10px}':'';
+  style.textContent=`@page{size:A4 landscape;margin:${printMargins.top}mm ${printMargins.right}mm ${printMargins.bottom}mm ${printMargins.left}mm;${pageNumber}}@media print{${tables[activePrintTarget]}{zoom:${scale};width:${100/scale}%}}`;
+  if(purchaseOrderPage)style.textContent=style.textContent.replace('A4 landscape','A4 portrait');
 }
 function startProductListPrintSettings() {
   const scale=$('product-list-print-scale');

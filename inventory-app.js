@@ -364,6 +364,7 @@ function errorText(error) {
     INVALID_INPUT:'날짜, 수량과 단가를 확인하세요. 미래 일자와 소수 수량은 사용할 수 없습니다.',
     INVALID_PRODUCT_DETAILS:'품목분류·품명 등 품목 정보를 확인하세요.',
     PRODUCT_HAS_LEDGER_HISTORY:'거래 이력이 있는 품목의 단위는 변경할 수 없습니다.',
+    PRODUCT_USED_IN_PURCHASE:'해당 품목은 삭제할 수 없으니 이후 단계에서 처리된 내용을 삭제 하여 주시기 바랍니다.',
     PRODUCT_HAS_LINKED_SHIPMENTS:'수주 출고가 연결된 품목의 품명·규격은 변경할 수 없습니다.',
     SALES_ORDER_HAS_SHIPMENTS:'출고가 연결된 수주의 품목 정보·수량 또는 매출 완료 상태를 변경할 수 없습니다.',
     SALES_ORDER_QUANTITY_EXCEEDED:'출고수량이 해당 수주의 잔여 수량을 초과했거나 이미 매출 완료된 수주입니다.',
@@ -1655,8 +1656,36 @@ function renderProductInfoStatus() {
     row.append(makeCell(item.created_by_name||'기존 등록자'));
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.productInfoId=item.id;
     button.setAttribute('aria-label',item.product_code+' 품목정보 수정');
-    action.append(button);row.append(action);body.append(row);
+    const remove=document.createElement('button');
+    remove.type='button';remove.className='secondary danger';remove.textContent='삭제';remove.dataset.productInfoDeleteId=item.id;
+    remove.setAttribute('aria-label',item.product_code+' 품목정보 삭제');
+    action.append(button,remove);row.append(action);body.append(row);
   });
+}
+const PRODUCT_DELETE_BLOCKED_MESSAGE='해당 품목은 삭제할 수 없으니 이후 단계에서 처리된 내용을 삭제 하여 주시기 바랍니다.';
+async function deleteProductInfo(id){
+  const item=items.find(row=>row.id===id);if(!item||busy)return;
+  if(productInfoDrafts.some(draft=>draft.productId===id)){
+    window.alert('이미 가등록 목록에 있는 품목입니다. 품목정보 등록 창에서 일괄 저장 또는 일괄 삭제를 진행하세요.');
+    return;
+  }
+  try{
+    if(await productInfoUsedInPurchase(id)){window.alert(PRODUCT_DELETE_BLOCKED_MESSAGE);return;}
+  }catch(error){
+    window.alert('발주 사용 여부를 확인하지 못했습니다. 삭제를 진행하지 않습니다. '+errorText(error));
+    return;
+  }
+  if(!window.confirm(`품목 '${item.product_code} ${item.product_name||''}'을(를) 삭제하시겠습니까?`))return;
+  try{
+    const {error}=await client.rpc('delete_stock_product',{p_product_id:id});
+    if(error)throw error;
+  }catch(error){
+    window.alert(/PRODUCT_USED_IN_PURCHASE|PRODUCT_HAS_LEDGER_HISTORY/.test(error?.message||'')?PRODUCT_DELETE_BLOCKED_MESSAGE:'품목정보를 삭제하지 못했습니다. '+errorText(error));
+    return;
+  }
+  items=items.filter(row=>row.id!==id);
+  renderProductInfoStatus();renderProductInfoItems();
+  $('product-info-status-list-message').textContent=`등록 품목 ${number(items.length)}개`;
 }
 function exportProductInfoStatusExcel() {
   const rows=filteredProductInfoStatusItems();
@@ -2536,6 +2565,8 @@ async function startApp(){
   $('product-info-form').addEventListener('submit',saveProductInfo);
   $('cancel-product-info-edit').addEventListener('click',resetProductInfoForm);
   $('product-info-status-items').addEventListener('click',event=>{
+    const remove=event.target.closest('[data-product-info-delete-id]');
+    if(remove){deleteProductInfo(remove.dataset.productInfoDeleteId);return;}
     const button=event.target.closest('[data-product-info-id]');if(!button)return;
     editProductInfo(button.dataset.productInfoId);
   });

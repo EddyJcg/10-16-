@@ -354,6 +354,37 @@ test('product information status searches each condition independently and allow
   assert.deepEqual(Array.from(exported[5]),[7]);
   assert.match(html,/aria-label="등록된 품목정보"><thead><tr>[\s\S]*?<th>적정재고<\/th><th>관리<\/th><\/tr>/);
 });
+test('product delete is blocked after ordering and removes unordered products after confirmation',async()=>{
+  const elements=new Map(),confirmations=[],alerts=[],calls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',textContent:'',replaceChildren(){},append(){}});
+    return elements.get(id);
+  };
+  const context=vm.createContext({
+    document:{getElementById:element,createElement:()=>({value:'',textContent:'',append(){}})},
+    window:{confirm:message=>{confirmations.push(message);return context.confirmResult;},alert:message=>alerts.push(message)},calls
+  });
+  vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`items=[{id:'p1',product_code:'SKU-1',product_name:'부품'},{id:'p2',product_code:'SKU-2',product_name:'가방'}];
+    confirmResult=false;usedCount=1;currentUser={id:'u'};renderProductInfoItems=()=>{};renderProductInfoStatus=()=>{};
+    client={from:()=>({select:()=>({eq:async()=>({count:usedCount,error:null})})}),
+      rpc:async(name,args)=>(calls.push([name,args]),{data:{id:args.p_product_id},error:null})};`,context);
+  await vm.runInContext(`deleteProductInfo('p1')`,context);
+  assert.equal(alerts[0],'해당 품목은 삭제할 수 없으니 이후 단계에서 처리된 내용을 삭제 하여 주시기 바랍니다.');
+  assert.equal(confirmations.length,0);assert.equal(calls.length,0);
+  vm.runInContext('usedCount=0',context);
+  await vm.runInContext(`deleteProductInfo('p1')`,context);
+  assert.equal(confirmations.length,1);assert.equal(calls.length,0,'declining confirmation keeps the product');
+  vm.runInContext('confirmResult=true',context);
+  await vm.runInContext(`deleteProductInfo('p1')`,context);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)),[['delete_stock_product',{p_product_id:'p1'}]]);
+  assert.deepEqual(Array.from(vm.runInContext('items.map(item=>item.id)',context)),['p2']);
+  const html=readFileSync('inventory.html','utf8'),sql=readFileSync('supabase/delete-stock-product.sql','utf8');
+  assert.match(readFileSync('inventory-app.js','utf8'),/data-product-info-delete-id|productInfoDeleteId/);
+  assert.match(sql,/purchase_order_lines where product_id=p_product_id/);
+  assert.match(sql,/grant execute on function public\.delete_stock_product\(uuid\) to authenticated/);
+  assert.match(html,/<th>관리<\/th>/);
+});
 test('product edits require confirmation, are blocked after ordering and stage through drafts otherwise',async()=>{
   const elements=new Map(),confirmations=[],alerts=[],calls=[];
   const element=id=>{

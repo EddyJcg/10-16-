@@ -514,6 +514,21 @@ test('sales orders filter inclusively by date, type and completion, and summariz
   assert.equal(salesOrderStatus({sales_progress_status:'중단',sales_status:'매출미완료'}),'중단');
 });
 
+test('매출현황 조회 날짜 조건과 금액 요약은 출고일자를 기준으로 한다',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  assert.match(html,/<label for="sales-query-start-date">매출일 시작<\/label>/);
+  assert.match(html,/<label for="sales-query-end-date">매출일 종료<\/label>/);
+  const orders=[
+    {order_date:'2026-09-01',shipped_date:'2026-10-01',order_number:'SO-1',sales_status:'매출완료',amount:10},
+    {order_date:'2026-10-02',shipped_date:'2026-10-02',order_number:'SO-2',sales_status:'매출미완료',amount:20},
+    {order_date:'2026-10-03',shipped_date:null,order_number:'SO-3',sales_status:'매출미완료',amount:30}
+  ];
+  const filters={startDate:'2026-10-01',endDate:'2026-10-02',dateField:'shipped_date'};
+  assert.deepEqual(filterSalesOrders(orders,filters).map(order=>order.order_number),['SO-1','SO-2']);
+  assert.deepEqual(summarizeSalesOrders(orders,filters),{total:30,completed:10,outstanding:20});
+  assert.deepEqual(filterSalesOrders(orders,{startDate:'2026-10-01',endDate:'2026-10-02'}).map(order=>order.order_number),['SO-2']);
+});
+
 test('issue sales-order selector lists in-progress orders only and selects the linked product',()=>{
   const fields={
     'issue-sales-order':{

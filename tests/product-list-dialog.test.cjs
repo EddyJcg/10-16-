@@ -126,7 +126,7 @@ test('all requested status and inventory dialogs offer Excel downloads using vis
     ['export-movement-list','exportMovementListExcel']
   ])assert.match(script,new RegExp(`\\$\\('${id}'\\)\\.addEventListener\\('click',${handler}\\)`),id);
   assert.match(script,/view==='query'\?appliedSalesQueryFilters:appliedSalesStatusFilters/);
-  assert.match(script,/filterSalesOrders\(salesOrders,filters\)/);
+  assert.match(script,/filterSalesOrders\(salesOrders,\{\.\.\.filters,dateField:view==='query'\?'shipped_date':'order_date'\}\)/);
   assert.match(script,/currentStockRows\(items\)/);
   assert.match(script,/filterInventoryItems\(items\.filter\(stockLedgerManaged\),\{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds\}\)/);
   assert.match(script,/function exportProductInfoStatusExcel\(\)[\s\S]*?filteredProductInfoStatusItems\(\)/);

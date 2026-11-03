@@ -1973,7 +1973,7 @@ function openPrintSettings(target) {
   $('print-settings-dialog').showModal();
 }
 function printInventoryList(target) {
-  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','long-stock':'long-stock-dialog','movement-list':'movement-list-dialog','sales-status':'sales-status-dialog','sales-register':'sales-register-dialog'};
+  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','long-stock':'long-stock-dialog','movement-list':'movement-list-dialog','sales-status':'sales-status-dialog'};
   if(target in targetDialogs&&!$(targetDialogs[target]).open)return;
   activePrintTarget=target;
   applyProductListPrintSettings();
@@ -1999,7 +1999,6 @@ function applyProductListPrintSettings() {
     'long-stock':'#long-stock-dialog table',
     'sales-balance':'#sales-balance table',
     'sales-status':'#sales-status-dialog table',
-    'sales-register':'#sales-register-dialog table',
     'movement-list':'#movement-list-dialog .product-list-table table'
   };
   let style=document.getElementById('product-list-print-page-style');
@@ -2231,15 +2230,6 @@ function exportSalesStatusExcel(){
     Number(order.amount||0),String(order.due_date||'').slice(0,10),order.delivery_method,order.address,order.notes
   ]),[0,11,12,13],'내보낼 수주 내역이 없습니다.');
 }
-function exportSalesRegisterExcel(){
-  const headers=['일련번호','수주일자','수주번호','수주형태','거래처','연락처','출고일자','매출 상태','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'];
-  return downloadDataWorkbook('export-sales-register','매출등록','매출 등록',headers,salesRegisterVisibleOrders.map(order=>[
-    Number(order.sequence_id),String(order.order_date||'').slice(0,10),order.order_number,order.order_type,order.vendor_name||'',
-    order.vendor_contact||'',String(order.shipped_date||'').slice(0,10),salesOrderStatus(order),order.product_name,order.specification,
-    order.unit,Number(order.quantity||0),Number(order.unit_price||0),Number(order.amount||0),String(order.due_date||'').slice(0,10),
-    order.delivery_method,order.address,order.notes
-  ]),[0,11,12,13],'내보낼 매출 등록 내역이 없습니다.');
-}
 async function exportExcel() {
   if(exporting || !currentUser) return;
   if(!items.length){notify('내보낼 품목이 없습니다.');return;}
@@ -2341,7 +2331,6 @@ async function startApp(){
     if(button)editSalesOrderFromStatus(button.dataset.salesOrderId);
   });
   $('export-sales-status').addEventListener('click',exportSalesStatusExcel);
-  $('export-sales-register').addEventListener('click',exportSalesRegisterExcel);
   $('apply-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch());
   $('clear-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch(true));
   ['sales_quantity','sales_unit_price'].forEach(id=>$(id).addEventListener('input',updateSalesAmount));

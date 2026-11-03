@@ -105,15 +105,20 @@ test('sales register menu uses a dedicated search dialog and binds confirmation 
   const app=await boot('inventory-app.js');
   assert.equal(app.element('sales-register-button').handlers.click.name,'showSalesRegister');
   for(const id of ['close-sales-register','search-sales-register','close-sales-register-confirm',
-    'cancel-sales-register-confirm','complete-sales-register-confirm','export-sales-register'])
+    'cancel-sales-register-confirm','complete-sales-register-confirm'])
     assert.equal(typeof app.element(id).handlers.click,'function',id);
+  assert.equal(app.element('export-sales-register').handlers.click,undefined);
+  const html=readFileSync('inventory.html','utf8');
+  const dialog=html.match(/<dialog id="sales-register-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
+  assert.ok(dialog);
+  assert.doesNotMatch(dialog,/export-sales-register|data-print(?:-settings)?="sales-register"/);
   assert.equal(typeof app.element('sales-register-query').handlers.keydown,'function');
   assert.equal(typeof app.element('sales-register-items').handlers.click,'function');
 });
 
 test('sales and inventory lists bind their Excel download buttons',async()=>{
   const app=await boot('inventory-app.js');
-  for(const id of ['export-sales-status','export-sales-register','export-current-stock','export-product-list','export-movement-list'])
+  for(const id of ['export-sales-status','export-current-stock','export-product-list','export-movement-list'])
     assert.equal(typeof app.element(id).handlers.click,'function',id);
 });
 

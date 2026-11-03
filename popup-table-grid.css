@@ -1,0 +1,8 @@
+dialog table{border-collapse:collapse}
+dialog table thead th{background:#eceef1!important;border:1px solid #d3d8dd!important;color:#3a4147;text-align:center;font-weight:600}
+dialog table tbody td{border:1px solid #dfe3e7}
+dialog table [data-grid-serial],dialog table .grid-blank-serial{background:#eceef1;color:#4b535a;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+dialog table tbody tr[data-grid-blank] td{height:38px;background:#f1f2f4;color:#4b535a}
+dialog table tbody tr[data-grid-blank] td.grid-blank-serial{background:#eceef1}
+dialog table tbody tr.grid-empty-hidden{display:none}
+@media print{dialog table tbody tr[data-grid-blank]{display:none}}

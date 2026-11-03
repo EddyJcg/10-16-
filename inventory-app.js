@@ -871,7 +871,8 @@ async function showSalesStatus(view='status'){
   const emptyFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''};
   if(view==='query')appliedSalesQueryFilters=emptyFilters;else appliedSalesStatusFilters=emptyFilters;
   $(`${prefix}-start-date`).value='';$(`${prefix}-end-date`).value='';
-  $(`${prefix}-type-filter`).value='';$(`${prefix}-filter`).value='';
+  $(`${prefix}-type-filter`).value='';
+  if(view!=='query')$(`${prefix}-filter`).value='';
   $(`${prefix}-order-query`).value='';
   $(`${prefix}-message`).textContent='';renderSalesStatus(view);$(dialog).showModal();
   await loadSalesOrders();
@@ -1000,13 +1001,13 @@ async function openMovementHistoryForEdit(){
 function applySalesStatusSearch(clear=false,view='status'){
   const prefix=salesStatusPrefix(view);
   const startDate=clear?'':$(`${prefix}-start-date`).value,endDate=clear?'':$(`${prefix}-end-date`).value;
-  const orderType=clear?'':$(`${prefix}-type-filter`).value,salesStatus=clear?'':$(`${prefix}-filter`).value;
+  const orderType=clear?'':$(`${prefix}-type-filter`).value,salesStatus=view==='query'||clear?'':$(`${prefix}-filter`).value;
   const query=clear?'':$(`${prefix}-order-query`).value.trim();
   if((startDate&&!validOrderDueDate(startDate))||(endDate&&!validOrderDueDate(endDate))){
     $(`${prefix}-message`).textContent='올바른 시작일과 종료일을 입력하세요.';return;
   }
   if(startDate&&endDate&&startDate>endDate){$(`${prefix}-message`).textContent='시작일은 종료일보다 늦을 수 없습니다.';return;}
-  if(clear){$(`${prefix}-start-date`).value='';$(`${prefix}-end-date`).value='';$(`${prefix}-type-filter`).value='';$(`${prefix}-filter`).value='';$(`${prefix}-order-query`).value='';}
+  if(clear){$(`${prefix}-start-date`).value='';$(`${prefix}-end-date`).value='';$(`${prefix}-type-filter`).value='';if(view!=='query')$(`${prefix}-filter`).value='';$(`${prefix}-order-query`).value='';}
   const filters={startDate,endDate,orderType,salesStatus,query};
   if(view==='query')appliedSalesQueryFilters=filters;else appliedSalesStatusFilters=filters;
   $(`${prefix}-message`).textContent='';renderSalesStatus(view);

@@ -64,6 +64,7 @@ test('매출현황 조회는 수주현황과 별도 창과 독립된 검색 조�
   assert.match(status,/<h2 id="sales-status-title">수주현황<\/h2>/);
   assert.match(query,/<h2 id="sales-query-title">매출현황<\/h2>/);
   assert.match(query,/id="sales-query-items"/);
+  assert.doesNotMatch(query,/sales-query-filter/);
   assert.match(app,/sales-status-query-button'\)\.addEventListener\('click',\(\)=>showSalesStatus\('query'\)\)/);
   assert.match(app,/appliedSalesQueryFilters=/);
   assert.match(app,/'sales-status-query':'sales-status-query-dialog'/);

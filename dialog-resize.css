@@ -47,14 +47,14 @@ dialog .vendor-query-toolbar .close{width:131.04px!important;min-width:131.04px}
 }
 .dialog-window-button:hover{background:#e8eee9!important;color:#294c3a}
 .dialog-window-button:active{background:#dce7df!important}
-.dialog-minimize-icon{width:10px;height:1px;background:currentColor;transform:scale(1.5)}
-.dialog-expand-icon{position:relative;display:block;box-sizing:border-box;width:14px;height:14px;border:2px solid currentColor}
+.dialog-minimize-icon{width:10px;height:1.3px;background:currentColor;transform:scale(1.5)}
+.dialog-expand-icon{position:relative;display:block;box-sizing:border-box;width:14px;height:14px;border:2.6px solid currentColor}
 .dialog-expand-icon::after{
   content:"";display:none;position:absolute;box-sizing:border-box;top:-4px;left:4px;width:14px;height:14px;
-  background:linear-gradient(currentColor,currentColor) 0 0/100% 2px no-repeat,
-    linear-gradient(currentColor,currentColor) 100% 0/2px 100% no-repeat,
-    linear-gradient(currentColor,currentColor) 0 0/2px 4px no-repeat,
-    linear-gradient(currentColor,currentColor) 100% 100%/4px 2px no-repeat
+  background:linear-gradient(currentColor,currentColor) 0 0/100% 2.6px no-repeat,
+    linear-gradient(currentColor,currentColor) 100% 0/2.6px 100% no-repeat,
+    linear-gradient(currentColor,currentColor) 0 0/2.6px 4px no-repeat,
+    linear-gradient(currentColor,currentColor) 100% 100%/4px 2.6px no-repeat
 }
 .dialog-expanded .dialog-expand-icon{color:#929291}
 .dialog-expanded .dialog-expand-icon::after{display:block}

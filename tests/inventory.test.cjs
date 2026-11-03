@@ -348,12 +348,12 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(resizeCss,/dialog \.close\{[\s\S]*?display:inline-flex;align-items:center;justify-content:center;text-align:center;[\s\S]*?letter-spacing:10px;text-indent:10px;[\s\S]*?width:62\.4px!important;min-width:62\.4px/);
   assert.match(resizeCss,/dialog \.dialog-header \.close\{[\s\S]*?width:calc\(3\.9em \+ 69\.81px\)!important;min-width:calc\(3\.9em \+ 69\.81px\);[\s\S]*?padding-left:0;padding-right:0/);
   assert.match(resizeCss,/dialog \.vendor-query-toolbar \.close\{width:131\.04px!important;min-width:131\.04px\}/);
-  assert.match(resizeCss,/\.dialog-minimize-icon\{[^}]*transform:scale\(1\.5\)/);
-  assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*width:14px;height:14px;border:2px solid currentColor/);
-  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4px;left:4px;width:14px;height:14px;[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 100%\/4px 2px no-repeat/);
+  assert.match(resizeCss,/\.dialog-minimize-icon\{[^}]*height:1\.3px;background:currentColor;transform:scale\(1\.5\)/);
+  assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*width:14px;height:14px;border:2\.6px solid currentColor/);
+  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4px;left:4px;width:14px;height:14px;[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 100%\/4px 2\.6px no-repeat/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon\{color:#929291\}/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon::after\{display:block\}/);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*table-headers-sampled-gray-10pct/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*window-icon-stroke-130/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

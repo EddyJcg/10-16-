@@ -349,10 +349,11 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(resizeCss,/dialog \.dialog-header \.close\{[\s\S]*?width:calc\(3\.9em \+ 69\.81px\)!important;min-width:calc\(3\.9em \+ 69\.81px\);[\s\S]*?padding-left:0;padding-right:0/);
   assert.match(resizeCss,/dialog \.vendor-query-toolbar \.close\{width:131\.04px!important;min-width:131\.04px\}/);
   assert.match(resizeCss,/\.dialog-minimize-icon\{[^}]*transform:scale\(1\.5\)/);
-  assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*width:12px;height:12px;border:2px solid currentColor/);
-  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-3px;left:3px;width:12px;height:12px;[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 100%\/25% 2px no-repeat/);
+  assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*width:14px;height:14px;border:2px solid currentColor/);
+  assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4px;left:4px;width:14px;height:14px;[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 100%\/4px 2px no-repeat/);
+  assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon\{color:#929291\}/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon::after\{display:block\}/);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-expanded-icon-crisp-overlap/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-expanded-icon-solid-lines/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

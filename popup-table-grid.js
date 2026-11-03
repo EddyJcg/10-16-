@@ -34,7 +34,10 @@
   }
 
   const MIN_WIDTH=30;
+  const STORAGE_KEY='popup-table-column-widths';
   const savedWidths=new Map();
+  try{Object.entries(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')).forEach(([k,v])=>{if(v>0)savedWidths.set(k,v);});}catch(e){}
+  function persistWidths(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(Object.fromEntries(savedWidths)));}catch(e){}}
   const labelOf=th=>th.textContent.trim().toLowerCase();
   function widthKey(table,th){
     const dialog=table.closest('dialog');
@@ -172,6 +175,7 @@
     const {table,handle}=resizing;
     handle.classList.remove('is-active');
     [...headerRow(table).cells].forEach(th=>{const w=parseFloat(th.style.width);if(w)savedWidths.set(widthKey(table,th),w);});
+    persistWidths();
     resizing=null;
   };
   window.addEventListener('pointerup',finishResize,true);

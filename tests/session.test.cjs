@@ -104,7 +104,7 @@ test('sales status menu opens its list and binds searches and status updates',as
 test('sales register menu uses a dedicated search dialog and binds confirmation actions',async()=>{
   const app=await boot('inventory-app.js');
   assert.equal(app.element('sales-register-button').handlers.click.name,'showSalesRegister');
-  for(const id of ['close-sales-register','search-sales-register','close-sales-register-confirm',
+  for(const id of ['close-sales-register','search-sales-register','add-sales-register','bulk-sales-register','close-sales-register-confirm',
     'cancel-sales-register-confirm','complete-sales-register-confirm'])
     assert.equal(typeof app.element(id).handlers.click,'function',id);
   assert.equal(app.element('export-sales-register').handlers.click,undefined);

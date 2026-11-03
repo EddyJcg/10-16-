@@ -118,6 +118,7 @@ test('sales registration has its own search dialog, matching order columns and c
   assert.equal(registerHeader,statusHeader);
   assert.match(registerDialog,/id="sales-register-query" type="search"/);
   assert.match(registerDialog,/id="search-sales-register"[^>]*>검색<\/button>/);
+  assert.match(registerDialog,/<button id="add-sales-register"[^>]*>매출 등록 추가<\/button><button id="bulk-sales-register"[^>]*>일괄 매출등록<\/button>/);
   assert.doesNotMatch(registerDialog,/sales-status-start-date|sales-status-total/);
   assert.match(html,/<dialog id="sales-register-confirm-dialog"[\s\S]*?매출등록을 하시겠습니까\?[\s\S]*?id="cancel-sales-register-confirm"[^>]*>취소<\/button>[\s\S]*?id="complete-sales-register-confirm"[^>]*>완료<\/button>/);
   assert.match(app,/\$\('sales-register-button'\)\.addEventListener\('click',showSalesRegister\)/);
@@ -197,6 +198,60 @@ test('sales registration confirmation completes the chosen order and keeps the r
   assert.equal(vm.runInContext("salesOrders[0].sales_progress_status",context),'완료');
   assert.equal(element('sales-register-confirm-dialog').open,false);
   assert.equal(element('sales-register-dialog').open,true);
+  vm.runInContext("openSalesRegisterConfirmation('line-1');completeSalesRegistration()",context);
+  assert.equal(calls.length,1,'an already completed order cannot be registered twice');
+});
+
+test('sales registration add button clears conditions and restores the search input',()=>{
+  const elements=new Map(),element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'old search',textContent:'',disabled:false,focused:false,focus(){this.focused=true;},replaceChildren(){}});
+    return elements.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:element}});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext("salesRegisterQuery='old search';salesRegisterSearched=true;salesRegisterVisibleOrders=[{id:'one'}];renderSalesRegister=()=>{};resetSalesRegisterSearch()",context);
+  assert.equal(vm.runInContext('salesRegisterQuery',context),'');
+  assert.equal(vm.runInContext('salesRegisterSearched',context),false);
+  assert.equal(vm.runInContext('salesRegisterVisibleOrders.length',context),0);
+  assert.equal(element('sales-register-query').value,'');
+  assert.equal(element('sales-register-query').focused,true);
+});
+
+test('bulk sales registration processes only unregistered eligible search results once',async()=>{
+  const elements=new Map(),calls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
+    return elements.get(id);
+  };
+  const testClient={rpc:async(name,args)=>{
+    calls.push([name,args.p_order_id]);
+    return {data:{id:args.p_order_id,order_number:args.p_order_id,product_name:'품목',sales_progress_status:'완료',sales_status:'매출완료'},error:null};
+  }};
+  const context=vm.createContext({
+    document:{getElementById:element},testClient,salesOrderStatus,number:value=>String(value)
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  context.renderSalesOrders=()=>{};
+  context.renderSalesStatus=()=>{};
+  context.renderSalesRegister=()=>{};
+  context.renderSalesBalance=()=>{};
+  context.updateIssueSalesOrders=()=>{};
+  vm.runInContext(`currentUser={id:'user'};client=testClient;
+    salesOrders=[
+      {id:'eligible-1',order_number:'SO-1',product_name:'품목1',quantity:1,shipped_quantity:0,sales_progress_status:'진행'},
+      {id:'eligible-2',order_number:'SO-2',product_name:'품목2',quantity:1,shipped_quantity:0,sales_progress_status:'진행'},
+      {id:'completed',order_number:'SO-3',product_name:'품목3',quantity:1,shipped_quantity:1,sales_progress_status:'완료'},
+      {id:'partial',order_number:'SO-4',product_name:'품목4',quantity:2,shipped_quantity:1,sales_progress_status:'진행'}
+    ];
+    salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
+  assert.equal(element('sales-register-confirm-message').textContent,'2건의 매출등록을 진행하시겠습니까?');
+  await vm.runInContext('completeSalesRegistration()',context);
+  assert.equal(calls.length,2);
+  assert.equal(calls[0][1],'eligible-1');
+  assert.equal(calls[1][1],'eligible-2');
+  assert.equal(vm.runInContext("salesOrders.filter(order=>order.sales_progress_status==='완료').length",context),3);
+  await vm.runInContext('completeSalesRegistration()',context);
+  assert.equal(calls.length,2,'a repeated bulk action does not call the database again');
 });
 
 test('sales item completion checkbox saves the selected order status',async()=>{

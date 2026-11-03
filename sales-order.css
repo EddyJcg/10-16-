@@ -18,6 +18,7 @@
 .sales-status-order-search button{min-width:100px;margin-bottom:0}
 .sales-register-dialog{width:min(1500px,96vw)!important}
 .sales-register-dialog .dialog-body{max-height:calc(90vh - 160px)}
+.sales-register-dialog .sales-register-actions{gap:8px}
 .sales-register-action{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .sales-register-icon{display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:50%;background:#e8f5ec;color:#23654e;font-size:13px;font-weight:750}
 .sales-register-confirm-dialog{width:min(460px,calc(100% - 32px))}

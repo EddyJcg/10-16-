@@ -13,6 +13,10 @@
     dialog.style.left=offset+'px';
     dialog.style.top=offset+'px';
     dialog.style.zIndex=String(++stack);
+    if(typeof dialog.getBoundingClientRect==='function'&&typeof innerWidth==='number'){
+      const rect=dialog.getBoundingClientRect();
+      if(offset+rect.width>innerWidth||offset+rect.height>innerHeight){dialog.style.left='24px';dialog.style.top='24px';}
+    }
     keepInViewport(dialog);
     watchSize(dialog);
   }

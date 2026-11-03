@@ -142,8 +142,8 @@ function installDialogInteractions(){
     const move=event=>{
       if(event.pointerId!==activePointerId||!interaction)return;
       if(interaction.type==='drag'){
-        const left=Math.max(0,Math.min(window.innerWidth-80,event.clientX-interaction.offsetX));
-        const top=Math.max(0,Math.min(window.innerHeight-header.offsetHeight,event.clientY-interaction.offsetY));
+        const left=Math.max(0,Math.min(window.innerWidth-interaction.width,event.clientX-interaction.offsetX));
+        const top=Math.max(0,Math.min(window.innerHeight-interaction.height,event.clientY-interaction.offsetY));
         dialog.style.left=left+'px';dialog.style.top=top+'px';
         return;
       }
@@ -162,7 +162,7 @@ function installDialogInteractions(){
       event.preventDefault();
       activePointerId=event.pointerId;const rect=dialog.getBoundingClientRect();
       pinToRect(rect);
-      if(type==='drag')interaction={type,offsetX:event.clientX-rect.left,offsetY:event.clientY-rect.top};
+      if(type==='drag')interaction={type,width:rect.width||0,height:rect.height||0,offsetX:event.clientX-rect.left,offsetY:event.clientY-rect.top};
       else{
         dialog.style.setProperty('width',rect.width+'px','important');
         dialog.style.setProperty('height',rect.height+'px','important');

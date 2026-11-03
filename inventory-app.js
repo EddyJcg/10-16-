@@ -1876,6 +1876,14 @@ function addProductInfoDraft(){
   resetProductInfoForm();renderProductInfoItems();
   $('product-info-status').textContent='품목정보를 가등록했습니다. 저장할 행을 체크한 뒤 일괄 저장하세요.';
 }
+function deleteProductInfoDrafts(){
+  if(busy)return;
+  const selected=productInfoDrafts.filter(draft=>draft.checked!==false);
+  if(!selected.length){$('product-info-status').textContent='삭제할 가등록 품목을 체크하세요.';return;}
+  if(!window.confirm(`체크한 가등록 품목 ${selected.length}건을 삭제하시겠습니까?`))return;
+  productInfoDrafts=productInfoDrafts.filter(draft=>draft.checked===false);
+  renderProductInfoItems();$('product-info-status').textContent=`가등록 품목 ${selected.length}건을 삭제했습니다.`;
+}
 async function saveProductInfoDrafts(){
   const selected=productInfoDrafts.filter(draft=>draft.checked!==false);
   if(!selected.length){
@@ -2526,7 +2534,7 @@ async function startApp(){
   ['sales_quantity','sales_unit_price'].forEach(id=>$(id).addEventListener('input',updateSalesAmount));
   const closeProductInfo=()=>{productInfoDrafts=[];resetProductInfoForm();renderProductInfoItems();$('product-info-dialog').close();};
   $('close-product-info').addEventListener('click',closeProductInfo);
-  $('cancel-product-info').addEventListener('click',closeProductInfo);
+  $('delete-product-info-drafts').addEventListener('click',deleteProductInfoDrafts);
   $('import-product-info-button').addEventListener('click',openProductInfoFilePicker);
   $('add-product-info-draft').addEventListener('click',addProductInfoDraft);
   $('product-info-import-file').addEventListener('change',importProductInfoFile);

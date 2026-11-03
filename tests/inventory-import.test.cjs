@@ -154,12 +154,12 @@ test('product import opens the native XLSX picker directly without an intermedia
   const html=fs.readFileSync('inventory.html','utf8');
   const dialog=html.match(/<dialog id="product-info-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
   assert.match(dialog,/<div class="dialog-header">[\s\S]*?<button type="button" class="close" id="close-product-info"/);
-  assert.match(dialog,/<div class="dialog-footer">[\s\S]*?<button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="cancel-product-info" class="secondary">취소<\/button><button id="save-product-info" class="primary">일괄 저장<\/button>/);
+  assert.match(dialog,/<div class="dialog-footer">[\s\S]*?<button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="delete-product-info-drafts" class="secondary">일괄 삭제<\/button><button id="save-product-info" class="primary">일괄 저장<\/button>/);
   assert.match(dialog,/id="product-info-import-file" type="file" accept="[^"]*\.xlsx/);
   assert.doesNotMatch(html,/product-info-import-dialog|product-import-dialog/);
   const script=fs.readFileSync('inventory-app.js','utf8');
   assert.match(script,/function openProductInfoFilePicker\(\)/);
-  assert.match(script,/\$\('close-product-info'\)\.addEventListener\('click',closeProductInfo\);\s*\$\('cancel-product-info'\)\.addEventListener\('click',closeProductInfo\)/);
+  assert.match(script,/\$\('close-product-info'\)\.addEventListener\('click',closeProductInfo\);\s*\$\('delete-product-info-drafts'\)\.addEventListener\('click',deleteProductInfoDrafts\)/);
   assert.match(html,/src="inventory-import\.js"><\/script>/);
 });
 
@@ -216,6 +216,17 @@ test('opening a selected product workbook adds checked draft rows and batch save
   assert.equal(calls.filter(call=>call[0]==='register_stock_product').length,1);
   assert.match(element('product-info-status').textContent,/체크/);
 });
+test('bulk delete removes only checked draft rows after confirmation',()=>{
+  const nodes=new Map(),confirms=[];
+  const element=id=>(nodes.has(id)||nodes.set(id,{textContent:''}),nodes.get(id));
+  const context=vm.createContext({document:{getElementById:element},window:{confirm:m=>(confirms.push(m),true)}});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`renderProductInfoItems=()=>{};busy=false;productInfoDrafts=[{product_code:'A',checked:true},{product_code:'B',checked:false},{product_code:'C'}]`,context);
+  vm.runInContext('deleteProductInfoDrafts()',context);
+  assert.equal(vm.runInContext('productInfoDrafts.map(d=>d.product_code).join()',context),'B');
+  assert.equal(confirms.length,1);
+});
+
 test('invalid product-import rows show a warning and make no registration calls',async()=>{
   const nodes=new Map(),alerts=[],calls=[];
   const element=id=>{

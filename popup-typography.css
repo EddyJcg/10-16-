@@ -5,7 +5,7 @@ dialog *{
 dialog .dialog-header h2,
 dialog .dialog-header h2 *,
 dialog .vendor-list-title{
-  font-size:36px!important;
+  font-size:32px!important;
 }
 dialog button,
 dialog button *{

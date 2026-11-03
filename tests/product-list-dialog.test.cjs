@@ -80,12 +80,12 @@ test('all popup buttons use 18px text and fit their button boxes',()=>{
   assert.match(style,/dialog \.dialog-header \.close\{padding:8px 12px\}/);
 });
 
-test('all popup text uses 18px except 36px titles',()=>{
+test('all popup text uses 18px except 32px titles',()=>{
   const html=readFileSync('inventory.html','utf8');
   const style=readFileSync('popup-typography.css','utf8');
-  assert.ok(html.indexOf('href="/popup-typography.css?v=20261103-vendor-list-title-36"')>html.indexOf('href="/popup-button.css'));
+  assert.ok(html.indexOf('href="/popup-typography.css?v=20261103-popup-title-32"')>html.indexOf('href="/popup-button.css'));
   assert.match(style,/dialog,\s*dialog \*\{\s*font-size:18px!important;\s*\}/);
-  assert.match(style,/dialog \.dialog-header h2,\s*dialog \.dialog-header h2 \*,\s*dialog \.vendor-list-title\{\s*font-size:36px!important;\s*\}/);
+  assert.match(style,/dialog \.dialog-header h2,\s*dialog \.dialog-header h2 \*,\s*dialog \.vendor-list-title\{\s*font-size:32px!important;\s*\}/);
   assert.match(style,/dialog button,\s*dialog button \*\{\s*font-size:18px!important;\s*\}/);
 });
 
@@ -456,9 +456,9 @@ test('table dialogs omit the shared header filter and retain draggable persisted
   assert.match(style,/th\[draggable="true"\]\{cursor:grab/);
 });
 
-test('vendor lookup dialog shows a 36px title above the toolbar',()=>{
+test('vendor lookup dialog shows a 32px title above the toolbar',()=>{
   const html=readFileSync('inventory.html','utf8'),style=readFileSync('vendor-management.css','utf8');
   assert.match(html,/<h2 id="vendor-list-title" class="vendor-list-title">거래처 조회<\/h2>\s*<div class="vendor-query-toolbar"/);
-  assert.match(readFileSync('popup-typography.css','utf8'),/dialog \.vendor-list-title\{\s*font-size:36px!important/);
-  assert.match(style,/#vendor-list-dialog \.vendor-list-title\{[^}]*font-size:36px[^}]*background:#41494e;color:#fff!important/);
+  assert.match(readFileSync('popup-typography.css','utf8'),/dialog \.vendor-list-title\{\s*font-size:32px!important/);
+  assert.match(style,/#vendor-list-dialog \.vendor-list-title\{[^}]*font-size:32px[^}]*background:#41494e;color:#fff!important/);
 });

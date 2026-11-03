@@ -2172,7 +2172,8 @@ async function revertReceipt(id){
     catch{$('movement-list-status').textContent+=' 목록 새로고침은 다시 시도해 주세요.';}
   }catch(error){
     if(generation!==authGeneration)return;
-    window.alert(/INSUFFICIENT_STOCK/.test(error?.message||'')?'처리할 수 없습니다.\n이 입고(기초) 수량이 이미 출고에 사용되었습니다.\n이후 프로세스에서 먼저 처리한 뒤 다시 시도하세요.':'입고 내역을 삭제하지 못했습니다. '+errorText(error));
+    const missing=/PGRST202|revert_stock_receipt/.test((error?.code||'')+(error?.message||''))&&!/INSUFFICIENT_STOCK/.test(error?.message||'');
+    window.alert(/INSUFFICIENT_STOCK/.test(error?.message||'')?'처리할 수 없습니다.\n이 입고(기초) 수량이 이미 출고에 사용되었습니다.\n이후 프로세스에서 먼저 처리한 뒤 다시 시도하세요.':missing?'입고 삭제 기능이 DB에 적용되지 않았습니다. Supabase SQL Editor에서 supabase/revert-stock-receipt.sql을 실행한 뒤 다시 시도하세요.':'입고 내역을 삭제하지 못했습니다. '+errorText(error));
   }finally{busy=false;}
 }
 async function showMovementList(kind='') {

@@ -394,6 +394,9 @@ test('duplicate product codes and non-empty specifications are detected case-ins
   assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'sku-1',specification:''})`,context),'품번');
   assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'SKU-2',specification:' spec-a '})`,context),'규격');
   assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'SKU-2',specification:''})`,context),'');
+  vm.runInContext(`items.push({id:'two',product_code:'SKU-9',product_name:'가방',specification:''})`,context);
+  assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'SKU-3',product_name:' 가방 ',specification:''})`,context),'품명·규격');
+  assert.match(readFileSync('inventory.html','utf8'),/product-info-draft-actions"><button type="button" id="add-product-info-draft" class="secondary">품목정보 가등록/);
 });
 test('duplicate product codes and specifications show blocking warnings before registration',async()=>{
   const values={
@@ -428,7 +431,7 @@ test('table dialogs omit the shared header filter and retain draggable persisted
   assert.doesNotMatch(style,/dialog-header-has-filter|dialog-table-filter/);
   assert.match(style,/\.dialog-header-actions\{display:flex;align-items:center;gap:8px;flex:0 0 auto\}/);
   assert.match(style,/\.intro,\.toolbar,\.session,\.dialog-header,\.dialog-footer\{[^}]*justify-content:space-between/);
-  assert.match(html,/<div class="dialog-footer"><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소<\/button><button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="add-product-info-draft" class="secondary">품목 추가<\/button><button type="button" id="cancel-product-info" class="secondary">취소<\/button><button id="save-product-info" class="primary">일괄 저장<\/button><\/div>/);
+  assert.match(html,/<div class="dialog-footer"><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소<\/button><button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="cancel-product-info" class="secondary">취소<\/button><button id="save-product-info" class="primary">일괄 저장<\/button><\/div>/);
   assert.match(html,/<div class="dialog-footer"><button type="button" class="secondary" id="import-receipt-button" hidden>Excel 업로드<\/button><button id="save-movement" class="primary">저장<\/button><\/div>/);
   assert.match(script,/table\.addEventListener\('dragstart'/);
   assert.match(script,/table\.addEventListener\('drop'/);

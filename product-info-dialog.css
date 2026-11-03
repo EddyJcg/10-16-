@@ -3,3 +3,6 @@
 #product-info-dialog .dialog-body select,
 #product-info-dialog .dialog-body textarea{font-size:20.52864px}
 #product-info-dialog table{font-size:17.1072px}
+
+#product-info-dialog .product-info-draft-actions{display:flex;justify-content:flex-end;margin:8px 0}
+#product-info-dialog #product-info-items input[type=checkbox]{width:auto;margin-right:6px}

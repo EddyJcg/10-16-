@@ -62,7 +62,7 @@ test('every popup has a text close button in its header without a duplicate foot
     assert.match(header,/<button\b[^>]*class="close"[^>]*>닫기<\/button>/);
     assert.doesNotMatch(header,/>×<\/button>/);
   }
-  assert.doesNotMatch(html,/id="(?:cancel-sales-order|cancel-dialog)"/);
+  assert.doesNotMatch(html,/id="cancel-dialog"/);
   assert.match(readFileSync('inventory-app.js','utf8'),/\$\('close-receipt-details'\)\.addEventListener\('click'/);
 });
 

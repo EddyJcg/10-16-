@@ -10,6 +10,25 @@ test('sales entry provides an editable order date before the order number',()=>{
   assert.ok(form.indexOf('id="sales_order_date"')<form.indexOf('id="sales_order_number"'));
 });
 
+test('sales order cancel button sits beside save and clears the draft before closing',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  const footer=html.match(/<div class="dialog-footer sales-order-save-actions">([\s\S]*?)<\/div>/)[1];
+  assert.ok(footer.indexOf('id="cancel-sales-order"')<footer.indexOf('id="save-sales-order"'));
+  const elements=new Map(),calls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',textContent:'',reset(){calls.push('reset');},close(){calls.push('close');}});
+    return elements.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:element},todayDate:()=>'2026-01-01'});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext("renderSalesDraftLines=()=>{};salesDraftLines=[{product_name:'임시 품목'}];editingSalesOrderId='order-1';cancelSalesOrder()",context);
+  assert.deepEqual(calls,['reset','close']);
+  assert.equal(vm.runInContext('salesDraftLines.length',context),0);
+  assert.equal(vm.runInContext('editingSalesOrderId',context),'');
+  assert.equal(element('sales-order-title').textContent,'수주 입력');
+  assert.equal(element('save-sales-order').textContent,'수주 저장');
+});
+
 test('sales status places print controls in the header and Excel export in the footer',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const dialog=html.match(/<dialog id="sales-status-dialog"[\s\S]*?<\/dialog>/)[0];
@@ -262,6 +281,7 @@ test('sales order dialog is connected to the authenticated database save flow',(
   assert.match(script,/p_lines:salesDraftLines\.map/);
   assert.match(script,/client\.rpc\('set_sales_order_status'/);
   assert.match(script,/sales-order-form'\)\.addEventListener\('submit',saveSalesOrder\)/);
+  assert.match(script,/\$\('cancel-sales-order'\)\.addEventListener\('click',cancelSalesOrder\)/);
   assert.match(sql,/create table if not exists public\.sales_orders/);
   assert.match(sql,/create or replace function public\.register_sales_order/);
   assert.match(sql,/create or replace function public\.set_sales_order_status/);

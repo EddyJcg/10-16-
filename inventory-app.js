@@ -867,6 +867,10 @@ function resetSalesOrderForm(){
   salesDraftLines=[];renderSalesDraftLines();
   $('sales-order-title').textContent='수주 입력';$('save-sales-order').textContent='수주 저장';
 }
+function cancelSalesOrder(){
+  if(salesOrderSaving)return;
+  resetSalesOrderForm();$('sales-order-dialog').close();
+}
 function editSalesOrder(id){
   const order=salesOrders.find(row=>row.id===id);if(!order)return;
   const groupId=order.order_group_id||order.id;
@@ -2189,6 +2193,7 @@ async function startApp(){
   $('sales-register-button').addEventListener('click',showSalesStatus);
   $('sales-status-query-button').addEventListener('click',showSalesStatus);
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
+  $('cancel-sales-order').addEventListener('click',cancelSalesOrder);
   $('sales-order-form').addEventListener('submit',saveSalesOrder);
   $('add-sales-line-footer').addEventListener('click',addSalesOrderLine);
   $('sales-order-draft-items').addEventListener('click',event=>{

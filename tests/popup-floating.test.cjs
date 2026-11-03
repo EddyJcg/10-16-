@@ -46,3 +46,13 @@ test('later popups cascade from top-left to bottom-right and stack above earlier
   assert.ok(parseInt(b.style.top)>parseInt(a.style.top));
   assert.ok(Number(b.style.zIndex)>Number(a.style.zIndex));
 });
+
+test('floating popups are clamped inside the viewport',()=>{
+  const js=fs.readFileSync('popup-floating.js','utf8');
+  const dialog={id:'x',open:false,style:{},classList:{add(){},contains:()=>false},show(){this.open=true;},getBoundingClientRect:()=>({left:900,top:700,width:400,height:300})};
+  const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
+  new Function('HTMLDialogElement','document','innerWidth','innerHeight',js)(Ctor,{addEventListener(){},querySelectorAll:()=>[]},1000,800);
+  proto.showModal.call(dialog);
+  assert.equal(dialog.style.left,'600px');
+  assert.equal(dialog.style.top,'500px');
+});

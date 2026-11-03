@@ -13,6 +13,16 @@
     dialog.style.left=offset+'px';
     dialog.style.top=offset+'px';
     dialog.style.zIndex=String(++stack);
+    keepInViewport(dialog);
+  }
+  // 팝업이 화면 밖으로 나가지 않도록 위치를 보정합니다.
+  function keepInViewport(dialog){
+    if(typeof dialog.getBoundingClientRect!=='function'||typeof innerWidth!=='number')return;
+    const rect=dialog.getBoundingClientRect();
+    const left=Math.max(0,Math.min(rect.left,innerWidth-rect.width));
+    const top=Math.max(0,Math.min(rect.top,innerHeight-rect.height));
+    dialog.style.left=left+'px';
+    dialog.style.top=top+'px';
   }
   const nativeShowModal=HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal=function(){
@@ -23,4 +33,5 @@
     cascade(this);
   };
   document.addEventListener('animationend',event=>{if(event.target.classList)event.target.classList.remove('popup-flash');},true);
+  if(typeof addEventListener==='function')addEventListener('resize',()=>document.querySelectorAll('dialog.popup-floating[open]').forEach(keepInViewport));
 })();

@@ -2,3 +2,4 @@ dialog.popup-floating{z-index:4}
 dialog.popup-floating[open]:not([style*="left:"]){position:fixed;inset:0;margin:auto}
 @keyframes popup-flash{0%,100%{box-shadow:0 0 0 0 rgba(65,73,78,0)}25%,75%{box-shadow:0 0 0 6px #41494e;opacity:.55}50%{box-shadow:0 0 0 0 rgba(65,73,78,0);opacity:1}}
 dialog.popup-flash{animation:popup-flash .6s ease-in-out 2}
+dialog.popup-floating{max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}

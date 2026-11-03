@@ -690,15 +690,40 @@ function addPurchaseDraftLine(){
   updatePurchaseProductDetails();
   $('purchase-order-status').textContent='';renderPurchaseDraftLines();
 }
+const PURCHASE_SEARCH_IDS=['purchase-search-start-date','purchase-search-end-date','purchase-search-number','purchase-search-supplier','purchase-search-code','purchase-search-name','purchase-search-specification'];
+function purchaseOrderSearchValues(){
+  const text=id=>($(id)?.value||'').trim().toLocaleLowerCase('ko-KR');
+  return {start:$('purchase-search-start-date')?.value||'',end:$('purchase-search-end-date')?.value||'',
+    number:text('purchase-search-number'),supplier:text('purchase-search-supplier'),
+    code:text('purchase-search-code'),name:text('purchase-search-name'),specification:text('purchase-search-specification')};
+}
+function purchaseLineMatches(filter,order,item){
+  const has=(value,query)=>!query||String(value||'').toLocaleLowerCase('ko-KR').includes(query);
+  const date=String(order?.order_date||'').slice(0,10);
+  if(filter.start&&(!date||date<filter.start))return false;
+  if(filter.end&&(!date||date>filter.end))return false;
+  return has(order?.order_number,filter.number)&&has(order?.supplier,filter.supplier)
+    &&has(item?.product_code,filter.code)&&has(item?.product_name,filter.name)&&has(item?.specification,filter.specification);
+}
+function searchPurchaseOrders(){
+  const {start,end}=purchaseOrderSearchValues();
+  if(start&&end&&start>end){$('purchase-order-status').textContent='발주일 시작일이 마지막일보다 늦습니다. 기간을 확인하세요.';return;}
+  $('purchase-order-status').textContent='';renderPurchaseOrders();
+}
+function clearPurchaseOrderSearch(){
+  PURCHASE_SEARCH_IDS.forEach(id=>{if($(id))$(id).value='';});
+  $('purchase-order-status').textContent='';renderPurchaseOrders();
+}
 function renderPurchaseOrders(){
   const body=$('purchase-order-items'),ordersById=new Map(purchaseOrders.map(order=>[order.id,order]));
   const productsById=new Map(items.map(item=>[item.id,item]));
   body.replaceChildren();
-  const lines=[...purchaseOrderLines].sort((a,b)=>{
+  const filter=purchaseOrderSearchValues();
+  const lines=[...purchaseOrderLines].filter(line=>purchaseLineMatches(filter,ordersById.get(line.purchase_order_id),productsById.get(line.product_id))).sort((a,b)=>{
     const orderDiff=Number(ordersById.get(b.purchase_order_id)?.sequence_id||0)-Number(ordersById.get(a.purchase_order_id)?.sequence_id||0);
     return orderDiff||Number(a.line_number)-Number(b.line_number);
   });
-  if(!lines.length)emptyRow(body,14,'저장된 발주가 없습니다.');
+  if(!lines.length)emptyRow(body,14,purchaseOrderLines.length?'검색 결과가 없습니다.':'저장된 발주가 없습니다.');
   lines.forEach(line=>{
     const order=ordersById.get(line.purchase_order_id),item=productsById.get(line.product_id),remaining=Number(line.quantity)-Number(line.received_quantity);
     const row=document.createElement('tr');
@@ -740,7 +765,7 @@ async function showPurchaseOrders(mode='entry'){
   $('purchase-order-entry').hidden=isQuery;
   $('purchase-order-view').hidden=!isQuery;
   $('save-purchase-order').parentElement.hidden=isQuery;
-  resetPurchaseOrderForm();$('purchase-order-dialog').showModal();
+  resetPurchaseOrderForm();PURCHASE_SEARCH_IDS.forEach(id=>{if($(id))$(id).value='';});$('purchase-order-dialog').showModal();
   try{await loadPurchaseOrderVendors();}
   catch(error){if(generation===authGeneration)$('purchase-order-status').textContent=registeredVendorDirectoryErrorText(error);return;}
   try{await loadStock();populatePurchaseProductOptions();await loadPurchaseOrders();updatePurchaseOrderNumber();}
@@ -2592,6 +2617,9 @@ async function startApp(){
   $('export-product-list').addEventListener('click',exportProductListExcel);
   $('close-product-list').addEventListener('click',()=>$('product-list-dialog').close());
   $('search-product-list').addEventListener('click',searchProductList);
+  $('search-purchase-orders').addEventListener('click',searchPurchaseOrders);
+  $('clear-purchase-order-search').addEventListener('click',clearPurchaseOrderSearch);
+  PURCHASE_SEARCH_IDS.slice(2).forEach(id=>$(id).addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();searchPurchaseOrders();}}));
   $('clear-product-list-search').addEventListener('click',clearProductListSearch);
   $('receipt-list-button').addEventListener('click',()=>showMovementList('receipt'));
   $('issue-list-button').addEventListener('click',()=>showMovementList('issue'));

@@ -92,3 +92,7 @@ test('popups stay inside the dashboard area right of the sidebar and cap at 95 p
   assert.match(css,/dialog\.popup-floating\.dialog-expanded\[open\]:not\(\.search-calendar\)\{[^}]*width:calc\(var\(--popup-area-width,100vw\)\*\.95\)!important/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/area\.width\*\.95/);
 });
+
+test('vendor dialog does not use CSS zoom so positioning and size clamps stay accurate',()=>{
+  assert.doesNotMatch(fs.readFileSync('vendor-management.css','utf8'),/zoom:1\.2/);
+});

@@ -17,12 +17,12 @@ dialog .product-list-toolbar,dialog .dialog-header-actions,dialog .print-toolbar
 dialog .vendor-query-toolbar{gap:9px}
 dialog .vendor-toolbar{gap:13px}
 @media(max-width:600px){dialog .vendor-toolbar{gap:5.2px}}
-dialog .close{width:48px!important;min-width:48px}
+dialog .close{width:62.4px!important;min-width:62.4px}
 dialog .dialog-header .close{
-  width:calc(3em + 53.7px)!important;min-width:calc(3em + 53.7px);
+  width:calc(3.9em + 69.81px)!important;min-width:calc(3.9em + 69.81px);
   padding-left:0;padding-right:0;flex:0 0 auto
 }
-dialog .vendor-query-toolbar .close{width:100.8px!important;min-width:100.8px}
+dialog .vendor-query-toolbar .close{width:131.04px!important;min-width:131.04px}
 .dialog-window-button{
   display:inline-flex!important;align-items:center;justify-content:center;
   width:28px!important;height:28px!important;min-width:28px;padding:0!important;

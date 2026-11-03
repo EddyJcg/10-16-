@@ -17,7 +17,11 @@ dialog .product-list-toolbar,dialog .dialog-header-actions,dialog .print-toolbar
 dialog .vendor-query-toolbar{gap:9px}
 dialog .vendor-toolbar{gap:13px}
 @media(max-width:600px){dialog .vendor-toolbar{gap:5.2px}}
-dialog .close{width:62.4px!important;min-width:62.4px}
+dialog .close{
+  display:inline-flex;align-items:center;justify-content:center;text-align:center;
+  letter-spacing:10px;text-indent:10px;
+  width:62.4px!important;min-width:62.4px
+}
 dialog .dialog-header .close{
   width:calc(3.9em + 69.81px)!important;min-width:calc(3.9em + 69.81px);
   padding-left:0;padding-right:0;flex:0 0 auto

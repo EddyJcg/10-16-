@@ -47,10 +47,8 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
       assert.equal(order.delivery_method,'택배');
       assert.equal(order.address,'서울시 중구');
       assert.equal(order.notes,'선물 포장');
-      const completed=(await db.query('select public.set_sales_order_status($1,$2) as result',[order.id,'완료'])).rows[0].result;
-      assert.equal(completed.sales_status,'매출완료');
-      assert.equal(completed.sales_progress_status,'완료');
-      assert.equal((await db.query('select sales_status from public.sales_orders where id=$1',[order.id])).rows[0].sales_status,'매출완료');
+      await assert.rejects(db.query('select public.set_sales_order_status($1,$2)',[order.id,'완료']),/SALES_ORDER_NOT_SHIPPED/);
+      assert.equal((await db.query('select sales_status from public.sales_orders where id=$1',[order.id])).rows[0].sales_status,'매출미완료');
       await assert.rejects(db.query('select public.set_sales_order_status($1,$2)',[order.id,'진행중']),/INVALID_SALES_STATUS/);
       await assert.rejects(db.query(`select public.register_sales_order($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
         ['SO-BAD','방문','Item','','EA(개)',1,100,'2026-12-31','','','']),/INVALID_SALES_ORDER/);
@@ -73,6 +71,7 @@ test('PostgreSQL FIFO ledger, permissions and transaction guarantees',async t =>
         [number,'온라인 수주',product.product_name,product.specification,product.unit,quantity,200,'2020-12-31','','','','2020-01-01'])).rows[0].result;
       const order=await registerOrder('SO-LINKED',3),linked={...product,sales_order_id:order.id};
       const state=async id=>(await db.query('select to_jsonb(s) as result from public.sales_orders s where id=$1',[id])).rows[0].result;
+      assert.equal((await state(order.id)).shipped_date,null);
       const request=randomUUID();
       const first=await post('LINKED','issue',1,0,'2020-02-01',request,linked);
       assert.equal(first.sales_order_id,order.id);

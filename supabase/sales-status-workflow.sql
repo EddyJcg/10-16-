@@ -80,6 +80,9 @@ begin
   end if;
   select * into v_order from public.sales_orders where id=p_order_id for update;
   if not found then raise exception 'SALES_ORDER_NOT_FOUND' using errcode='P0002'; end if;
+  if p_sales_status='완료' and v_order.shipped_date is null then
+    raise exception 'SALES_ORDER_NOT_SHIPPED' using errcode='22023';
+  end if;
   if v_order.shipped_quantity>0 and p_sales_status='완료' and v_order.shipped_quantity<v_order.quantity then
     raise exception 'SALES_ORDER_HAS_SHIPMENTS' using errcode='22023';
   end if;

@@ -258,11 +258,10 @@ test('sales status view includes every order field and completion control after 
 test('sales registration has its own search dialog, matching order columns and confirmation',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const app=fs.readFileSync('inventory-app.js','utf8');
-  const statusHeader=html.match(/<table aria-label="전체 수주현황"><thead>([\s\S]*?)<\/thead>/)?.[1];
   const registerDialog=html.match(/<dialog id="sales-register-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
   const registerHeader=registerDialog.match(/<table aria-label="매출 등록 대상 수주 현황"><thead>([\s\S]*?)<\/thead>/)?.[1];
-  assert.ok(statusHeader);
-  assert.equal(registerHeader,statusHeader);
+  assert.match(registerHeader,/<th>일련번호<\/th><th>관리<\/th>/);
+  assert.doesNotMatch(registerHeader,/<th>(?:연락처|완료 체크|기타사항)<\/th>/);
   assert.match(registerDialog,/id="sales-register-query" type="search"/);
   assert.match(registerDialog,/id="search-sales-register"[^>]*>검색<\/button>/);
   assert.match(registerDialog,/<button id="add-sales-register"[^>]*>매출 등록 추가<\/button><button id="bulk-sales-register"[^>]*>일괄 매출등록<\/button>/);
@@ -271,6 +270,7 @@ test('sales registration has its own search dialog, matching order columns and c
   assert.match(app,/\$\('sales-register-button'\)\.addEventListener\('click',showSalesRegister\)/);
   assert.match(app,/\$\('search-sales-register'\)\.addEventListener\('click',applySalesRegisterSearch\)/);
   assert.match(app,/function openSalesRegisterConfirmation\(id\)/);
+  assert.match(app,/return Boolean\(String\(order\.shipped_date\|\|''\)\.trim\(\)\)/);
   assert.match(app,/client\.rpc\('set_sales_order_status',\{p_order_id:order\.id,p_sales_status:'완료'\}\)/);
 });
 
@@ -292,7 +292,7 @@ test('sales registration search filters the loaded orders by order number or ven
   assert.equal(element('sales-register-message').textContent,'검색 결과 1건');
 });
 
-test('sales registration renders the full matching sales-status row and its registration icon',()=>{
+test('sales registration hides removed columns and disables unshipped orders',()=>{
   class Element{
     constructor(){this.children=[];this.dataset={};this.attributes={};this.textContent='';this.value='';}
     append(...children){this.children.push(...children);}
@@ -311,11 +311,16 @@ test('sales registration renders the full matching sales-status row and its regi
     unit:'EA',quantity:2,unit_price:5,amount:10,due_date:'2026-11-10',delivery_method:'택배',address:'주소',notes:'비고'}];
     salesRegisterSearched=true;salesRegisterQuery='SO-1';salesStatusUpdating=false;renderSalesRegister()`,context);
   assert.equal(body.children.length,1);
-  assert.equal(body.children[0].children.length,20);
-  const actionButton=body.children[0].children[19].children[0];
+  assert.equal(body.children[0].children.length,17);
+  const actionButton=body.children[0].children[1].children[0];
   assert.match(actionButton.innerHTML,/sales-register-icon/);
   assert.match(actionButton.innerHTML,/매출등록/);
+  assert.equal(actionButton.disabled,true,'unshipped orders cannot be registered');
+  assert.match(actionButton.title,/출고등록/);
   assert.equal(actionButton.dataset.salesRegisterOrderId,'line-1');
+  const cells=body.children[0].children.map(cell=>cell.textContent);
+  assert.ok(!cells.includes('010'));
+  assert.ok(!cells.includes('비고'));
 });
 
 test('sales registration confirmation completes the chosen order and keeps the register dialog open',async()=>{
@@ -330,13 +335,17 @@ test('sales registration confirmation completes the chosen order and keeps the r
   }};
   const context=vm.createContext({document:{getElementById:element},testClient,salesOrderStatus});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
-  vm.runInContext(`currentUser={id:'user'};salesOrders=[{id:'line-1',order_number:'SO-1',product_name:'품목',quantity:1,shipped_quantity:0,sales_progress_status:'진행'}];
+  vm.runInContext(`currentUser={id:'user'};salesOrders=[{id:'line-1',order_number:'SO-1',product_name:'품목',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];
     client=testClient;renderSalesOrders=()=>{};renderSalesStatus=()=>{};renderSalesRegister=()=>{};renderSalesBalance=()=>{};updateIssueSalesOrders=()=>{};
     $('sales-register-dialog').showModal();openSalesRegisterConfirmation('line-1')`,context);
   assert.equal(element('sales-register-confirm-message').textContent,'매출등록을 하시겠습니까?');
+  assert.equal(element('complete-sales-register-confirm').disabled,true);
+  assert.match(element('sales-register-confirm-status').textContent,/출고등록을 완료한 품목만/);
+  await vm.runInContext('completeSalesRegistration()',context);
+  assert.equal(calls.length,0,'unshipped orders cannot be completed');
   vm.runInContext('cancelSalesRegisterConfirmation()',context);
   assert.equal(element('sales-register-dialog').open,true,'cancel returns to the sales register dialog');
-  vm.runInContext("openSalesRegisterConfirmation('line-1')",context);
+  vm.runInContext("salesOrders[0].shipped_quantity=1;salesOrders[0].shipped_date='2026-11-03';openSalesRegisterConfirmation('line-1')",context);
   await vm.runInContext('completeSalesRegistration()',context);
   assert.equal(calls.length,1);
   assert.equal(calls[0][0],'set_sales_order_status');
@@ -385,10 +394,11 @@ test('bulk sales registration processes only unregistered eligible search result
   context.updateIssueSalesOrders=()=>{};
   vm.runInContext(`currentUser={id:'user'};client=testClient;
     salesOrders=[
-      {id:'eligible-1',order_number:'SO-1',product_name:'품목1',quantity:1,shipped_quantity:0,sales_progress_status:'진행'},
-      {id:'eligible-2',order_number:'SO-2',product_name:'품목2',quantity:1,shipped_quantity:0,sales_progress_status:'진행'},
-      {id:'completed',order_number:'SO-3',product_name:'품목3',quantity:1,shipped_quantity:1,sales_progress_status:'완료'},
-      {id:'partial',order_number:'SO-4',product_name:'품목4',quantity:2,shipped_quantity:1,sales_progress_status:'진행'}
+      {id:'eligible-1',order_number:'SO-1',product_name:'품목1',quantity:1,shipped_quantity:1,shipped_date:'2026-11-01',sales_progress_status:'진행'},
+      {id:'eligible-2',order_number:'SO-2',product_name:'품목2',quantity:1,shipped_quantity:1,shipped_date:'2026-11-02',sales_progress_status:'진행'},
+      {id:'unshipped',order_number:'SO-3',product_name:'품목3',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'},
+      {id:'completed',order_number:'SO-4',product_name:'품목4',quantity:1,shipped_quantity:1,shipped_date:'2026-11-03',sales_progress_status:'완료'},
+      {id:'partial',order_number:'SO-5',product_name:'품목5',quantity:2,shipped_quantity:1,shipped_date:'2026-11-04',sales_progress_status:'진행'}
     ];
     salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
   assert.equal(element('sales-register-confirm-message').textContent,'2건의 매출등록을 진행하시겠습니까?');
@@ -422,7 +432,7 @@ test('sales item completion checkbox saves the selected order status',async()=>{
   context.renderSalesStatus=()=>{};
   context.renderSalesBalance=()=>{};
   context.updateIssueSalesOrders=()=>{};
-  vm.runInContext("salesOrders=[{id:'line',order_number:'SO-1',sales_status:'매출미완료'}];currentUser={id:'user'}",context);
+  vm.runInContext("salesOrders=[{id:'line',order_number:'SO-1',sales_status:'매출미완료',shipped_date:'2026-11-03'}];currentUser={id:'user'}",context);
   context.completionCheckbox={dataset:{orderId:'line',salesOrderComplete:'true'},checked:true};
   await vm.runInContext("changeSalesOrderStatus({target:completionCheckbox})",context);
   assert.equal(calls.length,1);

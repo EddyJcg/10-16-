@@ -649,8 +649,8 @@ test('sales order dialog is connected to the authenticated database save flow',(
   assert.match(groupedSql,/create or replace function public\.update_sales_order_group/);
 });
 
-test('delivery method input sits right after the due date in the order line grid',()=>{
+test('delivery method input sits right after the contact input in the order header grid',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
-  assert.match(html,/id="sales_due_date"[^\n]*<\/div>\s*<div class="field"><label for="sales_delivery_method"/);
-  assert.ok(html.indexOf('sales-order-line-grid')<html.indexOf('sales_delivery_method'));
+  assert.match(html,/id="sales_vendor_contact"[^\n]*<\/div>\s*<div class="field"><label for="sales_delivery_method"/);
+  assert.ok(html.indexOf('sales_delivery_method')<html.indexOf('sales-order-line-grid'));
 });

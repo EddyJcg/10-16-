@@ -22,6 +22,12 @@ test('열 경계 드래그 크기 조절과 넘친 내용 숨김 규칙이 있�
   assert.match(css, /grid-resized td\{overflow:hidden/);
 });
 
+test('표 제목줄과 행 높이가 2/3로 줄어든다', () => {
+  const css = read('popup-table-grid.css');
+  assert.match(css, /dialog table th,dialog table td\{padding-top:4\.5px!important;padding-bottom:4\.5px!important/);
+  assert.match(css, /\.vendor-list-dialog th[^{]*\{padding-top:1px!important;padding-bottom:1px!important;height:29px!important/);
+});
+
 test('일련번호 열과 5개 빈 행 규칙이 있다', () => {
   const js = read('popup-table-grid.js');
   assert.match(js, /data-grid-serial/);

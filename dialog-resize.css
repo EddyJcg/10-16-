@@ -47,8 +47,8 @@ dialog .vendor-query-toolbar .close{width:131.04px!important;min-width:131.04px}
 }
 .dialog-window-button:hover{background:#e8eee9!important;color:#294c3a}
 .dialog-window-button:active{background:#dce7df!important}
-.dialog-minimize-icon{width:10px;height:1.7px;background:currentColor;transform:scale(1.5)}
-.dialog-expand-icon{position:relative;display:block;box-sizing:border-box;width:14px;height:14px;border:3.4px solid currentColor}
+.dialog-minimize-icon{width:10px;height:1.7px;background:currentColor;transform:scale(1.5);color:#fff}
+.dialog-expand-icon{position:relative;display:block;box-sizing:border-box;width:14px;height:14px;border:3.4px solid currentColor;color:#fff}
 .dialog-expand-icon::after{
   content:"";display:none;position:absolute;box-sizing:border-box;top:-4px;left:4px;width:14px;height:14px;
   background:linear-gradient(currentColor,currentColor) 0 0/100% 3.4px no-repeat,
@@ -56,7 +56,6 @@ dialog .vendor-query-toolbar .close{width:131.04px!important;min-width:131.04px}
     linear-gradient(currentColor,currentColor) 0 0/3.4px 4px no-repeat,
     linear-gradient(currentColor,currentColor) 100% 100%/4px 3.4px no-repeat
 }
-.dialog-expanded .dialog-expand-icon{color:#45594d}
 .dialog-expanded .dialog-expand-icon::after{display:block}
 dialog.dialog-minimizing{opacity:0;transform:scale(.97);transition:opacity 180ms ease,transform 180ms ease}
 dialog.dialog-expanded[open]:not(.search-calendar){

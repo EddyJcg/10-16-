@@ -7,9 +7,11 @@ const app=fs.readFileSync('inventory-app.js','utf8');
 
 test('발주서 양식에 이미지의 모든 항목 제목이 들어간다', () => {
   const out=buildPurchaseOrderPrint({orderNumber:'ISPO20261103-0001',orderDate:'2026-11-03',lines:[]});
-  ['구 매 발 주 서','상　　　호','P/O DATE : 2026년 11월 3일','거 래 처 명','발 주 부 서','발 주 담 당','E-mail 주소','발주번호','발주금액','통화','PJT NO','품목명','Maker','URL','도면Version','단위','본도','수량','단가','품목번호','규격','Unit구분','납품장소','구매요청자','대칭','입고요청일','금액','ISPO20261103-0001']
+  ['구 매 발 주 서','상　　　호','P/O DATE : 2026년 11월 3일','거 래 처 명','발 주 부 서','발 주 담 당','E-mail 주소','발주번호','발주금액','통화','NO','품번','품명','규격','단위','수량','발주단가','발주금액','입고예정일','비고','ISPO20261103-0001']
     .forEach(text=>assert.ok(out.includes(text),text));
-  assert.equal((out.match(/class="po-item"/g)||[]).length,8);
+  const lines=out.slice(out.indexOf('class="po-lines"'));
+  assert.equal((lines.slice(0,lines.indexOf('</table>')).match(/<tr>/g)||[]).length,11);
+  assert.ok(!out.includes('PJT NO')&&!out.includes('Maker'));
 });
 
 test('발주 품목과 금액 합계를 채우고 HTML을 이스케이프한다', () => {

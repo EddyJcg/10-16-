@@ -1,5 +1,5 @@
 (function(root){
-  const MIN_ROWS=8;
+  const MIN_ROWS=10;
   const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const money=value=>Number.isFinite(Number(value))&&value!==''&&value!==null?Math.round(Number(value)).toLocaleString('ko-KR'):'';
   function formatDate(value){
@@ -11,14 +11,10 @@
 
   function itemRows(line,index){
     const quantity=line?Number(line.quantity):null,cost=line?Number(line.unit_cost):null;
-    const amount=line?quantity*cost:null;
-    return `<tbody class="po-item"><tr><td rowspan="2" class="po-center">${line?index+1:''}</td>`
-      +`<td>${esc('')}</td><td>${esc(line?.product_name)}</td><td>${esc('')}</td><td>${esc('')}</td><td class="po-right">${esc('')}</td>`
-      +`<td rowspan="2" class="po-center">${esc(line?.unit)}</td><td class="po-right"></td><td class="po-right">${line?money(quantity):''}</td><td class="po-right">${line?money(cost):''}</td></tr>`
-      +`<tr><td>${esc(line?.product_code)}</td><td>${esc(line?.specification)}</td><td class="po-small"></td><td></td><td></td>`
-      +`<td class="po-right"></td><td class="po-right">${esc(line?.expected_date)}</td><td class="po-right">${line?money(amount):''}</td></tr></tbody>`;
+    return `<tr><td class="po-center">${index+1}</td><td>${esc(line?.product_code)}</td><td>${esc(line?.product_name)}</td><td>${esc(line?.specification)}</td>`
+      +`<td class="po-center">${esc(line?.unit)}</td><td class="po-right">${line?money(quantity):''}</td><td class="po-right">${line?money(cost):''}</td>`
+      +`<td class="po-right">${line?money(quantity*cost):''}</td><td class="po-center">${esc(line?.expected_date)}</td><td>${esc(line?.notes)}</td></tr>`;
   }
-
   function buildPurchaseOrderPrint(data={}){
     const company=data.company||{},supplier=data.supplier||{},buyer=data.buyer||{},lines=data.lines||[];
     const total=lines.reduce((sum,line)=>sum+Number(line.quantity)*Number(line.unit_cost),0);
@@ -40,10 +36,9 @@
       +`<tr>${label('H.P')}${value(supplier.mobile)}${label('E-mail 주소')}${value(supplier.email)}${label('E-mail 주소')}${value(buyer.email)}</tr>`
       +`</tbody></table>`
       +`<table class="po-summary"><tbody><tr>${label('발주번호')}${value(data.orderNumber)}${label('발주금액')}<td class="po-right">${money(total)}</td>${label('통화')}<td class="po-center">${esc(data.currency||'KRW')}</td></tr></tbody></table>`
-      +`<table class="po-lines"><colgroup><col class="po-no"><col><col><col><col><col><col class="po-unit"><col class="po-num"><col class="po-num"><col class="po-money"></colgroup>`
-      +`<thead><tr><th rowspan="2">No.</th><th>PJT NO</th><th>품목명</th><th>Maker</th><th>URL</th><th>도면Version</th><th rowspan="2">단위</th><th>본도</th><th>수량</th><th>단가</th></tr>`
-      +`<tr><th>품목번호</th><th>규격</th><th>Unit구분</th><th>납품장소</th><th>구매요청자</th><th>대칭</th><th>입고요청일</th><th>금액</th></tr></thead>`
-      +rows.join('')+`</table>`;
+      +`<table class="po-lines"><colgroup><col class="po-no"><col><col><col><col class="po-unit"><col class="po-num"><col class="po-num"><col class="po-num"><col class="po-due"><col></colgroup>`
+      +`<thead><tr><th>NO</th><th>품번</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>발주단가</th><th>발주금액</th><th>입고예정일</th><th>비고</th></tr></thead><tbody>`
+      +rows.join('')+`</tbody></table>`;
     return `<table class="po-page"><thead><tr><td><div class="po-margin-top"></div></td></tr></thead><tbody><tr><td class="po-page-body">${body}</td></tr></tbody><tfoot><tr><td><div class="po-margin-bottom"></div></td></tr></tfoot></table>`;
   }
 

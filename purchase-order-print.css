@@ -26,12 +26,11 @@
   #purchase-order-print .po-summary th{width:11%}
   #purchase-order-print .po-lines .po-no{width:3.5%}
   #purchase-order-print .po-lines .po-unit{width:4.5%}
-  #purchase-order-print .po-lines .po-num{width:8%}
-  #purchase-order-print .po-lines .po-money{width:11%}
+  #purchase-order-print .po-lines .po-num{width:9%}
+  #purchase-order-print .po-lines .po-due{width:12%}
   #purchase-order-print .po-lines td{height:17px}
-  #purchase-order-print .po-lines tbody.po-item{break-inside:avoid;page-break-inside:avoid}
+  #purchase-order-print .po-lines tr{break-inside:avoid;page-break-inside:avoid}
   #purchase-order-print .po-lines thead{display:table-header-group}
   #purchase-order-print .po-center{text-align:center!important}
   #purchase-order-print .po-right{text-align:right!important}
-  #purchase-order-print .po-small{font-size:8px}
 }

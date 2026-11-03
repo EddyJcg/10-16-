@@ -33,12 +33,68 @@
     }
   }
 
+  const MIN_WIDTH=30;
+  const savedWidths=new Map();
+  const labelOf=th=>th.textContent.trim().toLowerCase();
+  function widthKey(table,th){
+    const dialog=table.closest('dialog');
+    const index=dialog?[...dialog.querySelectorAll('table')].indexOf(table):0;
+    return (dialog&&dialog.id)+'|'+index+'|'+labelOf(th);
+  }
+  function setColumnWidth(table,index,width){
+    const head=headerRow(table);
+    const th=head.cells[index];
+    if(!th)return;
+    const value=Math.max(MIN_WIDTH,Math.round(width))+'px';
+    th.style.width=value;th.style.minWidth=value;th.style.maxWidth=value;
+    const col=table.querySelectorAll('colgroup > col')[index];
+    if(col){col.style.width=value;col.style.minWidth=value;}
+  }
+  function fitTableWidth(table){
+    const total=[...headerRow(table).cells].reduce((sum,th)=>sum+(parseFloat(th.style.width)||th.getBoundingClientRect().width),0);
+    table.style.width=Math.round(total)+'px';
+    table.style.maxWidth='none';
+  }
+  function freezeTable(table){
+    const head=headerRow(table);
+    const widths=[...head.cells].map(th=>th.getBoundingClientRect().width);
+    table.classList.add('grid-resized');
+    widths.forEach((width,index)=>{if(!head.cells[index].style.width)setColumnWidth(table,index,width);});
+    table.style.tableLayout='fixed';
+    fitTableWidth(table);
+  }
+  function restoreWidths(table){
+    const head=headerRow(table);
+    let restored=false;
+    [...head.cells].forEach((th,index)=>{
+      const width=savedWidths.get(widthKey(table,th));
+      if(width&&!th.style.width){setColumnWidth(table,index,width);restored=true;}
+    });
+    if(restored){table.classList.add('grid-resized');table.style.tableLayout='fixed';fitTableWidth(table);}
+  }
+  function syncHandles(table,head){
+    if(table.querySelector('.column-resizer')){
+      table.querySelectorAll('.grid-col-handle').forEach(handle=>handle.remove());
+      return;
+    }
+    [...head.cells].forEach(th=>{
+      if(th.colSpan>1||th.querySelector('.grid-col-handle'))return;
+      if(typeof getComputedStyle==='function'&&getComputedStyle(th).position==='static')th.style.position='relative';
+      const handle=document.createElement('span');
+      handle.className='grid-col-handle';
+      handle.setAttribute('aria-hidden','true');
+      th.append(handle);
+    });
+    restoreWidths(table);
+  }
+
   function syncTable(table){
     if(SKIPPED_TABLES.has(table.id))return;
     const head=headerRow(table);
     const body=table.tBodies[0];
     if(!head||!head.cells.length||!body)return;
     syncHeader(table,head);
+    syncHandles(table,head);
     const ownSerial=startsWithSerial(head);
     const columns=head.cells.length;
     const rows=[...body.rows];
@@ -92,6 +148,40 @@
   function observe(){
     document.querySelectorAll('dialog').forEach(dialog=>observer.observe(dialog,{childList:true,subtree:true}));
   }
+  // 열 경계 핸들 드래그: popup-floating의 창 이동보다 먼저 처리하도록 window 캡처 단계에서 받습니다.
+  let resizing=null;
+  const onHandle=event=>event.target.closest&&event.target.closest('.grid-col-handle');
+  window.addEventListener('pointerdown',event=>{
+    const handle=onHandle(event);
+    if(!handle||event.button>0)return;
+    const th=handle.parentElement,table=th.closest('table');
+    event.preventDefault();event.stopPropagation();
+    freezeTable(table);
+    const index=[...headerRow(table).cells].indexOf(th);
+    resizing={table,index,pointerId:event.pointerId,startX:event.clientX,startWidth:th.getBoundingClientRect().width,handle};
+    handle.classList.add('is-active');
+    try{handle.setPointerCapture(event.pointerId);}catch(error){}
+  },true);
+  window.addEventListener('pointermove',event=>{
+    if(!resizing||event.pointerId!==resizing.pointerId)return;
+    setColumnWidth(resizing.table,resizing.index,resizing.startWidth+event.clientX-resizing.startX);
+    fitTableWidth(resizing.table);
+  },true);
+  const finishResize=event=>{
+    if(!resizing||event.pointerId!==resizing.pointerId)return;
+    const {table,handle}=resizing;
+    handle.classList.remove('is-active');
+    [...headerRow(table).cells].forEach(th=>{const w=parseFloat(th.style.width);if(w)savedWidths.set(widthKey(table,th),w);});
+    resizing=null;
+  };
+  window.addEventListener('pointerup',finishResize,true);
+  window.addEventListener('pointercancel',finishResize,true);
+  ['mousedown','click','dblclick','dragstart'].forEach(type=>window.addEventListener(type,event=>{
+    if(!onHandle(event))return;
+    event.stopPropagation();
+    if(type!=='click')event.preventDefault();
+  },true));
+
   syncAll();
   observe();
   if(typeof window!=='undefined')window.syncPopupTableGrids=syncAll;

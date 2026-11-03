@@ -13,6 +13,15 @@ test('팝업 표 그리드 스크립트와 CSS가 연결되고 앱보다 먼저 
   assert.ok(grid > 0 && grid < app);
 });
 
+test('열 경계 드래그 크기 조절과 넘친 내용 숨김 규칙이 있다', () => {
+  const js = read('popup-table-grid.js');
+  assert.match(js, /grid-col-handle/);
+  assert.match(js, /tableLayout='fixed'/);
+  const css = read('popup-table-grid.css');
+  assert.match(css, /cursor:col-resize/);
+  assert.match(css, /grid-resized td\{overflow:hidden/);
+});
+
 test('일련번호 열과 5개 빈 행 규칙이 있다', () => {
   const js = read('popup-table-grid.js');
   assert.match(js, /data-grid-serial/);

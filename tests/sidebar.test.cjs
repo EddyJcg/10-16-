@@ -51,7 +51,7 @@ test('existing menu folders stay under the new inventory parent folder',()=>{
   assert.ok(nav.indexOf('id="basic-info-folder"')<nav.indexOf('id="vendor-info-entry-folder"')&&nav.indexOf('id="vendor-status-button"')<nav.indexOf('id="sales-folder"'),'vendor actions should be inside 기본정보');
   assert.ok(!nav.includes('vendor-registration-folder')&&!nav.includes('vendor-query-folder')&&!nav.includes('vendor-status-folder')&&!nav.includes('<summary>거래처 현황</summary>'),'remove duplicate vendor folders');
   assert.ok(nav.indexOf('id="sales-folder"')<nav.indexOf('id="inventory-folder"'),'매출관리 should appear above 재고관리');
-  assert.match(nav,/<details id="sales-folder"[^>]*data-sidebar-folder><summary>매출관리<\/summary><div class="folder-children"><button[^>]*id="sales-order-button"[^>]*>수주 입력<\/button><button[^>]*id="sales-status-button"[^>]*>수주 현황<\/button><button[^>]*id="sales-register-button"[^>]*>매출등록<\/button><button[^>]*id="sales-status-query-button"[^>]*>매출현황 조회<\/button><\/div><\/details>/);
+  assert.match(nav,/<details id="sales-folder"[^>]*data-sidebar-folder><summary>매출관리<\/summary><div class="folder-children"><button[^>]*id="sales-order-button"[^>]*>수주 입력<\/button><button[^>]*id="sales-status-button"[^>]*>수주 현황<\/button><button[^>]*id="sales-register-button"[^>]*>매출 등록<\/button><button[^>]*id="sales-status-query-button"[^>]*>매출현황 조회<\/button><\/div><\/details>/);
   assert.ok(!nav.includes('sales-registration-folder'),'매출등록은 중복 폴더 없이 매출관리 아래에 표시');
   assert.ok(!nav.includes('sales-status-query-folder'),'매출현황 조회는 중복 폴더 없이 매출관리 아래에 표시');
   const purchasePosition=nav.indexOf('id="purchase-folder"'),inventoryPosition=nav.indexOf('id="inventory-folder"');

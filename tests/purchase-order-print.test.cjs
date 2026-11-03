@@ -26,5 +26,7 @@ test('구매발주 입력 창에 인쇄 설정·인쇄 버튼과 인쇄 영역�
   assert.match(html,/data-print-settings="purchase-order"[^>]*>인쇄 설정<\/button><button[^>]*data-print="purchase-order"[^>]*>인쇄<\/button><button[^>]*id="close-purchase-order"/);
   assert.match(html,/id="purchase-order-print"/);
   assert.match(app,/'purchase-order':'purchase-order-dialog'/);
-  assert.match(app,/A4 portrait/);
+  assert.match(app,/\?'landscape':'portrait'/);
+  assert.match(html,/name="purchase-print-orientation" value="portrait" checked>세로[\s\S]*?value="landscape">가로/);
+  assert.ok(app.includes('size:A4 ${purchasePrintOrientation()}'));
 });

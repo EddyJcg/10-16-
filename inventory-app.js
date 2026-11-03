@@ -2215,8 +2215,10 @@ function purchaseOrderPrintData(){
     supplier:{name:vendor?String(vendor.legal_name||vendor.vendor_name||''):'',representative:profile.representative,address:profile.business_address,business_number:profile.business_registration_number,
       phone:profile.phone,contact:profile.contact_person,contact_phone:profile.manager_phone,email:profile.email}};
 }
+function purchasePrintOrientation(){return document.querySelector('input[name="purchase-print-orientation"]:checked')?.value==='landscape'?'landscape':'portrait';}
 function openPrintSettings(target) {
   activePrintTarget=target;
+  $('purchase-print-orientation').hidden=target!=='purchase-order';
   $('print-settings-dialog').showModal();
 }
 function printInventoryList(target) {
@@ -2255,7 +2257,7 @@ function applyProductListPrintSettings() {
   const purchaseOrderPage=activePrintTarget==='purchase-order';
   style.textContent=`@page{size:A4 landscape;margin:${printMargins.top}mm ${printMargins.right}mm ${printMargins.bottom}mm ${printMargins.left}mm}@media print{${tables[activePrintTarget]}{zoom:${scale};width:${100/scale}%}}`;
   // 여백을 0으로 두면 브라우저 머리글·바닥글이 표시되지 않으므로 여백은 발주서 안쪽에 적용합니다.
-  if(purchaseOrderPage)style.textContent=`@page{size:A4 portrait;margin:0}@media print{#purchase-order-print{--po-top:${printMargins.top}mm;--po-right:${printMargins.right}mm;--po-bottom:${printMargins.bottom}mm;--po-left:${printMargins.left}mm;zoom:${scale};width:${100/scale}%}}`;
+  if(purchaseOrderPage)style.textContent=`@page{size:A4 ${purchasePrintOrientation()};margin:0}@media print{#purchase-order-print{--po-top:${printMargins.top}mm;--po-right:${printMargins.right}mm;--po-bottom:${printMargins.bottom}mm;--po-left:${printMargins.left}mm;zoom:${scale};width:${100/scale}%}}`;
 }
 function startProductListPrintSettings() {
   const scale=$('product-list-print-scale');
@@ -2291,6 +2293,7 @@ function startProductListPrintSettings() {
   });
   document.querySelectorAll('[data-print-settings]').forEach(button=>button.addEventListener('click',()=>openPrintSettings(button.dataset.printSettings)));
   $('product-list-print-scale').addEventListener('input',()=>applyProductListPrintSettings());
+  document.querySelectorAll('input[name="purchase-print-orientation"]').forEach(radio=>radio.addEventListener('change',()=>applyProductListPrintSettings()));
 }
 function closeMovement() { if (!busy) {lotsGeneration++;editingMovementId='';$('save-movement').textContent='저장';$('movement-dialog').close();} }
 function missingReceiptDetails(){

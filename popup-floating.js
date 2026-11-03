@@ -1,0 +1,16 @@
+'use strict';
+(function(){
+  // 확인·상세·달력처럼 상위 팝업 위에 겹쳐 뜨는 창은 기존처럼 모달로 유지합니다.
+  const modalIds=new Set(['sales-register-confirm-dialog','receipt-import-missing-dialog','receipt-details-dialog','detail-dialog','vendor-option-dialog','print-settings-dialog']);
+  const nativeShowModal=HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal=function(){
+    if(modalIds.has(this.id)||this.classList.contains('search-calendar'))return nativeShowModal.call(this);
+    if(this.open)return;
+    this.classList.add('popup-floating');
+    this.show();
+  };
+  document.addEventListener('click',event=>{
+    if(!event.target.closest||!event.target.closest('.sidebar-action'))return;
+    document.querySelectorAll('dialog.popup-floating[open]').forEach(dialog=>dialog.close());
+  },true);
+})();

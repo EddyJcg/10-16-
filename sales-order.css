@@ -16,9 +16,17 @@
 .sales-status-order-search{display:flex;align-items:end;gap:12px;margin:0 0 14px}
 .sales-status-order-search .field{flex:1;max-width:620px;margin:0}
 .sales-status-order-search button{min-width:100px;margin-bottom:0}
+.sales-register-dialog{width:min(1500px,96vw)!important}
+.sales-register-dialog .dialog-body{max-height:calc(90vh - 160px)}
+.sales-register-action{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.sales-register-icon{display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:50%;background:#e8f5ec;color:#23654e;font-size:13px;font-weight:750}
+.sales-register-confirm-dialog{width:min(460px,calc(100% - 32px))}
+.sales-register-confirm-dialog .dialog-body p{font-size:16px}
+.sales-register-confirm-dialog .dialog-footer{gap:8px}
 @media(max-width:520px){
   .sales-status-order-search{align-items:stretch;flex-direction:column;gap:8px}
   .sales-status-order-search .field{max-width:none}
+  .sales-register-confirm-dialog .dialog-footer button{flex:1}
 }
 @media print{
   .sales-status-order-search{display:none!important}

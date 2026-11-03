@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isummerly 매출/재고관리</title><link rel="icon" type="image/png" href="/isummerly-logo.png"><link rel="stylesheet" href="/inventory.css?v=20261022-login-input-font-120-targeted-classification-label-size"><link rel="stylesheet" href="/sales-order.css?v=20261102-sales-order-5-column-form"><link rel="stylesheet" href="/purchase-folder-icon.css?v=20261102-sidebar-folder-icons"><link rel="stylesheet" href="/purchase-order.css?v=20261102-purchase-entry-label-size"><link rel="stylesheet" href="/vendor-info-icon.css?v=20261102-vendor-info-product-icon"><link rel="stylesheet" href="/vendor-management.css?v=20261103-vendor-table-no-sticky-last-column"><link rel="stylesheet" href="/inventory-datepicker.css"><link rel="stylesheet" href="/dialog-resize.css?v=20261103-popup-control-stroke-90"><link rel="stylesheet" href="/popup-input-grid.css?v=20261102-all-popups-five-column-inputs"><link rel="stylesheet" href="/product-info-dialog.css?v=20261102-product-info-edit-button-scale-12"><link rel="stylesheet" href="/popup-button.css?v=20261102-popup-button-font-18"><link rel="stylesheet" href="/popup-typography.css?v=20261102-popup-title-content-36"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isummerly 매출/재고관리</title><link rel="icon" type="image/png" href="/isummerly-logo.png"><link rel="stylesheet" href="/inventory.css?v=20261022-login-input-font-120-targeted-classification-label-size"><link rel="stylesheet" href="/sales-order.css?v=20261103-sales-register-workflow"><link rel="stylesheet" href="/purchase-folder-icon.css?v=20261102-sidebar-folder-icons"><link rel="stylesheet" href="/purchase-order.css?v=20261102-purchase-entry-label-size"><link rel="stylesheet" href="/vendor-info-icon.css?v=20261102-vendor-info-product-icon"><link rel="stylesheet" href="/vendor-management.css?v=20261103-vendor-table-no-sticky-last-column"><link rel="stylesheet" href="/inventory-datepicker.css"><link rel="stylesheet" href="/dialog-resize.css?v=20261103-popup-control-stroke-90"><link rel="stylesheet" href="/popup-input-grid.css?v=20261102-all-popups-five-column-inputs"><link rel="stylesheet" href="/product-info-dialog.css?v=20261102-product-info-edit-button-scale-12"><link rel="stylesheet" href="/popup-button.css?v=20261102-popup-button-font-18"><link rel="stylesheet" href="/popup-typography.css?v=20261102-popup-title-content-36"></head>
 <body>
   <header><div class="brand"><img class="brand-logo" src="/isummerly-logo.png" alt="Isummerly 로고"> ISUMMERLY<span>통합관리시스템</span></div><button id="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true" hidden>☰ 메뉴 숨기기</button></header>
   <div id="app-layout" class="app-layout">
@@ -313,6 +313,23 @@
       <div class="table-wrap sales-status-table"><table aria-label="전체 수주현황"><thead><tr><th>일련번호</th><th>수주일자</th><th>수주번호</th><th>수주형태</th><th>거래처</th><th>연락처</th><th>출고일자</th><th>완료 체크</th><th>매출 상태</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>납기일자</th><th>배송방법</th><th>주소</th><th>기타사항</th><th>관리</th></tr></thead><tbody id="sales-status-items"></tbody></table></div>
     </div>
     <div class="dialog-footer"><button id="export-sales-status" class="secondary" type="button">↓ Excel 다운로드</button></div>
+  </dialog>
+  <dialog id="sales-register-dialog" aria-labelledby="sales-register-title" class="sales-register-dialog">
+    <div class="dialog-header"><div><h2 id="sales-register-title">매출 등록</h2><p>수주번호 또는 거래처(성명)로 검색하고 해당 수주 품목의 매출 등록을 완료합니다.</p></div><div class="product-list-toolbar"><button class="secondary" type="button" data-print-settings="sales-register">인쇄 설정</button><button class="secondary" type="button" data-print="sales-register">인쇄</button><button type="button" class="close" id="close-sales-register" aria-label="매출 등록 창 닫기">닫기</button></div></div>
+    <div class="dialog-body">
+      <div class="sales-status-order-search">
+        <div class="field"><label for="sales-register-query">수주번호 또는 거래처(성명) 검색</label><input id="sales-register-query" type="search" placeholder="수주번호 또는 거래처(성명) 입력"></div>
+        <button id="search-sales-register" class="primary" type="button">검색</button>
+      </div>
+      <p id="sales-register-message" class="product-list-status" role="status" aria-live="polite"></p>
+      <div class="table-wrap sales-status-table sales-register-table"><table aria-label="매출 등록 대상 수주 현황"><thead><tr><th>일련번호</th><th>수주일자</th><th>수주번호</th><th>수주형태</th><th>거래처</th><th>연락처</th><th>출고일자</th><th>완료 체크</th><th>매출 상태</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>납기일자</th><th>배송방법</th><th>주소</th><th>기타사항</th><th>관리</th></tr></thead><tbody id="sales-register-items"></tbody></table></div>
+    </div>
+    <div class="dialog-footer"><button id="export-sales-register" class="secondary" type="button">↓ Excel 다운로드</button></div>
+  </dialog>
+  <dialog id="sales-register-confirm-dialog" aria-labelledby="sales-register-confirm-title" class="sales-register-confirm-dialog">
+    <div class="dialog-header"><div><h2 id="sales-register-confirm-title">매출 등록 확인</h2></div><button type="button" class="close" id="close-sales-register-confirm" aria-label="확인 창 닫기">닫기</button></div>
+    <div class="dialog-body"><p id="sales-register-confirm-message">매출등록을 하시겠습니까?</p><p id="sales-register-confirm-status" class="product-list-status" role="status" aria-live="polite"></p></div>
+    <div class="dialog-footer"><button id="cancel-sales-register-confirm" class="secondary" type="button">취소</button><button id="complete-sales-register-confirm" class="primary" type="button">완료</button></div>
   </dialog>
   <dialog id="purchase-order-dialog" aria-labelledby="purchase-order-title" class="purchase-order-dialog">
     <form id="purchase-order-form" novalidate>

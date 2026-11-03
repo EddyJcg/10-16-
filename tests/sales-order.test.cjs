@@ -106,6 +106,97 @@ test('sales status view includes every order field and completion control after 
   assert.match(app,/function editSalesOrderFromStatus\(id\)/);
 });
 
+test('sales registration has its own search dialog, matching order columns and confirmation',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  const app=fs.readFileSync('inventory-app.js','utf8');
+  const statusHeader=html.match(/<table aria-label="전체 수주현황"><thead>([\s\S]*?)<\/thead>/)?.[1];
+  const registerDialog=html.match(/<dialog id="sales-register-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
+  const registerHeader=registerDialog.match(/<table aria-label="매출 등록 대상 수주 현황"><thead>([\s\S]*?)<\/thead>/)?.[1];
+  assert.ok(statusHeader);
+  assert.equal(registerHeader,statusHeader);
+  assert.match(registerDialog,/id="sales-register-query" type="search"/);
+  assert.match(registerDialog,/id="search-sales-register"[^>]*>검색<\/button>/);
+  assert.doesNotMatch(registerDialog,/sales-status-start-date|sales-status-total/);
+  assert.match(html,/<dialog id="sales-register-confirm-dialog"[\s\S]*?매출등록을 하시겠습니까\?[\s\S]*?id="cancel-sales-register-confirm"[^>]*>취소<\/button>[\s\S]*?id="complete-sales-register-confirm"[^>]*>완료<\/button>/);
+  assert.match(app,/\$\('sales-register-button'\)\.addEventListener\('click',showSalesRegister\)/);
+  assert.match(app,/\$\('search-sales-register'\)\.addEventListener\('click',applySalesRegisterSearch\)/);
+  assert.match(app,/function openSalesRegisterConfirmation\(id\)/);
+  assert.match(app,/client\.rpc\('set_sales_order_status',\{p_order_id:order\.id,p_sales_status:'완료'\}\)/);
+});
+
+test('sales registration search filters the loaded orders by order number or vendor when requested',()=>{
+  const elements=new Map(),element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',textContent:''});
+    return elements.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:element},filterSalesOrders,number:value=>String(value)});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`salesOrders=[
+    {id:'one',order_number:'SO-2026-01',vendor_name:'Alpha'},
+    {id:'two',order_number:'SO-2026-02',vendor_name:'Beta'}
+  ];renderSalesRegister=()=>{salesRegisterVisibleOrders=filterSalesOrders(salesOrders,{query:salesRegisterQuery})};
+    $('sales-register-query').value=' beta ';applySalesRegisterSearch()`,context);
+  assert.equal(vm.runInContext('salesRegisterSearched',context),true);
+  assert.equal(vm.runInContext('salesRegisterQuery',context),'beta');
+  assert.equal(vm.runInContext('salesRegisterVisibleOrders[0].id',context),'two');
+  assert.equal(element('sales-register-message').textContent,'검색 결과 1건');
+});
+
+test('sales registration renders the full matching sales-status row and its registration icon',()=>{
+  class Element{
+    constructor(){this.children=[];this.dataset={};this.attributes={};this.textContent='';this.value='';}
+    append(...children){this.children.push(...children);}
+    replaceChildren(...children){this.children=children;}
+    setAttribute(name,value){this.attributes[name]=value;}
+  }
+  const body=new Element(),document={getElementById:id=>id==='sales-register-items'?body:new Element(),createElement:()=>new Element()};
+  const context=vm.createContext({
+    document,filterSalesOrders,salesOrderStatus,
+    number:value=>String(value),money:value=>String(value),
+    makeCell:text=>({textContent:String(text)}),emptyRow:(target,columns,text)=>target.append({columns,text})
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`salesOrders=[{id:'line-1',sequence_id:1,order_date:'2026-11-03',order_number:'SO-1',order_type:'온라인 수주',
+    vendor_name:'업체',vendor_contact:'010',shipped_date:'',sales_progress_status:'진행',product_name:'품목',specification:'규격',
+    unit:'EA',quantity:2,unit_price:5,amount:10,due_date:'2026-11-10',delivery_method:'택배',address:'주소',notes:'비고'}];
+    salesRegisterSearched=true;salesRegisterQuery='SO-1';salesStatusUpdating=false;renderSalesRegister()`,context);
+  assert.equal(body.children.length,1);
+  assert.equal(body.children[0].children.length,20);
+  const actionButton=body.children[0].children[19].children[0];
+  assert.match(actionButton.innerHTML,/sales-register-icon/);
+  assert.match(actionButton.innerHTML,/매출등록/);
+  assert.equal(actionButton.dataset.salesRegisterOrderId,'line-1');
+});
+
+test('sales registration confirmation completes the chosen order and keeps the register dialog open',async()=>{
+  const elements=new Map(),calls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
+    return elements.get(id);
+  };
+  const testClient={rpc:async(name,args)=>{
+    calls.push([name,args]);
+    return {data:{id:'line-1',order_number:'SO-1',product_name:'품목',sales_progress_status:'완료',sales_status:'매출완료'},error:null};
+  }};
+  const context=vm.createContext({document:{getElementById:element},testClient,salesOrderStatus});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`currentUser={id:'user'};salesOrders=[{id:'line-1',order_number:'SO-1',product_name:'품목',quantity:1,shipped_quantity:0,sales_progress_status:'진행'}];
+    client=testClient;renderSalesOrders=()=>{};renderSalesStatus=()=>{};renderSalesRegister=()=>{};renderSalesBalance=()=>{};updateIssueSalesOrders=()=>{};
+    $('sales-register-dialog').showModal();openSalesRegisterConfirmation('line-1')`,context);
+  assert.equal(element('sales-register-confirm-message').textContent,'매출등록을 하시겠습니까?');
+  vm.runInContext('cancelSalesRegisterConfirmation()',context);
+  assert.equal(element('sales-register-dialog').open,true,'cancel returns to the sales register dialog');
+  vm.runInContext("openSalesRegisterConfirmation('line-1')",context);
+  await vm.runInContext('completeSalesRegistration()',context);
+  assert.equal(calls.length,1);
+  assert.equal(calls[0][0],'set_sales_order_status');
+  assert.equal(calls[0][1].p_order_id,'line-1');
+  assert.equal(calls[0][1].p_sales_status,'완료');
+  assert.equal(vm.runInContext("salesOrders[0].sales_progress_status",context),'완료');
+  assert.equal(element('sales-register-confirm-dialog').open,false);
+  assert.equal(element('sales-register-dialog').open,true);
+});
+
 test('sales item completion checkbox saves the selected order status',async()=>{
   const elements=new Map(),calls=[];
   const element=id=>{

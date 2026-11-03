@@ -327,6 +327,7 @@ let movementListRows = [],movementListLoading = false;
 let movementListKind='';
 function movementListLabel(){return movementListKind==='opening'?'기초재고 내역':movementListKind==='receipt'?'입고 현황':movementListKind==='issue'?'출고 내역':'입출고 내역';}
 let salesOrders = [],salesDraftLines=[],salesOrdersLoading = false,salesOrderSaving = false;
+let salesRegisterQuery='',salesRegisterSearched=false,salesRegisterVisibleOrders=[],salesRegisterTargetOrderId='';
 let purchaseOrders=[],purchaseOrderLines=[],purchaseReceipts=[],purchaseDraftLines=[],purchaseOrderVendors=[],purchaseOrderVendorsLoaded=false,purchaseLoading=false,purchaseSaving=false,purchaseSyncTimer=null;
 let receivingPurchaseLineId='',receivingPurchaseRequestId='';
 let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''},salesStatusUpdating=false;
@@ -535,6 +536,37 @@ function renderSalesStatus(){
     body.append(row);
   });
 }
+function renderSalesRegister(){
+  const body=$('sales-register-items');body.replaceChildren();
+  const visibleOrders=salesRegisterSearched?filterSalesOrders(salesOrders,{query:salesRegisterQuery}):[];
+  salesRegisterVisibleOrders=visibleOrders;
+  if(!salesRegisterSearched){emptyRow(body,20,'수주번호 또는 거래처(성명)를 검색하세요.');return;}
+  if(!visibleOrders.length){emptyRow(body,20,'검색 결과가 없습니다.');return;}
+  visibleOrders.forEach(order=>{
+    const row=document.createElement('tr');
+    [number(order.sequence_id),String(order.order_date||'').slice(0,10),order.order_number,order.order_type,
+      order.vendor_name||'',order.vendor_contact||'',String(order.shipped_date||'').slice(0,10)]
+      .forEach((value,index)=>row.append(makeCell(value,index===0)));
+    const completeCell=document.createElement('td'),checkbox=salesOrderCompleteCheckbox(order);
+    checkbox.disabled=true;completeCell.append(checkbox);row.append(completeCell);
+    const statusCell=document.createElement('td'),status=salesOrderStatusSelect(order);
+    status.disabled=true;statusCell.append(status);row.append(statusCell);
+    [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
+      money(order.amount),String(order.due_date||'').slice(0,10),order.delivery_method,order.address,order.notes]
+      .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
+    const action=document.createElement('td'),button=document.createElement('button');
+    const shipped=Number(order.shipped_quantity||0),quantity=Number(order.quantity||0);
+    const alreadyComplete=salesOrderStatus(order)==='완료',partialShipment=shipped>0&&shipped<quantity;
+    button.type='button';button.className='secondary sales-register-action';
+    button.innerHTML='<span class="sales-register-icon" aria-hidden="true">₩</span><span>매출등록</span>';
+    button.dataset.salesRegisterOrderId=order.id;
+    button.setAttribute('aria-label',order.order_number+' '+order.product_name+' 매출 등록');
+    button.disabled=salesStatusUpdating;
+    if(alreadyComplete)button.title='이미 매출 등록이 완료된 품목입니다.';
+    else if(partialShipment)button.title='잔여 수량이 있어 매출 완료할 수 없습니다.';
+    action.append(button);row.append(action);body.append(row);
+  });
+}
 async function loadSalesOrders(){
   if(salesOrdersLoading)return;
   salesOrdersLoading=true;$('sales-order-status').textContent='저장된 수주를 불러오는 중…';$('sales-status-message').textContent='수주 정보를 불러오는 중…';
@@ -546,8 +578,8 @@ async function loadSalesOrders(){
       rows.push(...data);
       if(data.length<500)break;
     }
-    salesOrders=rows;renderSalesOrders();renderSalesStatus();renderSalesBalance();updateIssueSalesOrders();$('sales-order-status').textContent='';$('sales-status-message').textContent='';$('sales-balance-status').textContent='';
-  }catch(error){$('sales-order-status').textContent=errorText(error);$('sales-status-message').textContent=errorText(error);$('sales-balance-status').textContent=errorText(error);}
+    salesOrders=rows;renderSalesOrders();renderSalesStatus();renderSalesRegister();renderSalesBalance();updateIssueSalesOrders();$('sales-order-status').textContent='';$('sales-status-message').textContent='';$('sales-register-message').textContent='';$('sales-balance-status').textContent='';
+  }catch(error){$('sales-order-status').textContent=errorText(error);$('sales-status-message').textContent=errorText(error);$('sales-register-message').textContent=errorText(error);$('sales-balance-status').textContent=errorText(error);}
   finally{salesOrdersLoading=false;}
 }
 function resetPurchaseOrderForm(){
@@ -797,6 +829,76 @@ async function showSalesStatus(){
   $('sales-status-order-query').value='';
   $('sales-status-message').textContent='';renderSalesStatus();$('sales-status-dialog').showModal();
   await loadSalesOrders();
+}
+async function showSalesRegister(){
+  if(!currentUser||busy||salesOrderSaving)return;
+  salesRegisterQuery='';salesRegisterSearched=false;salesRegisterVisibleOrders=[];salesRegisterTargetOrderId='';
+  $('sales-register-query').value='';$('sales-register-message').textContent='';
+  $('sales-register-confirm-status').textContent='';renderSalesRegister();
+  $('sales-register-dialog').showModal();
+  await loadSalesOrders();
+}
+function applySalesRegisterSearch(){
+  const query=$('sales-register-query').value.trim();
+  if(!query){
+    salesRegisterQuery='';salesRegisterSearched=false;
+    $('sales-register-message').textContent='수주번호 또는 거래처(성명)를 입력하세요.';
+    renderSalesRegister();return;
+  }
+  salesRegisterQuery=query;salesRegisterSearched=true;renderSalesRegister();
+  $('sales-register-message').textContent=salesRegisterVisibleOrders.length
+    ? '검색 결과 '+number(salesRegisterVisibleOrders.length)+'건'
+    : '검색 결과가 없습니다.';
+}
+function openSalesRegisterConfirmation(id){
+  if(!currentUser||salesStatusUpdating)return;
+  const order=salesOrders.find(row=>row.id===id);
+  if(!order)return;
+  const shipped=Number(order.shipped_quantity||0),quantity=Number(order.quantity||0);
+  const alreadyComplete=salesOrderStatus(order)==='완료',partialShipment=shipped>0&&shipped<quantity;
+  salesRegisterTargetOrderId=order.id;
+  $('sales-register-confirm-message').textContent='매출등록을 하시겠습니까?';
+  $('sales-register-confirm-status').textContent=alreadyComplete
+    ? '이미 매출 등록이 완료된 품목입니다.'
+    : partialShipment?'잔여 수량이 있어 매출 완료할 수 없습니다.':order.order_number+' · '+order.product_name;
+  $('complete-sales-register-confirm').disabled=alreadyComplete||partialShipment;
+  $('cancel-sales-register-confirm').disabled=false;$('close-sales-register-confirm').disabled=false;
+  $('sales-register-confirm-dialog').showModal();
+}
+function cancelSalesRegisterConfirmation(){
+  if(salesStatusUpdating)return;
+  salesRegisterTargetOrderId='';
+  $('sales-register-confirm-dialog').close();
+}
+async function completeSalesRegistration(){
+  const order=salesOrders.find(row=>row.id===salesRegisterTargetOrderId);
+  if(!order||!currentUser||salesStatusUpdating)return;
+  if(salesOrderStatus(order)==='완료'
+    ||Number(order.shipped_quantity||0)>0&&Number(order.shipped_quantity)<Number(order.quantity)){
+    $('complete-sales-register-confirm').disabled=true;return;
+  }
+  const generation=authGeneration;
+  salesStatusUpdating=true;$('complete-sales-register-confirm').disabled=true;
+  $('cancel-sales-register-confirm').disabled=true;$('close-sales-register-confirm').disabled=true;
+  $('sales-register-confirm-status').textContent='매출 등록을 저장하는 중…';
+  renderSalesRegister();
+  try{
+    const {data,error}=await client.rpc('set_sales_order_status',{p_order_id:order.id,p_sales_status:'완료'});
+    if(error)throw error;
+    if(generation!==authGeneration)return;
+    salesOrders=salesOrders.map(row=>row.id===data.id?data:row);
+    renderSalesOrders();renderSalesStatus();renderSalesRegister();renderSalesBalance();updateIssueSalesOrders();
+    $('sales-register-confirm-dialog').close();salesRegisterTargetOrderId='';
+    $('sales-register-message').textContent='수주 '+order.order_number+' 품목의 매출 등록을 완료했습니다.';
+  }catch(error){
+    if(generation===authGeneration){
+      $('sales-register-confirm-status').textContent='매출 등록에 실패했습니다. '+errorText(error);
+      $('complete-sales-register-confirm').disabled=false;$('cancel-sales-register-confirm').disabled=false;$('close-sales-register-confirm').disabled=false;
+    }
+  }finally{
+    salesStatusUpdating=false;
+    if(generation===authGeneration)renderSalesRegister();
+  }
 }
 async function editSalesOrderFromStatus(id){
   $('sales-status-dialog').close();
@@ -1083,17 +1185,17 @@ async function updateSession(session) {
   if(typeof resetVendorSession==='function')resetVendorSession();
   appliedSalesBalanceFilters={startDate:'',endDate:'',orderType:''};
   $('sales-balance-start-date').value='';$('sales-balance-end-date').value='';$('sales-balance-type-filter').value='';
-  appliedDateProductIds=null;appliedSupplier='';$('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';$('supplier-filter-wrap').hidden=true;
+  appliedDateProductIds=null;appliedSupplier='';salesRegisterQuery='';salesRegisterSearched=false;salesRegisterVisibleOrders=[];salesRegisterTargetOrderId='';$('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';$('supplier-filter-wrap').hidden=true;
   $('admin-link').hidden = true;
   $('admin-folder').hidden = true;
   $('sidebar-toggle').hidden = !currentUser;
   $('app-layout').classList.toggle('signed-in',!!currentUser);
-  items = []; agedStock=[];assetClassifications=[];editingAssetClassificationId='';salesOrders=[];salesDraftLines=[];purchaseOrders=[];purchaseOrderLines=[];purchaseReceipts=[];purchaseDraftLines=[];purchaseOrderVendors=[];purchaseOrderVendorsLoaded=false;populatePurchaseOrderVendorOptions();renderSalesOrders();renderSalesStatus();renderSalesBalance();updateSupplierOptions();render();
+  items = []; agedStock=[];assetClassifications=[];editingAssetClassificationId='';salesOrders=[];salesDraftLines=[];purchaseOrders=[];purchaseOrderLines=[];purchaseReceipts=[];purchaseDraftLines=[];purchaseOrderVendors=[];purchaseOrderVendorsLoaded=false;populatePurchaseOrderVendorOptions();renderSalesOrders();renderSalesStatus();renderSalesRegister();renderSalesBalance();updateSupplierOptions();render();
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
   $('user-email').textContent = currentUser?.email || '';
   if (!currentUser) {
     clearMinimizedDialogs();
-    $('movement-dialog').close(); $('product-info-dialog').close(); $('product-info-status-dialog').close(); $('asset-classification-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('purchase-order-dialog').close(); $('purchase-receive-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('movement-dialog').close(); $('product-info-dialog').close(); $('product-info-status-dialog').close(); $('asset-classification-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('sales-register-dialog').close(); $('sales-register-confirm-dialog').close(); $('purchase-order-dialog').close(); $('purchase-receive-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try {
     await loadStock();
@@ -1871,7 +1973,7 @@ function openPrintSettings(target) {
   $('print-settings-dialog').showModal();
 }
 function printInventoryList(target) {
-  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','long-stock':'long-stock-dialog','movement-list':'movement-list-dialog','sales-status':'sales-status-dialog'};
+  const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','long-stock':'long-stock-dialog','movement-list':'movement-list-dialog','sales-status':'sales-status-dialog','sales-register':'sales-register-dialog'};
   if(target in targetDialogs&&!$(targetDialogs[target]).open)return;
   activePrintTarget=target;
   applyProductListPrintSettings();
@@ -1897,6 +1999,7 @@ function applyProductListPrintSettings() {
     'long-stock':'#long-stock-dialog table',
     'sales-balance':'#sales-balance table',
     'sales-status':'#sales-status-dialog table',
+    'sales-register':'#sales-register-dialog table',
     'movement-list':'#movement-list-dialog .product-list-table table'
   };
   let style=document.getElementById('product-list-print-page-style');
@@ -2128,6 +2231,15 @@ function exportSalesStatusExcel(){
     Number(order.amount||0),String(order.due_date||'').slice(0,10),order.delivery_method,order.address,order.notes
   ]),[0,11,12,13],'내보낼 수주 내역이 없습니다.');
 }
+function exportSalesRegisterExcel(){
+  const headers=['일련번호','수주일자','수주번호','수주형태','거래처','연락처','출고일자','매출 상태','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'];
+  return downloadDataWorkbook('export-sales-register','매출등록','매출 등록',headers,salesRegisterVisibleOrders.map(order=>[
+    Number(order.sequence_id),String(order.order_date||'').slice(0,10),order.order_number,order.order_type,order.vendor_name||'',
+    order.vendor_contact||'',String(order.shipped_date||'').slice(0,10),salesOrderStatus(order),order.product_name,order.specification,
+    order.unit,Number(order.quantity||0),Number(order.unit_price||0),Number(order.amount||0),String(order.due_date||'').slice(0,10),
+    order.delivery_method,order.address,order.notes
+  ]),[0,11,12,13],'내보낼 매출 등록 내역이 없습니다.');
+}
 async function exportExcel() {
   if(exporting || !currentUser) return;
   if(!items.length){notify('내보낼 품목이 없습니다.');return;}
@@ -2190,7 +2302,7 @@ async function startApp(){
   $('purchase-receive-form').addEventListener('input',()=>{receivingPurchaseRequestId=crypto.randomUUID();});
   $('purchase-receive-dialog').addEventListener('cancel',event=>{if(purchaseSaving)event.preventDefault();});
   $('sales-status-button').addEventListener('click',showSalesStatus);
-  $('sales-register-button').addEventListener('click',showSalesStatus);
+  $('sales-register-button').addEventListener('click',showSalesRegister);
   $('sales-status-query-button').addEventListener('click',showSalesStatus);
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
   $('cancel-sales-order').addEventListener('click',cancelSalesOrder);
@@ -2203,6 +2315,19 @@ async function startApp(){
   });
   $('sales-order-items').addEventListener('click',event=>{const button=event.target.closest('[data-sales-order-id]');if(button)editSalesOrder(button.dataset.salesOrderId);});
   $('close-sales-status').addEventListener('click',()=>$('sales-status-dialog').close());
+  $('close-sales-register').addEventListener('click',()=>$('sales-register-dialog').close());
+  $('search-sales-register').addEventListener('click',applySalesRegisterSearch);
+  $('sales-register-query').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();applySalesRegisterSearch();}});
+  $('sales-register-items').addEventListener('click',event=>{
+    const button=event.target.closest('[data-sales-register-order-id]');
+    if(button)openSalesRegisterConfirmation(button.dataset.salesRegisterOrderId);
+  });
+  $('close-sales-register-confirm').addEventListener('click',cancelSalesRegisterConfirmation);
+  $('cancel-sales-register-confirm').addEventListener('click',cancelSalesRegisterConfirmation);
+  $('sales-register-confirm-dialog').addEventListener('cancel',event=>{
+    if(salesStatusUpdating)event.preventDefault();else salesRegisterTargetOrderId='';
+  });
+  $('complete-sales-register-confirm').addEventListener('click',completeSalesRegistration);
   $('apply-sales-status-search').addEventListener('click',()=>applySalesStatusSearch());
   $('search-sales-status-orders').addEventListener('click',()=>applySalesStatusSearch());
   $('clear-sales-status-search').addEventListener('click',()=>applySalesStatusSearch(true));
@@ -2216,6 +2341,7 @@ async function startApp(){
     if(button)editSalesOrderFromStatus(button.dataset.salesOrderId);
   });
   $('export-sales-status').addEventListener('click',exportSalesStatusExcel);
+  $('export-sales-register').addEventListener('click',exportSalesRegisterExcel);
   $('apply-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch());
   $('clear-sales-balance-search').addEventListener('click',()=>applySalesBalanceSearch(true));
   ['sales_quantity','sales_unit_price'].forEach(id=>$(id).addEventListener('input',updateSalesAmount));

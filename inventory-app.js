@@ -712,17 +712,6 @@ function renderPurchaseOrders(){
     }else action.textContent='완료';
     row.append(action);body.append(row);
   });
-  const receiptsBody=$('purchase-receipt-items');receiptsBody.replaceChildren();
-  const linesById=new Map(purchaseOrderLines.map(line=>[line.id,line]));
-  const receipts=[...purchaseReceipts].sort((a,b)=>Number(b.sequence_id)-Number(a.sequence_id));
-  if(!receipts.length)emptyRow(receiptsBody,8,'입고 기록이 없습니다.');
-  receipts.forEach(receipt=>{
-    const line=linesById.get(receipt.purchase_order_line_id),order=ordersById.get(line?.purchase_order_id),item=productsById.get(line?.product_id),row=document.createElement('tr');
-    [number(receipt.sequence_id),String(receipt.received_date||'').slice(0,10),order?.order_number||'',item?.product_code||'',
-      item?.product_name||'',number(receipt.quantity),money(receipt.unit_cost),receipt.stock_tracked?'재고수불부 반영':'별도 이력']
-      .forEach((value,index)=>row.append(makeCell(value,index===0||index===5||index===6)));
-    receiptsBody.append(row);
-  });
 }
 async function loadPurchaseOrders(){
   if(purchaseLoading)return;

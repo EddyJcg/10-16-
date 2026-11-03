@@ -370,6 +370,7 @@
             <label for="purchase-search-code">품번<input id="purchase-search-code" type="search" placeholder="품번 입력"></label>
             <label for="purchase-search-name">품명<input id="purchase-search-name" type="search" placeholder="품명 입력"></label>
             <label for="purchase-search-specification">규격<input id="purchase-search-specification" type="search" placeholder="규격 입력"></label>
+            <label for="purchase-search-status">상태<select id="purchase-search-status"><option value="">전체</option><option value="작성중">작성중</option><option value="발주완료">발주완료</option><option value="부분입고">부분입고</option><option value="입고완료">입고완료</option><option value="취소">취소</option></select></label>
             <div class="product-list-actions"><button id="search-purchase-orders" class="primary" type="button">검색</button><button id="clear-purchase-order-search" class="secondary" type="button">초기화</button></div>
           </div>
           <div class="table-wrap purchase-order-table"><table aria-label="발주현황"><thead><tr><th>일련번호</th><th>발주일자</th><th>발주번호</th><th>업체</th><th>품번</th><th>품명</th><th>규격</th><th>발주수량</th><th>입고수량</th><th>잔량</th><th>단가</th><th>품목 납기예정일</th><th>상태</th><th>입고</th></tr></thead><tbody id="purchase-order-items"></tbody></table></div>

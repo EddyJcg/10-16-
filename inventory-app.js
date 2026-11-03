@@ -690,18 +690,19 @@ function addPurchaseDraftLine(){
   updatePurchaseProductDetails();
   $('purchase-order-status').textContent='';renderPurchaseDraftLines();
 }
-const PURCHASE_SEARCH_IDS=['purchase-search-start-date','purchase-search-end-date','purchase-search-number','purchase-search-supplier','purchase-search-code','purchase-search-name','purchase-search-specification'];
+const PURCHASE_SEARCH_IDS=['purchase-search-start-date','purchase-search-end-date','purchase-search-number','purchase-search-supplier','purchase-search-code','purchase-search-name','purchase-search-specification','purchase-search-status'];
 function purchaseOrderSearchValues(){
   const text=id=>($(id)?.value||'').trim().toLocaleLowerCase('ko-KR');
   return {start:$('purchase-search-start-date')?.value||'',end:$('purchase-search-end-date')?.value||'',
     number:text('purchase-search-number'),supplier:text('purchase-search-supplier'),
-    code:text('purchase-search-code'),name:text('purchase-search-name'),specification:text('purchase-search-specification')};
+    code:text('purchase-search-code'),name:text('purchase-search-name'),specification:text('purchase-search-specification'),status:purchase-search-status?.value||''};
 }
 function purchaseLineMatches(filter,order,item){
   const has=(value,query)=>!query||String(value||'').toLocaleLowerCase('ko-KR').includes(query);
   const date=String(order?.order_date||'').slice(0,10);
   if(filter.start&&(!date||date<filter.start))return false;
   if(filter.end&&(!date||date>filter.end))return false;
+  if(filter.status&&order?.status!==filter.status)return false;
   return has(order?.order_number,filter.number)&&has(order?.supplier,filter.supplier)
     &&has(item?.product_code,filter.code)&&has(item?.product_name,filter.name)&&has(item?.specification,filter.specification);
 }
@@ -2619,7 +2620,8 @@ async function startApp(){
   $('search-product-list').addEventListener('click',searchProductList);
   $('search-purchase-orders').addEventListener('click',searchPurchaseOrders);
   $('clear-purchase-order-search').addEventListener('click',clearPurchaseOrderSearch);
-  PURCHASE_SEARCH_IDS.slice(2).forEach(id=>$(id).addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();searchPurchaseOrders();}}));
+  $('purchase-search-status').addEventListener('change',searchPurchaseOrders);
+  PURCHASE_SEARCH_IDS.slice(2,7).forEach(id=>$(id).addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();searchPurchaseOrders();}}));
   $('clear-product-list-search').addEventListener('click',clearProductListSearch);
   $('receipt-list-button').addEventListener('click',()=>showMovementList('receipt'));
   $('issue-list-button').addEventListener('click',()=>showMovementList('issue'));

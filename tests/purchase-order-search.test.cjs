@@ -22,10 +22,10 @@ test('구매발주 품목조회 창에 조회 조건이 발주 현황 표 위에
 test('발주 조회 조건은 기간·발주번호·거래처·품번·품명·규격으로 필터링한다', () => {
   const context = vm.createContext({});
   vm.runInContext(app, context);
-  const order = { order_date: '2026-11-03', order_number: 'PO-2', supplier: '다라물산' };
+  const order = { order_date: '2026-11-03', order_number: 'PO-2', supplier: '다라물산', status: '부분입고' };
   const item = { product_code: 'B-2', product_name: '신발', specification: '소' };
   const match = (filter) => vm.runInContext(
-    `purchaseLineMatches(Object.assign({start:'',end:'',number:'',supplier:'',code:'',name:'',specification:''},${JSON.stringify(filter)}),${JSON.stringify(order)},${JSON.stringify(item)})`, context);
+    `purchaseLineMatches(Object.assign({start:'',end:'',number:'',supplier:'',code:'',name:'',specification:'',status:''},${JSON.stringify(filter)}),${JSON.stringify(order)},${JSON.stringify(item)})`, context);
   assert.equal(match({}), true);
   assert.equal(match({ start: '2026-11-04' }), false);
   assert.equal(match({ end: '2026-11-02' }), false);
@@ -35,4 +35,11 @@ test('발주 조회 조건은 기간·발주번호·거래처·품번·품명·�
   assert.equal(match({ code: 'b-' }), true);
   assert.equal(match({ name: '가방' }), false);
   assert.equal(match({ specification: '소' }), true);
+  assert.equal(match({ status: '부분입고' }), true);
+  assert.equal(match({ status: '입고완료' }), false);
+});
+test('상태 선택 항목이 발주 상태 값과 같다', () => {
+  const select = html.slice(html.indexOf('id="purchase-search-status"'));
+  const options = [...select.slice(0, select.indexOf('</select>')).matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
+  assert.deepEqual(options, ['', '작성중', '발주완료', '부분입고', '입고완료', '취소']);
 });

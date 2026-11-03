@@ -154,7 +154,7 @@ test('product import opens the native XLSX picker directly without an intermedia
   const html=fs.readFileSync('inventory.html','utf8');
   const dialog=html.match(/<dialog id="product-info-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
   assert.match(dialog,/<div class="dialog-header">[\s\S]*?<button type="button" class="close" id="close-product-info"/);
-  assert.match(dialog,/<div class="dialog-footer">[\s\S]*?<button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="cancel-product-info" class="secondary">취소<\/button><button id="save-product-info" class="primary">품목정보 저장<\/button>/);
+  assert.match(dialog,/<div class="dialog-footer">[\s\S]*?<button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="add-product-info-draft" class="secondary">품목 추가<\/button><button type="button" id="cancel-product-info" class="secondary">취소<\/button><button id="save-product-info" class="primary">일괄 저장<\/button>/);
   assert.match(dialog,/id="product-info-import-file" type="file" accept="[^"]*\.xlsx/);
   assert.doesNotMatch(html,/product-info-import-dialog|product-import-dialog/);
   const script=fs.readFileSync('inventory-app.js','utf8');
@@ -173,7 +173,7 @@ test('receipt dialog provides an XLSX picker and a missing-product details windo
   assert.match(html,/id="receipt-import-missing-items"/);
 });
 
-test('opening a selected product workbook imports every validated row and refreshes the list',async()=>{
+test('opening a selected product workbook adds checked draft rows and batch save registers only checked rows',async()=>{
   const nodes=new Map(),alerts=[],calls=[];
   const element=id=>{
     if(!nodes.has(id))nodes.set(id,{disabled:false,value:'',textContent:'',open:false,clicks:0,click(){this.clicks++;},showModal(){this.open=true;},close(){this.open=false;}});
@@ -187,27 +187,35 @@ test('opening a selected product workbook imports every validated row and refres
   });
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   context.window.parseProductImportWorkbook=()=>({errors:[],rows:[
-    {product_code:'SKU-001',product_category:'원자재'},
-    {product_code:'SKU-002',product_category:'원자재'}
+    {product_code:'SKU-001',product_category:'원자재',specification:'A'},
+    {product_code:'SKU-002',product_category:'원자재',specification:'B'}
   ]});
   vm.runInContext(`currentUser={id:'user'};authGeneration=3;assetClassifications=[];items=[];
-    client={rpc:async(...args)=>(calls.push(args),{error:null})};
+    client={rpc:async(name,args)=>(calls.push([name,args]),{data:{id:args.p_details.product_code,...args.p_details},error:null})};
     loadStock=async()=>calls.push(['loadStock']);
     renderProductInfoItems=()=>calls.push(['renderProductInfoItems']);`,context);
 
-  const file={name:'items.xlsx',arrayBuffer:async()=>new ArrayBuffer(0)};
   await vm.runInContext('openProductInfoFilePicker()',context);
   assert.equal(element('product-info-import-file').clicks,1);
-  context.productImportFile=file;
+  context.productImportFile={name:'items.xlsx',arrayBuffer:async()=>new ArrayBuffer(0)};
   await vm.runInContext('importProductInfoFile({target:{files:[productImportFile],value:"selected"}})',context,{timeout:1000});
+  assert.equal(calls.filter(call=>call[0]==='register_stock_product').length,0,'upload only stages rows');
+  assert.equal(vm.runInContext('productInfoDrafts.length',context),2);
 
-  assert.equal(calls.filter(call=>call[0]==='register_stock_product').length,2);
-  assert.ok(calls.some(call=>call[0]==='loadStock'));
-  assert.deepEqual(alerts,['품목정보 2건을 등록했습니다.']);
+  vm.runInContext('productInfoDrafts[1].checked=false',context);
+  await vm.runInContext('saveProductInfo({preventDefault(){}})',context);
+  const registrations=calls.filter(call=>call[0]==='register_stock_product');
+  assert.equal(registrations.length,1);
+  assert.equal(registrations[0][1].p_details.product_code,'SKU-001');
+  assert.equal('draftId'in registrations[0][1].p_details,false);
+  assert.equal(vm.runInContext('productInfoDrafts.map(row=>row.product_code).join()',context),'SKU-002');
+  assert.equal(vm.runInContext('items.length',context),1);
   assert.equal(element('product-info-editor').disabled,false);
-  assert.equal(element('import-product-info-button').disabled,false);
+  assert.equal(registrations.length,1);
+  await vm.runInContext('productInfoDrafts[0].checked=false;saveProductInfo({preventDefault(){}})',context);
+  assert.equal(calls.filter(call=>call[0]==='register_stock_product').length,1);
+  assert.match(element('product-info-status').textContent,/체크/);
 });
-
 test('invalid product-import rows show a warning and make no registration calls',async()=>{
   const nodes=new Map(),alerts=[],calls=[];
   const element=id=>{

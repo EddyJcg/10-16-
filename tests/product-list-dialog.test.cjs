@@ -352,7 +352,7 @@ test('product information status searches each condition independently and allow
   assert.deepEqual(Array.from(exported[3]),['품목분류','품번','품명','규격','재질','색상','단위','적정재고','등록자명']);
   assert.deepEqual(Array.from(exported[4],row=>Array.from(row)),[['','SKU-2','Backpack Beta','Spec-3','','','',0,'기존 등록자']]);
   assert.deepEqual(Array.from(exported[5]),[7]);
-  assert.match(html,/aria-label="등록된 품목정보"><thead><tr>[\s\S]*?<th>적정재고<\/th><\/tr>/);
+  assert.match(html,/aria-label="등록된 품목정보"><thead><tr>[\s\S]*?<th>적정재고<\/th><th>관리<\/th><\/tr>/);
 });
 test('product edits require confirmation and lock assigned fields while allowing blank fields',()=>{
   const elements=new Map(),confirmations=[];
@@ -409,10 +409,10 @@ test('duplicate product codes and specifications show blocking warnings before r
   vm.runInContext(`currentUser={id:'user'};busy=false;editingProductInfoId='';selectedProductInfoCode='';
     items=[{id:'existing',product_code:'SKU-1',specification:'Spec-A'}];
     assetClassifications=[{id:'class-1',name:'원자재',inventory_asset_type:'원자재'}]`,context);
-  await vm.runInContext('saveProductInfo({preventDefault(){}})',context);
+  await vm.runInContext('addProductInfoDraft()',context);
   values.info_product_code='SKU-2';
   values.info_specification=' spec-a ';
-  await vm.runInContext('saveProductInfo({preventDefault(){}})',context);
+  await vm.runInContext('addProductInfoDraft()',context);
   assert.deepEqual(alerts,['이미 등록된 품번입니다. 다른 품번을 입력하세요.','이미 등록된 규격입니다. 다른 규격을 입력하세요.']);
 });
 test('current stock and movement history table cell text is centered',()=>{
@@ -428,7 +428,7 @@ test('table dialogs omit the shared header filter and retain draggable persisted
   assert.doesNotMatch(style,/dialog-header-has-filter|dialog-table-filter/);
   assert.match(style,/\.dialog-header-actions\{display:flex;align-items:center;gap:8px;flex:0 0 auto\}/);
   assert.match(style,/\.intro,\.toolbar,\.session,\.dialog-header,\.dialog-footer\{[^}]*justify-content:space-between/);
-  assert.match(html,/<div class="dialog-footer"><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소<\/button><button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="cancel-product-info" class="secondary">취소<\/button><button id="save-product-info" class="primary">품목정보 저장<\/button><\/div>/);
+  assert.match(html,/<div class="dialog-footer"><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소<\/button><button type="button" id="import-product-info-button" class="secondary">Excel 업로드<\/button><button type="button" id="add-product-info-draft" class="secondary">품목 추가<\/button><button type="button" id="cancel-product-info" class="secondary">취소<\/button><button id="save-product-info" class="primary">일괄 저장<\/button><\/div>/);
   assert.match(html,/<div class="dialog-footer"><button type="button" class="secondary" id="import-receipt-button" hidden>Excel 업로드<\/button><button id="save-movement" class="primary">저장<\/button><\/div>/);
   assert.match(script,/table\.addEventListener\('dragstart'/);
   assert.match(script,/table\.addEventListener\('drop'/);

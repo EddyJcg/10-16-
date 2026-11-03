@@ -71,7 +71,7 @@
     <div class="dialog-footer"><button id="export-movement-list" class="secondary" type="button">↓ Excel 다운로드</button></div>
   </dialog>
   <dialog id="product-info-dialog" aria-labelledby="product-info-title">
-    <form id="product-info-form">
+    <form id="product-info-form" novalidate>
       <div class="dialog-header"><div><h2 id="product-info-title">품목정보 등록</h2><p>기초재고나 입고를 등록하기 전에 품목정보를 먼저 저장하세요. Excel 업로드는 첫 시트 첫 행에 품목자산분류, 재고자산종류, 품번, 품명, 규격, 재질, 색상, 단위, 적정재고 열이 필요합니다.</p></div><div class="dialog-header-actions"><button type="button" class="close" id="close-product-info" aria-label="품목정보 창 닫기">닫기</button></div></div>
       <input id="product-info-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
       <fieldset id="product-info-editor">
@@ -87,9 +87,9 @@
             <div class="field"><label for="info_standard_stock_quantity">적정재고 수량</label><input id="info_standard_stock_quantity" type="number" required min="1" max="1000000" step="1" placeholder="1~1,000,000"></div>
           </div>
           <p id="product-info-status" class="product-list-status" role="status" aria-live="polite"></p>
-          <div class="table-wrap product-list-table"><table aria-label="등록된 품목정보"><thead><tr><th>품목자산분류</th><th>재고자산종류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th></tr></thead><tbody id="product-info-items"></tbody></table></div>
+          <div class="table-wrap product-list-table"><table aria-label="등록된 품목정보"><thead><tr><th>품목자산분류</th><th>재고자산종류</th><th>품번</th><th>품명</th><th>규격</th><th>재질</th><th>색상</th><th>단위</th><th>적정재고</th><th>관리</th></tr></thead><tbody id="product-info-items"></tbody></table></div>
         </div>
-        <div class="dialog-footer"><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소</button><button type="button" id="import-product-info-button" class="secondary">Excel 업로드</button><button type="button" id="cancel-product-info" class="secondary">취소</button><button id="save-product-info" class="primary">품목정보 저장</button></div>
+        <div class="dialog-footer"><button type="button" id="cancel-product-info-edit" class="secondary" hidden>수정 취소</button><button type="button" id="import-product-info-button" class="secondary">Excel 업로드</button><button type="button" id="add-product-info-draft" class="secondary">품목 추가</button><button type="button" id="cancel-product-info" class="secondary">취소</button><button id="save-product-info" class="primary">일괄 저장</button></div>
       </fieldset>
     </form>
   </dialog>

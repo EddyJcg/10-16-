@@ -92,7 +92,7 @@ test('procurement folder uses the supplied settings icon without a background',(
   const html=fs.readFileSync('inventory.html','utf8');
   const style=fs.readFileSync('purchase-folder-icon.css','utf8');
   const icon=fs.readFileSync('purchase-settings.svg','utf8');
-  assert.match(html,/href="\/purchase-folder-icon\.css\?v=20261103-sidebar-folder-dark"/);
+  assert.match(html,/href="\/purchase-folder-icon\.css\?v=20261103-sidebar-folder-blue"/);
   assert.match(fs.readFileSync('purchase-folder-icon.css','utf8'),/\.sidebar \.menu-folder>summary[^{]*\{background:#41494e;color:#fff\}/);
   assert.match(style,/#purchase-folder>summary::before\{[^}]*width:29\.9px;height:29\.9px[^}]*mask:url\('\/purchase-settings\.svg'\)/);
   assert.match(style,/#purchase-entry-folder>summary::before,#purchase-query-folder>summary::before\{content:none;display:none\}/);

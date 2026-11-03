@@ -46,7 +46,7 @@ test('classification and procurement UI permits incomplete classification select
   assert.match(html,/<th>품목 납기예정일<\/th><th>상태<\/th>/);
   assert.match(html,/id="purchase-order-supplier" required><option value="">등록 거래처 선택<\/option><\/select>/);
   assert.match(html,/id="purchase-line-product" required><option value="">품목정보 등록에서 선택<\/option><\/select>/);
-  assert.match(html,/<div class="dialog-footer"><button type="button" id="add-purchase-line" class="primary">품목 추가<\/button><button type="button" id="new-purchase-order" class="secondary">발주 추가작성<\/button><button id="save-purchase-order" class="primary">발주 저장<\/button><\/div>/);
+  assert.match(html,/<div class="dialog-footer"><button type="button" id="new-purchase-order" class="secondary">발주 추가작성<\/button><button type="button" id="add-purchase-line" class="primary">품목 추가<\/button><button id="save-purchase-order" class="primary">발주 저장<\/button><\/div>/);
   const purchaseLineForm=html.match(/<div class="form-grid purchase-order-line-form">([\s\S]*?)<\/div>\s*<div class="purchase-product-details"/)?.[1]||'';
   assert.ok(purchaseLineForm);
   assert.doesNotMatch(purchaseLineForm,/id="add-purchase-line"/);

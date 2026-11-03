@@ -2252,9 +2252,10 @@ function applyProductListPrintSettings() {
   };
   let style=document.getElementById('product-list-print-page-style');
   if(!style){style=document.createElement('style');style.id='product-list-print-page-style';document.head.append(style);}
-  const purchaseOrderPage=activePrintTarget==='purchase-order',pageNumber=purchaseOrderPage?'@bottom-center{content:counter(page) " / " counter(pages);font-size:10px}':'';
-  style.textContent=`@page{size:A4 landscape;margin:${printMargins.top}mm ${printMargins.right}mm ${printMargins.bottom}mm ${printMargins.left}mm;${pageNumber}}@media print{${tables[activePrintTarget]}{zoom:${scale};width:${100/scale}%}}`;
-  if(purchaseOrderPage)style.textContent=style.textContent.replace('A4 landscape','A4 portrait');
+  const purchaseOrderPage=activePrintTarget==='purchase-order';
+  style.textContent=`@page{size:A4 landscape;margin:${printMargins.top}mm ${printMargins.right}mm ${printMargins.bottom}mm ${printMargins.left}mm}@media print{${tables[activePrintTarget]}{zoom:${scale};width:${100/scale}%}}`;
+  // 여백을 0으로 두면 브라우저 머리글·바닥글이 표시되지 않으므로 여백은 발주서 안쪽에 적용합니다.
+  if(purchaseOrderPage)style.textContent=`@page{size:A4 portrait;margin:0}@media print{#purchase-order-print{--po-top:${printMargins.top}mm;--po-right:${printMargins.right}mm;--po-bottom:${printMargins.bottom}mm;--po-left:${printMargins.left}mm;zoom:${scale};width:${100/scale}%}}`;
 }
 function startProductListPrintSettings() {
   const scale=$('product-list-print-scale');

@@ -5,6 +5,12 @@
   body[data-print-target="purchase-order"] #purchase-order-print{display:block;position:absolute;inset:0 auto auto 0;width:100%;margin:0;padding:0;background:#fff;color:#000;font-family:"Malgun Gothic","맑은 고딕",sans-serif;font-size:10px}
   #purchase-order-print table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10px;margin:0}
   #purchase-order-print th,#purchase-order-print td{border:1px solid #000;padding:2px 4px;height:19px;text-align:left;vertical-align:middle;overflow:hidden;white-space:nowrap;background:#fff;font-weight:400}
+  #purchase-order-print table.po-page{border:0;table-layout:auto}
+  #purchase-order-print table.po-page>thead>tr>td,#purchase-order-print table.po-page>tfoot>tr>td{border:0;padding:0;height:auto}
+  #purchase-order-print table.po-page>tbody>tr>td{border:0;height:auto;white-space:normal;overflow:visible;padding:0 var(--po-right,10mm) 0 var(--po-left,10mm);vertical-align:top}
+  #purchase-order-print .po-margin-top{height:var(--po-top,10mm)}
+  #purchase-order-print .po-margin-bottom{height:var(--po-bottom,10mm)}
+  #purchase-order-print thead.po-repeat{display:table-header-group}
   #purchase-order-print .po-title{margin:0 0 8px;text-align:center;font-size:26px;font-weight:700;letter-spacing:.35em}
   #purchase-order-print .po-company{width:34%;font-size:11px}
   #purchase-order-print .po-company th{border:0;border-right:0;padding:1px 4px;width:34%}

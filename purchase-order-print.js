@@ -24,7 +24,7 @@
     const total=lines.reduce((sum,line)=>sum+Number(line.quantity)*Number(line.unit_cost),0);
     const rows=lines.map(itemRows);
     for(let index=lines.length;index<MIN_ROWS;index++)rows.push(itemRows(null,index));
-    return `<h1 class="po-title">구 매 발 주 서</h1>`
+    const body=`<h1 class="po-title">구 매 발 주 서</h1>`
       +`<table class="po-company"><tbody>`
       +`<tr>${label('상　　　호')}<td>: ${esc(company.name)}</td></tr>`
       +`<tr>${label('사업자등록번호')}<td>: ${esc(company.business_number)}</td></tr>`
@@ -44,6 +44,7 @@
       +`<thead><tr><th rowspan="2">No.</th><th>PJT NO</th><th>품목명</th><th>Maker</th><th>URL</th><th>도면Version</th><th rowspan="2">단위</th><th>본도</th><th>수량</th><th>단가</th></tr>`
       +`<tr><th>품목번호</th><th>규격</th><th>Unit구분</th><th>납품장소</th><th>구매요청자</th><th>대칭</th><th>입고요청일</th><th>금액</th></tr></thead>`
       +rows.join('')+`</table>`;
+    return `<table class="po-page"><thead><tr><td><div class="po-margin-top"></div></td></tr></thead><tbody><tr><td class="po-page-body">${body}</td></tr></tbody><tfoot><tr><td><div class="po-margin-bottom"></div></td></tr></tfoot></table>`;
   }
 
   const api={buildPurchaseOrderPrint,formatDate};

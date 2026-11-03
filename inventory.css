@@ -319,28 +319,31 @@
 #product-list .company-signature{margin-top:1.7em;text-align:center;font-size:20.736px}
 
 @media screen{
-  #sales-status-title,#sales-order-title{font-size:36px}
+  #sales-status-title,#sales-query-title,#sales-order-title{font-size:36px}
 }
 
 @media print{
   body[data-print-target="sales-status"] #sales-status-dialog,
-  body[data-print-target="sales-status"] #sales-status-dialog *{visibility:visible!important}
+  body[data-print-target="sales-status"] #sales-status-dialog *,
+  body[data-print-target="sales-status-query"] #sales-status-query-dialog,
+  body[data-print-target="sales-status-query"] #sales-status-query-dialog *{visibility:visible!important}
   body[data-print-target="sales-status"] #sales-status-dialog{display:block;position:absolute;inset:0 auto auto 0;width:100%;height:auto;min-width:0;min-height:0;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;overflow:visible;background:#fff}
-  #sales-status-dialog::backdrop{display:none}
-  #sales-status-dialog .dialog-header{padding:0 0 12px;border:0}
-  #sales-status-dialog .dialog-body{max-height:none;padding:0;overflow:visible}
-  #sales-status-dialog .sales-status-filters,
-  #sales-status-dialog .product-list-status,
-  #sales-status-dialog .product-list-toolbar{display:none!important}
-  #sales-status-dialog table{font-size:9px;white-space:normal;width:100%}
-  #sales-status-dialog thead{display:table-header-group}
-  #sales-status-dialog tr{break-inside:avoid}
-  #sales-status-dialog th,#sales-status-dialog td{position:static;padding:5px 4px;white-space:normal;word-break:break-word}
-  #sales-status-dialog td select{appearance:none;border:0;padding:0;min-width:0;background:transparent;color:inherit;font:inherit}
-  #sales-status-dialog .sales-order-totals{gap:8px;margin:8px 0 12px}
-  #sales-status-dialog .sales-order-totals>div{padding:8px}
-  #sales-status-dialog .sales-order-totals span{font-size:9px}
-  #sales-status-dialog .sales-order-totals strong{font-size:11px}
+  body[data-print-target="sales-status-query"] #sales-status-query-dialog{display:block;position:absolute;inset:0 auto auto 0;width:100%;height:auto;min-width:0;min-height:0;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;overflow:visible;background:#fff}
+  #sales-status-dialog::backdrop,#sales-status-query-dialog::backdrop{display:none}
+  #sales-status-dialog .dialog-header,#sales-status-query-dialog .dialog-header{padding:0 0 12px;border:0}
+  #sales-status-dialog .dialog-body,#sales-status-query-dialog .dialog-body{max-height:none;padding:0;overflow:visible}
+  #sales-status-dialog .sales-status-filters,#sales-status-query-dialog .sales-status-filters,
+  #sales-status-dialog .product-list-status,#sales-status-query-dialog .product-list-status,
+  #sales-status-dialog .product-list-toolbar,#sales-status-query-dialog .product-list-toolbar{display:none!important}
+  #sales-status-dialog table,#sales-status-query-dialog table{font-size:9px;white-space:normal;width:100%}
+  #sales-status-dialog thead,#sales-status-query-dialog thead{display:table-header-group}
+  #sales-status-dialog tr,#sales-status-query-dialog tr{break-inside:avoid}
+  #sales-status-dialog th,#sales-status-dialog td,#sales-status-query-dialog th,#sales-status-query-dialog td{position:static;padding:5px 4px;white-space:normal;word-break:break-word}
+  #sales-status-dialog td select,#sales-status-query-dialog td select{appearance:none;border:0;padding:0;min-width:0;background:transparent;color:inherit;font:inherit}
+  #sales-status-dialog .sales-order-totals,#sales-status-query-dialog .sales-order-totals{gap:8px;margin:8px 0 12px}
+  #sales-status-dialog .sales-order-totals>div,#sales-status-query-dialog .sales-order-totals>div{padding:8px}
+  #sales-status-dialog .sales-order-totals span,#sales-status-query-dialog .sales-order-totals span{font-size:9px}
+  #sales-status-dialog .sales-order-totals strong,#sales-status-query-dialog .sales-order-totals strong{font-size:11px}
 }
 /* 품목 자산 분류 창 체크 항목과 안내 글자 크기 2배 */
 .classification-checkboxes label{font-size:18.2px}

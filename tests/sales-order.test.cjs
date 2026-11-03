@@ -55,6 +55,20 @@ test('sales status places print controls in the header and Excel export in the f
   assert.equal(body.dataset.printTarget,undefined);
 });
 
+test('매출현황 조회는 수주현황과 별도 창과 독립된 검색 조건을 사용한다',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  const app=fs.readFileSync('inventory-app.js','utf8');
+  const status=html.match(/<dialog id="sales-status-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
+  const query=html.match(/<dialog id="sales-status-query-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
+  assert.ok(status&&query);
+  assert.match(status,/<h2 id="sales-status-title">수주현황<\/h2>/);
+  assert.match(query,/<h2 id="sales-query-title">매출현황<\/h2>/);
+  assert.match(query,/id="sales-query-items"/);
+  assert.match(app,/sales-status-query-button'\)\.addEventListener\('click',\(\)=>showSalesStatus\('query'\)\)/);
+  assert.match(app,/appliedSalesQueryFilters=/);
+  assert.match(app,/'sales-status-query':'sales-status-query-dialog'/);
+});
+
 test('sales order dialog separates free-text header details from repeatable order lines',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const style=fs.readFileSync('sales-order.css','utf8');

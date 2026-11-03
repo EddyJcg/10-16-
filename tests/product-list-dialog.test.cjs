@@ -110,6 +110,7 @@ test('all requested status and inventory dialogs offer Excel downloads using vis
     ['movement-list-dialog','export-movement-list'],
     ['product-info-status-dialog','export-product-info-status'],
     ['sales-status-dialog','export-sales-status'],
+    ['sales-status-query-dialog','export-sales-query'],
     ['current-stock-dialog','export-current-stock']
   ];
   for(const [dialogId,buttonId] of placements){
@@ -124,7 +125,8 @@ test('all requested status and inventory dialogs offer Excel downloads using vis
     ['export-product-list','exportProductListExcel'],['export-product-info-status','exportProductInfoStatusExcel'],
     ['export-movement-list','exportMovementListExcel']
   ])assert.match(script,new RegExp(`\\$\\('${id}'\\)\\.addEventListener\\('click',${handler}\\)`),id);
-  assert.match(script,/filterSalesOrders\(salesOrders,appliedSalesStatusFilters\)/);
+  assert.match(script,/view==='query'\?appliedSalesQueryFilters:appliedSalesStatusFilters/);
+  assert.match(script,/filterSalesOrders\(salesOrders,filters\)/);
   assert.match(script,/currentStockRows\(items\)/);
   assert.match(script,/filterInventoryItems\(items\.filter\(stockLedgerManaged\),\{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds\}\)/);
   assert.match(script,/function exportProductInfoStatusExcel\(\)[\s\S]*?filteredProductInfoStatusItems\(\)/);

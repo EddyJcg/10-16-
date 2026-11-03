@@ -1,1 +1,2 @@
 dialog.popup-floating{z-index:4}
+dialog.popup-floating[open]:not([style*="left:"]){position:fixed;inset:0;margin:auto}

@@ -667,10 +667,10 @@ function updatePurchaseProductDetails(){
 }
 function renderPurchaseDraftLines(){
   const body=$('purchase-draft-items');body.replaceChildren();
-  if(!purchaseDraftLines.length){emptyRow(body,7,'발주 품목을 추가하세요.');return;}
+  if(!purchaseDraftLines.length){emptyRow(body,8,'가발주 품목을 추가하세요.');return;}
   purchaseDraftLines.forEach((line,index)=>{
     const item=items.find(row=>row.id===line.product_id),row=document.createElement('tr');
-    [item?.product_code||'',item?.product_name||'',item?.specification||'',number(line.quantity),money(line.unit_cost),line.expected_date||'']
+    [item?.product_code||'',item?.product_name||'',item?.specification||'',number(line.quantity),money(line.unit_cost),line.expected_date||'','가발주']
       .forEach((value,column)=>row.append(makeCell(value,column===3||column===4)));
     const action=document.createElement('td'),button=document.createElement('button');button.type='button';button.className='secondary';
     button.textContent='삭제';button.dataset.removePurchaseLine=String(index);action.append(button);row.append(action);body.append(row);
@@ -688,7 +688,7 @@ function addPurchaseDraftLine(){
   purchaseDraftLines.push({product_id:productId,quantity,unit_cost:unitCost,expected_date:expectedDate||null});
   $('purchase-line-product').value='';$('purchase-line-quantity').value='';$('purchase-line-unit-cost').value='';$('purchase-line-expected-date').value='';
   updatePurchaseProductDetails();
-  $('purchase-order-status').textContent='';renderPurchaseDraftLines();
+  $('purchase-order-status').textContent='가발주 목록에 추가했습니다. 발주 저장을 누르면 정식 발주로 등록됩니다.';renderPurchaseDraftLines();
 }
 const PURCHASE_SEARCH_IDS=['purchase-search-start-date','purchase-search-end-date','purchase-search-number','purchase-search-supplier','purchase-search-code','purchase-search-name','purchase-search-specification','purchase-search-status'];
 function purchaseOrderSearchValues(){
@@ -783,7 +783,7 @@ async function savePurchaseOrder(event){
   if(!selectedVendor||!supplier){$('purchase-order-status').textContent='거래처 등록 화면에서 등록된 납품업체를 선택하세요.';$('purchase-order-supplier').focus();return;}
   if(orderDate<todayDate()){$('purchase-order-status').textContent='발주일자는 오늘 날짜보다 이전으로 설정할 수 없습니다.';return;}
   if(!validDate(orderDate)){$('purchase-order-status').textContent='발주일자를 확인하세요.';return;}
-  if(!purchaseDraftLines.length){$('purchase-order-status').textContent='발주 품목을 한 개 이상 추가하세요.';return;}
+  if(!purchaseDraftLines.length){$('purchase-order-status').textContent='가발주 품목을 한 개 이상 추가한 뒤 발주 저장을 누르세요.';return;}
   purchaseSaving=true;$('purchase-order-editor').disabled=true;$('purchase-order-status').textContent='발주를 저장하는 중…';
   const generation=authGeneration;
   try{
@@ -795,7 +795,7 @@ async function savePurchaseOrder(event){
     if(generation!==authGeneration)return;
     $('purchase-order-number').value=data.order_number;
     purchaseDraftLines=[];renderPurchaseDraftLines();
-    $('purchase-order-status').textContent='발주를 저장했습니다. 일련번호 '+number(data.sequence_id)+' · '+data.order_number;
+    $('purchase-order-status').textContent='정식 발주로 등록했습니다. 일련번호 '+number(data.sequence_id)+' · '+data.order_number;
     try{await loadPurchaseOrders();}
     catch(refreshError){$('purchase-order-status').textContent+=' 목록 새로고침에 실패했습니다. '+errorText(refreshError);}
   }catch(error){if(generation===authGeneration)$('purchase-order-status').textContent=errorText(error);}

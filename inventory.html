@@ -345,7 +345,7 @@
             <div class="field"><label for="purchase-order-date">발주일자</label><input id="purchase-order-date" type="date" required></div>
             <div class="field purchase-order-wide"><label for="purchase-order-notes">비고</label><textarea id="purchase-order-notes" maxlength="2000" rows="2"></textarea></div>
           </div>
-          <h3>발주 품목</h3>
+          <h3>발주 품목 <small>(추가한 품목은 가발주이며, 발주 저장 시 정식 발주로 등록됩니다)</small></h3>
           <div class="form-grid purchase-order-line-form">
             <div class="field"><label for="purchase-line-product">품목</label><select id="purchase-line-product" required><option value="">품목정보 등록에서 선택</option></select></div>
             <div class="field"><label for="purchase-line-quantity">발주수량</label><input id="purchase-line-quantity" type="number" min="1" max="1000000" step="1" required></div>
@@ -359,7 +359,7 @@
             <div class="field"><label for="purchase-product-material">재질</label><input id="purchase-product-material" readonly placeholder="품목 선택 시 자동 표시"></div>
             <div class="field"><label for="purchase-product-color">색상</label><input id="purchase-product-color" readonly placeholder="품목 선택 시 자동 표시"></div>
           </div>
-          <div class="table-wrap purchase-order-table"><table aria-label="이번 발주 품목"><thead><tr><th>품번</th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>납기예정일</th><th>관리</th></tr></thead><tbody id="purchase-draft-items"></tbody></table></div>
+          <div class="table-wrap purchase-order-table"><table aria-label="이번 발주 품목"><thead><tr><th>품번</th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>납기예정일</th><th>구분</th><th>관리</th></tr></thead><tbody id="purchase-draft-items"></tbody></table></div>
         </div>
         <div class="dialog-body" id="purchase-order-view">
           <div class="product-list-search purchase-order-search">

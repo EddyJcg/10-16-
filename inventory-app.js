@@ -798,6 +798,7 @@ async function savePurchaseOrder(event){
     $('purchase-order-status').textContent='정식 발주로 등록했습니다. 일련번호 '+number(data.sequence_id)+' · '+data.order_number;
     try{await loadPurchaseOrders();}
     catch(refreshError){$('purchase-order-status').textContent+=' 목록 새로고침에 실패했습니다. '+errorText(refreshError);}
+    window.alert('저장했습니다.');
   }catch(error){if(generation===authGeneration)$('purchase-order-status').textContent=errorText(error);}
   finally{purchaseSaving=false;$('purchase-order-editor').disabled=false;}
 }

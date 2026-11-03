@@ -240,6 +240,13 @@ async function saveVendor(event,copy=false){
     vendor$('vendor-status-message').textContent='선택한 거래처 종류에는 주민등록번호가 필요합니다.';return;
   }
   const status=vendor$('vendor-status-message'),generation=authGeneration;
+  const existing=currentVendorId&&!copy?vendorRecords.find(record=>record.id===currentVendorId):null;
+  if(existing&&(existing.legal_name!==legalName||existing.vendor_name!==vendorName)){
+    try{
+      const reason=await vendorUsedDownstream(existing);
+      if(reason){vendorBlockedAlert(reason);return;}
+    }catch(error){window.alert('이후 단계 사용 여부를 확인하지 못했습니다. 저장을 진행하지 않습니다. '+vendorErrorText(error));return;}
+  }
   status.textContent='거래처 정보를 저장하는 중…';
   vendor$('vendor-form').querySelectorAll('button,input,select,textarea').forEach(field=>field.disabled=true);
   const payload={
@@ -260,8 +267,31 @@ async function saveVendor(event,copy=false){
   }catch(error){if(generation===authGeneration)status.textContent=vendorErrorText(error);}
   finally{vendor$('vendor-form').querySelectorAll('button,input,select,textarea').forEach(field=>field.disabled=false);}
 }
+function vendorBlockedAlert(detail){
+  window.alert('처리할 수 없습니다.\n'+detail+'\n이후 프로세스에서 먼저 처리한 뒤 다시 시도하세요.');
+}
+async function vendorUsedDownstream(record){
+  const names=[...new Set([record.legal_name,record.vendor_name].map(name=>String(name||'').trim()).filter(Boolean))];
+  if(!names.length)return '';
+  const [orders,sales]=await Promise.all([
+    client.from('purchase_orders').select('id',{count:'exact',head:true}).in('supplier',names),
+    client.from('sales_orders').select('id',{count:'exact',head:true}).in('vendor_name',names)
+  ]);
+  if(orders.error)throw orders.error;
+  if(sales.error)throw sales.error;
+  if((orders.count||0)>0)return '이 거래처는 구매발주에 사용되었습니다.';
+  if((sales.count||0)>0)return '이 거래처는 수주에 사용되었습니다.';
+  return '';
+}
 async function deleteVendor(){
   if(!currentVendorId){vendor$('vendor-status-message').textContent='삭제할 거래처를 먼저 조회하세요.';return;}
+  const target=vendorRecords.find(record=>record.id===currentVendorId);
+  if(target){
+    try{
+      const reason=await vendorUsedDownstream(target);
+      if(reason){vendorBlockedAlert(reason);return;}
+    }catch(error){window.alert('이후 단계 사용 여부를 확인하지 못했습니다. 삭제를 진행하지 않습니다. '+vendorErrorText(error));return;}
+  }
   if(!window.confirm('선택한 거래처 정보를 삭제하시겠습니까?'))return;
   const id=currentVendorId,generation=authGeneration;
   vendor$('vendor-status-message').textContent='거래처 정보를 삭제하는 중…';
@@ -370,11 +400,11 @@ async function saveVendorOption(event){
 async function deleteVendorOption(id){
   const option=vendorOptions.find(item=>item.id===id);if(!option)return;
   if(option.category==='vendor_type'&&vendorRecords.some(record=>(record.selected_type_ids||[]).includes(id))){
-    vendor$('vendor-option-message').textContent='등록된 거래처에서 사용 중인 종류는 삭제할 수 없습니다.';return;
+    vendor$('vendor-option-message').textContent='';vendorBlockedAlert('등록된 거래처에서 사용 중인 종류입니다.');return;
   }
   if((option.category==='vendor_category'&&vendorRecords.some(record=>record.profile?.classification_id===id))||
      (option.category==='payment_account'&&vendorRecords.some(record=>record.profile?.payment_account_id===id))){
-    vendor$('vendor-option-message').textContent='등록된 거래처에서 사용 중인 항목은 삭제할 수 없습니다.';return;
+    vendor$('vendor-option-message').textContent='';vendorBlockedAlert('등록된 거래처에서 사용 중인 항목입니다.');return;
   }
   if(!window.confirm(`'${option.name}' 항목을 삭제하시겠습니까?`))return;
   try{

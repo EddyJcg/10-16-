@@ -990,6 +990,8 @@ async function completeSalesRegistration(){
   }
 }
 async function editSalesOrderFromStatus(id){
+  const blockedReason=salesOrderDownstreamReason(id);
+  if(blockedReason){alertBlocked(blockedReason);return;}
   $('sales-status-dialog').close();$('sales-status-query-dialog').close();
   resetSalesOrderForm();$('sales-order-status').textContent='';
   $('sales-order-dialog').showModal();
@@ -1088,6 +1090,8 @@ function cancelSalesOrder(){
 }
 function editSalesOrder(id){
   const order=salesOrders.find(row=>row.id===id);if(!order)return;
+  const blockedReason=salesOrderDownstreamReason(id);
+  if(blockedReason){alertBlocked(blockedReason);return;}
   const groupId=order.order_group_id||order.id;
   const group=salesOrders.filter(row=>(row.order_group_id||row.id)===groupId);
   editingSalesOrderId=groupId;
@@ -1640,7 +1644,10 @@ async function saveAssetClassification(event) {
     resetAssetClassificationForm();
     await loadAssetClassifications();
     $('asset-classification-status').textContent='품목자산분류를 저장했습니다. 기존 거래의 단가·금액은 변경되지 않았습니다.';
-  }catch(error){if(generation===authGeneration)$('asset-classification-status').textContent=errorText(error);}
+  }catch(error){if(generation===authGeneration){
+    if(/CLASSIFICATION_HAS_LEDGER_HISTORY/.test(error?.message||''))alertBlocked('이 분류에 거래(입출고) 이력이 있습니다.');
+    $('asset-classification-status').textContent=errorText(error);
+  }}
   finally{busy=false;$('asset-classification-form').querySelectorAll('input,select,button').forEach(el=>el.disabled=false);$('cancel-asset-classification-edit').hidden=!editingAssetClassificationId;}
 }
 async function showAssetClassifications() {
@@ -1715,7 +1722,7 @@ async function deleteProductInfo(id){
     return;
   }
   try{
-    if(await productInfoUsedInPurchase(id)){window.alert(PRODUCT_DELETE_BLOCKED_MESSAGE);return;}
+    if(await productInfoUsedInPurchase(id)||await productInfoUsedInMovements(id)){window.alert(PRODUCT_DELETE_BLOCKED_MESSAGE);return;}
   }catch(error){
     window.alert('발주 사용 여부를 확인하지 못했습니다. 삭제를 진행하지 않습니다. '+errorText(error));
     return;
@@ -1771,6 +1778,33 @@ async function productInfoUsedInPurchase(productId){
   if(error)throw error;
   return (count||0)>0;
 }
+async function productInfoUsedInMovements(productId){
+  const {count,error}=await client.from('stock_movements').select('id',{count:'exact',head:true}).eq('product_id',productId);
+  if(error)throw error;
+  return (count||0)>0;
+}
+function alertBlocked(detail){
+  window.alert('처리할 수 없습니다.\n'+detail+'\n이후 프로세스에서 먼저 처리한 뒤 다시 시도하세요.');
+}
+async function movementUsedDownstream(movement){
+  if(movement.kind==='issue'){
+    if(!movement.sales_order_id)return '';
+    const {data,error}=await client.from('sales_orders').select('*').eq('id',movement.sales_order_id).maybeSingle();
+    if(error)throw error;
+    return data&&salesOrderStatus(data)==='완료'?'이 출고는 매출 등록이 완료된 수주에 연결되어 있습니다.':'';
+  }
+  const {data,error}=await client.from('stock_lots').select('quantity,remaining_quantity').eq('movement_id',movement.id);
+  if(error)throw error;
+  return (data||[]).some(lot=>Number(lot.remaining_quantity)<Number(lot.quantity))?'이 입고(기초) 수량이 이미 출고에 사용되었습니다.':'';
+}
+function salesOrderDownstreamReason(id){
+  const order=salesOrders.find(row=>row.id===id);if(!order)return '';
+  const groupId=order.order_group_id||order.id;
+  const group=salesOrders.filter(row=>(row.order_group_id||row.id)===groupId);
+  if(group.some(row=>Number(row.shipped_quantity)>0))return '이 수주는 출고 처리된 내역이 있습니다.';
+  if(group.some(row=>salesOrderStatus(row)==='완료'))return '이 수주는 매출 등록이 완료되었습니다.';
+  return '';
+}
 async function editProductInfo(id){
   const item=items.find(row=>row.id===id);if(!item||busy)return;
   if(!window.confirm('품목정보를 수정하시겠습니까?'))return;
@@ -1781,6 +1815,10 @@ async function editProductInfo(id){
   try{
     if(await productInfoUsedInPurchase(id)){
       window.alert('발주 단계 이후 사용된 품목정보입니다. 발주 단계 이후의 정보를 삭제한 뒤에 수정을 진행해야 합니다.');
+      return;
+    }
+    if(await productInfoUsedInMovements(id)){
+      window.alert('입출고 단계 이후 사용된 품목정보입니다. 입출고 내역을 삭제한 뒤에 수정을 진행해야 합니다.');
       return;
     }
   }catch(error){
@@ -2117,6 +2155,10 @@ async function revertReceipt(id){
   const movement=movementListRows.find(row=>row.id===id);
   if(!movement||movement.kind!=='receipt'||!currentUser||busy)return;
   const item=itemsById.get(movement.product_id);
+  try{
+    const reason=await movementUsedDownstream(movement);
+    if(reason){alertBlocked(reason);return;}
+  }catch(error){window.alert('이후 단계 사용 여부를 확인하지 못했습니다. 삭제를 진행하지 않습니다. '+errorText(error));return;}
   if(!window.confirm(`입고 '${item?.product_code||''} ${item?.product_name||''}' ${number(movement.quantity)}${item?.unit||''} 내역을 삭제하고 미입고 상태로 되돌리시겠습니까?`))return;
   const generation=authGeneration;busy=true;
   try{
@@ -2130,7 +2172,7 @@ async function revertReceipt(id){
     catch{$('movement-list-status').textContent+=' 목록 새로고침은 다시 시도해 주세요.';}
   }catch(error){
     if(generation!==authGeneration)return;
-    window.alert(/INSUFFICIENT_STOCK/.test(error?.message||'')?'이 입고분이 이미 출고에 사용되어 삭제할 수 없습니다. 관련 출고 내역을 먼저 정리해 주세요.':'입고 내역을 삭제하지 못했습니다. '+errorText(error));
+    window.alert(/INSUFFICIENT_STOCK/.test(error?.message||'')?'처리할 수 없습니다.\n이 입고(기초) 수량이 이미 출고에 사용되었습니다.\n이후 프로세스에서 먼저 처리한 뒤 다시 시도하세요.':'입고 내역을 삭제하지 못했습니다. '+errorText(error));
   }finally{busy=false;}
 }
 async function showMovementList(kind='') {
@@ -2358,6 +2400,10 @@ function ignoreReceiptDetailsAndSave(){
 }
 async function editMovement(id){
   const movement=movementListRows.find(row=>row.id===id);if(!movement||!currentUser||busy)return;
+  try{
+    const reason=await movementUsedDownstream(movement);
+    if(reason){alertBlocked(reason);return;}
+  }catch(error){window.alert('이후 단계 사용 여부를 확인하지 못했습니다. 수정을 진행하지 않습니다. '+errorText(error));return;}
   openMovement(movement.kind);
   const item=items.find(row=>row.id===movement.product_id);if(!item)return;
   editingMovementId=movement.id;

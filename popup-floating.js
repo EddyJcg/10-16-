@@ -9,8 +9,4 @@
     this.classList.add('popup-floating');
     this.show();
   };
-  document.addEventListener('click',event=>{
-    if(!event.target.closest||!event.target.closest('.sidebar-action'))return;
-    document.querySelectorAll('dialog.popup-floating[open]').forEach(dialog=>dialog.close());
-  },true);
 })();

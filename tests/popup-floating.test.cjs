@@ -9,10 +9,10 @@ test('main popups are non-modal so sidebar menus stay clickable',()=>{
   const js=fs.readFileSync('popup-floating.js','utf8');
   assert.match(js,/this\.show\(\)/);
   assert.match(js,/sales-register-confirm-dialog/);
-  assert.match(js,/\.sidebar-action/);
+  assert.doesNotMatch(js,/\.sidebar-action|\.close\(\)/);
 });
 
-test('showModal override opens main popups without modal and closes them on sidebar click',()=>{
+test('showModal override opens main popups without modal and keeps them open on sidebar click',()=>{
   const calls=[];
   const closed=[];
   const dialog={id:'sales-order-dialog',open:false,classList:{add:c=>calls.push('class:'+c),contains:()=>false},show(){calls.push('show');this.open=true;},close(){closed.push(this.id);}};
@@ -25,6 +25,6 @@ test('showModal override opens main popups without modal and closes them on side
   proto.showModal.call(dialog);
   proto.showModal.call(confirmDialog);
   assert.deepEqual(calls,['class:popup-floating','show','native']);
-  clickHandler({target:{closest:s=>s==='.sidebar-action'?{}:null}});
-  assert.deepEqual(closed,['sales-order-dialog']);
+  assert.equal(clickHandler,undefined);
+  assert.deepEqual(closed,[]);
 });

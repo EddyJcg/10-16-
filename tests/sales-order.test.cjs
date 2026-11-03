@@ -521,8 +521,11 @@ test('sales orders filter inclusively by date, type and completion, and summariz
 
 test('매출현황 조회 날짜 조건과 금액 요약은 출고일자를 기준으로 한다',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
+  const app=fs.readFileSync('inventory-app.js','utf8');
   assert.match(html,/<label for="sales-query-start-date">매출일 시작<\/label>/);
   assert.match(html,/<label for="sales-query-end-date">매출일 종료<\/label>/);
+  assert.match(app,/function completedSalesOrders\(rows\)\{return rows\.filter\(order=>salesOrderStatus\(order\)==='완료'\);\}/);
+  assert.match(app,/view==='query'\?completedSalesOrders\(salesOrders\):salesOrders/);
   const orders=[
     {order_date:'2026-09-01',shipped_date:'2026-10-01',order_number:'SO-1',sales_status:'매출완료',amount:10},
     {order_date:'2026-10-02',shipped_date:'2026-10-02',order_number:'SO-2',sales_status:'매출미완료',amount:20},
@@ -544,6 +547,19 @@ test('매출현황 조회는 수주번호와 거래처 조건을 각각 또는 �
   assert.deepEqual(filterSalesOrders(rows,{vendorName:'alpha'}),[rows[0],rows[1]]);
   assert.deepEqual(filterSalesOrders(rows,{orderNumber:'SO-100',vendorName:'Alpha'}),[rows[0]]);
   assert.equal(filterSalesOrders(rows,{orderNumber:'missing'}).length,0);
+});
+
+test('매출현황 기본 목록과 검색 결과는 매출등록 완료 수주만 표시한다',()=>{
+  const rows=[
+    {order_number:'SO-100',vendor_name:'Alpha',shipped_date:'2026-11-01',sales_progress_status:'완료'},
+    {order_number:'SO-200',vendor_name:'Alpha',shipped_date:'2026-11-02',sales_progress_status:'진행'},
+    {order_number:'SO-300',vendor_name:'Beta',shipped_date:'2026-11-03',sales_progress_status:'완료'}
+  ];
+  const context=vm.createContext({salesOrderStatus,filterSalesOrders});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  context.orders=rows;
+  assert.deepEqual(vm.runInContext('completedSalesOrders(orders).map(order=>order.order_number)',context),['SO-100','SO-300']);
+  assert.deepEqual(vm.runInContext("filterSalesOrders(completedSalesOrders(orders),{vendorName:'alpha',dateField:'shipped_date'}).map(order=>order.order_number)",context),['SO-100']);
 });
 
 test('issue sales-order selector lists in-progress orders only and selects the linked product',()=>{

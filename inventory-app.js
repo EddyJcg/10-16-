@@ -520,12 +520,14 @@ function applySalesBalanceSearch(clear=false){
   renderSalesBalance();
 }
 function salesStatusPrefix(view='status'){return view==='query'?'sales-query':'sales-status';}
+function completedSalesOrders(rows){return rows.filter(order=>salesOrderStatus(order)==='완료');}
 function renderSalesStatus(view='status'){
   const prefix=salesStatusPrefix(view),filters=view==='query'?appliedSalesQueryFilters:appliedSalesStatusFilters;
   const dateField=view==='query'?'shipped_date':'order_date',dateLabel=view==='query'?'매출일':'수주일';
+  const sourceOrders=view==='query'?completedSalesOrders(salesOrders):salesOrders;
   const body=$(`${prefix}-items`);body.replaceChildren();
-  const baseOrders=filterSalesOrders(salesOrders,{...filters,salesStatus:'',dateField});
-  const totals=summarizeSalesOrders(salesOrders,{...filters,dateField});
+  const baseOrders=filterSalesOrders(sourceOrders,{...filters,salesStatus:'',dateField});
+  const totals=summarizeSalesOrders(sourceOrders,{...filters,dateField});
   const visibleOrders=filterSalesOrders(baseOrders,{...filters,dateField});
   $(`${prefix}-period`).textContent=filters.startDate||filters.endDate
     ? `${filters.startDate||'처음부터'} ~ ${filters.endDate||'현재까지'} (${dateLabel})`:`전체 ${dateLabel} 기간`;
@@ -2496,7 +2498,8 @@ function exportMovementListExcel(){
 }
 function exportSalesStatusExcel(view='status'){
   const filters=view==='query'?appliedSalesQueryFilters:appliedSalesStatusFilters;
-  const rows=filterSalesOrders(salesOrders,{...filters,dateField:view==='query'?'shipped_date':'order_date'});
+  const sourceOrders=view==='query'?completedSalesOrders(salesOrders):salesOrders;
+  const rows=filterSalesOrders(sourceOrders,{...filters,dateField:view==='query'?'shipped_date':'order_date'});
   const headers=['일련번호','수주일자','수주번호','수주형태','거래처','연락처','출고일자','매출 상태','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'];
   const button=view==='query'?'export-sales-query':'export-sales-status';
   return downloadDataWorkbook(button,'매출현황','매출현황',headers,rows.map(order=>[

@@ -2225,7 +2225,7 @@ function printInventoryList(target) {
   const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','long-stock':'long-stock-dialog','movement-list':'movement-list-dialog','sales-status':'sales-status-dialog','purchase-order':'purchase-order-dialog'};
   if(target in targetDialogs&&!$(targetDialogs[target]).open)return;
   activePrintTarget=target;
-  if(target==='purchase-order')$('purchase-order-print').innerHTML=PurchaseOrderPrint.buildPurchaseOrderPrint(purchaseOrderPrintData());
+  if(target==='purchase-order')$('purchase-order-print').innerHTML=PurchaseOrderPrint.buildPurchaseOrderPrint({...purchaseOrderPrintData(),orientation:purchasePrintOrientation()});
   applyProductListPrintSettings();
   if($('print-settings-dialog').open)$('print-settings-dialog').close();
   document.body.dataset.printTarget=target;
@@ -2257,7 +2257,7 @@ function applyProductListPrintSettings() {
   const purchaseOrderPage=activePrintTarget==='purchase-order';
   style.textContent=`@page{size:A4 landscape;margin:${printMargins.top}mm ${printMargins.right}mm ${printMargins.bottom}mm ${printMargins.left}mm}@media print{${tables[activePrintTarget]}{zoom:${scale};width:${100/scale}%}}`;
   // 여백을 0으로 두면 브라우저 머리글·바닥글이 표시되지 않으므로 여백은 발주서 안쪽에 적용합니다.
-  if(purchaseOrderPage)style.textContent=`@page{size:A4 ${purchasePrintOrientation()};margin:0}@media print{#purchase-order-print{--po-top:${printMargins.top}mm;--po-right:${printMargins.right}mm;--po-bottom:${printMargins.bottom}mm;--po-left:${printMargins.left}mm;zoom:${scale};width:${100/scale}%}}`;
+  if(purchaseOrderPage)style.textContent=`@page{size:A4 ${purchasePrintOrientation()};margin:0}@media print{#purchase-order-print{--po-top:${printMargins.top}mm;--po-right:${printMargins.right}mm;--po-bottom:${printMargins.bottom}mm;--po-left:${printMargins.left}mm}}`;
 }
 function startProductListPrintSettings() {
   const scale=$('product-list-print-scale');

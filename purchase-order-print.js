@@ -1,5 +1,5 @@
 (function(root){
-  const MIN_ROWS=10;
+  const ROWS_LANDSCAPE=10,ROWS_PORTRAIT=22;
   const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const money=value=>Number.isFinite(Number(value))&&value!==''&&value!==null?Math.round(Number(value)).toLocaleString('ko-KR'):'';
   function formatDate(value){
@@ -18,9 +18,9 @@
   function buildPurchaseOrderPrint(data={}){
     const company=data.company||{},supplier=data.supplier||{},buyer=data.buyer||{},lines=data.lines||[];
     const total=lines.reduce((sum,line)=>sum+Number(line.quantity)*Number(line.unit_cost),0);
-    const rows=lines.map(itemRows);
-    for(let index=lines.length;index<MIN_ROWS;index++)rows.push(itemRows(null,index));
-    const body=`<h1 class="po-title">구 매 발 주 서</h1>`
+    const landscape=data.orientation!=='portrait',perPage=landscape?ROWS_LANDSCAPE:ROWS_PORTRAIT;
+    const pages=Math.max(1,Math.ceil(lines.length/perPage));
+    const top=`<h1 class="po-title">구 매 발 주 서</h1>`
       +`<table class="po-company"><tbody>`
       +`<tr>${label('상　　　호')}<td>: ${esc(company.name)}</td></tr>`
       +`<tr>${label('사업자등록번호')}<td>: ${esc(company.business_number)}</td></tr>`
@@ -35,11 +35,18 @@
       +`<tr>${label('담 당 자')}${value(supplier.contact)}${label('연 락 처')}${value(supplier.contact_phone)}${label('H.P')}${value(buyer.mobile)}</tr>`
       +`<tr>${label('H.P')}${value(supplier.mobile)}${label('E-mail 주소')}${value(supplier.email)}${label('E-mail 주소')}${value(buyer.email)}</tr>`
       +`</tbody></table>`
-      +`<table class="po-summary"><tbody><tr>${label('발주번호')}${value(data.orderNumber)}${label('발주금액')}<td class="po-right">${money(total)}</td>${label('통화')}<td class="po-center">${esc(data.currency||'KRW')}</td></tr></tbody></table>`
-      +`<table class="po-lines"><colgroup><col class="po-no"><col><col><col><col class="po-unit"><col class="po-num"><col class="po-num"><col class="po-num"><col class="po-due"><col></colgroup>`
+      +`<table class="po-summary"><tbody><tr>${label('발주번호')}${value(data.orderNumber)}${label('발주금액')}<td class="po-right">${money(total)}</td>${label('통화')}<td class="po-center">${esc(data.currency||'KRW')}</td></tr></tbody></table>`;
+    const linesTable=rows=>`<table class="po-lines"><colgroup><col class="po-no"><col><col><col><col class="po-unit"><col class="po-num"><col class="po-num"><col class="po-num"><col class="po-due"><col></colgroup>`
       +`<thead><tr><th>NO</th><th>품번</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>발주단가</th><th>발주금액</th><th>입고예정일</th><th>비고</th></tr></thead><tbody>`
       +rows.join('')+`</tbody></table>`;
-    return `<table class="po-page"><thead><tr><td><div class="po-margin-top"></div></td></tr></thead><tbody><tr><td class="po-page-body">${body}</td></tr></tbody><tfoot><tr><td><div class="po-margin-bottom"></div></td></tr></tfoot></table>`;
+    const sheets=[];
+    for(let page=0;page<pages;page++){
+      const rows=[];
+      for(let index=page*perPage;index<(page+1)*perPage;index++)rows.push(itemRows(lines[index],index));
+      sheets.push(`<section class="po-sheet ${landscape?'po-landscape':'po-portrait'}"><div class="po-sheet-body">${top}<div class="po-lines-wrap">${linesTable(rows)}</div></div>`
+        +(pages>1?`<div class="po-pageno">${page+1}/${pages}</div>`:'')+`</section>`);
+    }
+    return sheets.join('');
   }
 
   const api={buildPurchaseOrderPrint,formatDate};

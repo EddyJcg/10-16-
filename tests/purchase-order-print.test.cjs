@@ -33,12 +33,17 @@ test('구매발주 입력 창에 인쇄 설정·인쇄 버튼과 인쇄 영역�
   assert.ok(app.includes('size:A4 ${purchasePrintOrientation()}'));
 });
 
-test('품목이 10개를 넘으면 행이 계속 늘어나고 일련번호가 이어진다', () => {
-  const make=count=>buildPurchaseOrderPrint({lines:Array.from({length:count},(_, i)=>({product_code:'P'+i,product_name:'품목'+i,quantity:1,unit_cost:100}))});
-  const rowsOf=out=>{const table=out.slice(out.indexOf('class="po-lines"'));return table.slice(0,table.indexOf('</table>')).match(/<tr>/g).length-1;};
-  assert.equal(rowsOf(make(3)),10);
-  assert.equal(rowsOf(make(10)),10);
-  assert.equal(rowsOf(make(11)),11);
-  assert.equal(rowsOf(make(35)),35);
-  assert.ok(make(35).includes('<td class="po-center">35</td>'));
+test('품목이 많으면 다음 페이지로 넘어가고 페이지 번호가 표시된다', () => {
+  const make=(count,orientation)=>buildPurchaseOrderPrint({orientation,lines:Array.from({length:count},(_, i)=>({product_code:'P'+i,product_name:'품목'+i,quantity:1,unit_cost:100}))});
+  const sheets=out=>(out.match(/class="po-sheet /g)||[]).length;
+  assert.equal(sheets(make(3,'landscape')),1);
+  assert.ok(!make(3,'landscape').includes('po-pageno'));
+  assert.equal(sheets(make(10,'landscape')),1);
+  const two=make(11,'landscape');
+  assert.equal(sheets(two),2);
+  assert.ok(two.includes('<div class="po-pageno">1/2</div>')&&two.includes('<div class="po-pageno">2/2</div>'));
+  assert.ok(two.includes('<td class="po-center">11</td>'));
+  assert.equal(sheets(make(22,'portrait')),1);
+  assert.equal(sheets(make(23,'portrait')),2);
+  assert.equal(sheets(make(35)),4);
 });

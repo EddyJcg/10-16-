@@ -351,7 +351,7 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(resizeCss,/dialog \.vendor-query-toolbar \.close\{width:131\.04px!important;min-width:131\.04px\}/);
   assert.match(resizeCss,/\.dialog-minimize-icon\{[^}]*height:1\.53px;background:currentColor;transform:scale\(1\.5\);color:#fff/);
   assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*width:14px;height:14px;border:3\.06px solid currentColor;color:#fff/);
-  assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon\{[\s\S]*?width:18px;height:25\.5px;border:0;background-color:transparent;[\s\S]*?background-image:url\('\/popup-expand-icon\.png'\);background-position:center;background-repeat:no-repeat;background-size:18px 25\.5px/);
+  assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon\{[\s\S]*?width:19\.8px;height:28\.05px;border:0;background-color:transparent;[\s\S]*?background-image:url\('\/popup-expand-icon\.png'\);background-position:center;background-repeat:no-repeat;background-size:19\.8px 28\.05px/);
   assert.doesNotMatch(resizeCss,/\.dialog-expand-icon::after/);
   const icon=fs.readFileSync('popup-expand-icon.png'),iconChunks=[];
   assert.deepEqual([...icon.subarray(0,8)],[137,80,78,71,13,10,26,10]);
@@ -364,9 +364,19 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
     offset+=length+12;
   }
   const iconPixels=zlib.inflateSync(Buffer.concat(iconChunks));
-  assert.equal(iconPixels[1+3],0);
-  assert.ok([...iconPixels.entries()].some(([index,value])=>index%49>=4&&(index%49-4)%4===0&&value===255));
-  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-expand-icon-150/);
+  let hasVisibleWhitePixel=false;
+  for(let y=0;y<17;y++){
+    const rowStart=y*49;
+    assert.equal(iconPixels[rowStart],0);
+    for(let x=0;x<12;x++){
+      const offset=rowStart+1+x*4;
+      if(iconPixels[offset+3]===0)continue;
+      hasVisibleWhitePixel=true;
+      assert.deepEqual([...iconPixels.subarray(offset,offset+4)],[255,255,255,255]);
+    }
+  }
+  assert.ok(hasVisibleWhitePixel);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-expand-icon-white-165/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

@@ -332,7 +332,7 @@ function movementListLabel(){return movementListKind==='opening'?'기초재고 �
 let salesOrders = [],salesDraftLines=[],salesOrdersLoading = false,salesOrderSaving = false;
 let salesDraftSequence=0,salesDraftGroupId='';
 let salesRegisterQuery='',salesRegisterSearched=false,salesRegisterVisibleOrders=[],salesRegisterTargetOrderIds=[];
-let purchaseOrders=[],purchaseOrderLines=[],purchaseReceipts=[],purchaseDraftLines=[],purchaseOrderVendors=[],purchaseOrderVendorsLoaded=false,purchaseLoading=false,purchaseSaving=false,purchaseSyncTimer=null;
+let purchaseOrders=[],purchaseOrderLines=[],purchaseReceipts=[],purchaseDraftLines=[],purchaseOrderVendors=[],purchaseOrderVendorsLoaded=false,purchaseLoading=false,purchaseSaving=false,purchaseSyncTimer=null,purchaseOrderSaved=false;
 let receivingPurchaseLineId='',receivingPurchaseRequestId='';
 let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''},salesStatusUpdating=false;
 let appliedSalesBalanceFilters={startDate:'',endDate:'',orderType:''};
@@ -596,6 +596,7 @@ async function loadSalesOrders(){
   finally{salesOrdersLoading=false;}
 }
 function resetPurchaseOrderForm(){
+  purchaseOrderSaved=false;
   $('purchase-order-form').reset();
   $('purchase-order-date').value=todayDate();$('purchase-order-date').min=todayDate();$('purchase-order-date').max=todayDate();
   $('purchase-order-status').textContent='';
@@ -641,6 +642,7 @@ async function loadPurchaseOrderVendors(){
   populatePurchaseOrderVendorOptions();
 }
 function updatePurchaseOrderNumber(){
+  if(purchaseOrderSaved)return;
   const orderNumber=nextPurchaseOrderNumber($('purchase-order-date').value,purchaseOrders);
   $('purchase-order-number').value=orderNumber;
   if(!orderNumber)$('purchase-order-status').textContent='해당 날짜의 발주번호를 생성할 수 없습니다. 일련번호 상태를 확인하세요.';
@@ -677,6 +679,7 @@ function renderPurchaseDraftLines(){
   });
 }
 function addPurchaseDraftLine(){
+  if(purchaseOrderSaved){$('purchase-order-status').textContent='이미 저장된 발주입니다. 새 발주는 발주 추가작성을 눌러 작성하세요.';return;}
   const productId=$('purchase-line-product').value,quantity=Number($('purchase-line-quantity').value);
   const unitCost=Number($('purchase-line-unit-cost').value),expectedDate=$('purchase-line-expected-date').value;
   if(!items.some(item=>item.id===productId)){$('purchase-order-status').textContent='등록된 품목을 선택하세요.';return;}
@@ -772,9 +775,15 @@ async function showPurchaseOrders(mode='entry'){
   try{await loadStock();populatePurchaseProductOptions();await loadPurchaseOrders();updatePurchaseOrderNumber();}
   catch(error){if(generation===authGeneration)$('purchase-order-status').textContent='발주 기능을 준비하지 못했습니다. '+errorText(error);}
 }
+function startNewPurchaseOrder(){
+  if(purchaseSaving)return;
+  resetPurchaseOrderForm();
+  $('purchase-order-status').textContent='새 발주를 작성하세요. 발주번호 '+($('purchase-order-number').value||'')+' 가 생성되었습니다.';
+}
 async function savePurchaseOrder(event){
   event.preventDefault();
   if(!currentUser||purchaseSaving)return;
+  if(purchaseOrderSaved){$('purchase-order-status').textContent='이미 저장된 발주입니다. 새 발주는 발주 추가작성을 눌러 작성하세요.';return;}
   const orderNumber=$('purchase-order-number').value.trim(),supplierId=$('purchase-order-supplier').value;
   const selectedVendor=purchaseOrderVendors.find(vendor=>vendor.id===supplierId);
   const supplier=String(selectedVendor?.legal_name||selectedVendor?.vendor_name||'').trim();
@@ -794,7 +803,7 @@ async function savePurchaseOrder(event){
     if(error)throw error;
     if(generation!==authGeneration)return;
     $('purchase-order-number').value=data.order_number;
-    purchaseDraftLines=[];renderPurchaseDraftLines();
+    purchaseOrderSaved=true;
     $('purchase-order-status').textContent='정식 발주로 등록했습니다. 일련번호 '+number(data.sequence_id)+' · '+data.order_number;
     try{await loadPurchaseOrders();}
     catch(refreshError){$('purchase-order-status').textContent+=' 목록 새로고침에 실패했습니다. '+errorText(refreshError);}
@@ -2494,6 +2503,7 @@ async function startApp(){
   $('close-purchase-order').addEventListener('click',()=>$('purchase-order-dialog').close());
   $('purchase-order-form').addEventListener('submit',savePurchaseOrder);
   $('add-purchase-line').addEventListener('click',addPurchaseDraftLine);
+  $('new-purchase-order').addEventListener('click',startNewPurchaseOrder);
   $('purchase-order-date').addEventListener('change',()=>{
     const today=todayDate();
     $('purchase-order-date').min=today;$('purchase-order-date').max=today;
@@ -2507,6 +2517,7 @@ async function startApp(){
   $('purchase-draft-items').addEventListener('click',event=>{
     const button=event.target.closest('[data-remove-purchase-line]');
     if(!button)return;
+    if(purchaseOrderSaved){$('purchase-order-status').textContent='이미 저장된 발주 품목은 삭제할 수 없습니다.';return;}
     purchaseDraftLines.splice(Number(button.dataset.removePurchaseLine),1);renderPurchaseDraftLines();
   });
   $('purchase-order-items').addEventListener('click',event=>{

@@ -79,6 +79,8 @@ test('sales order dialog separates free-text header details from repeatable orde
   const style=fs.readFileSync('sales-order.css','utf8');
   const form=html.match(/<form id="sales-order-form" novalidate>([\s\S]*?)<\/form>/)?.[1]||'';
   assert.ok(form);
+  assert.doesNotMatch(form,/<h3>수주 품목<\/h3>/);
+  assert.match(form,/class="form-grid sales-order-header-grid">[\s\S]*?<\/div>\s*<div class="form-grid sales-order-line-grid">/);
   for(const [id,label] of [
     ['sales_order_date','수주일자'],['sales_order_number','수주번호'],['sales_order_type','수주형태'],
     ['sales_vendor_name','거래처(성명)'],['sales_vendor_contact','연락처'],['sales_delivery_method','배송방법'],

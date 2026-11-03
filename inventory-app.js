@@ -2104,8 +2104,34 @@ function renderMovementList() {
     row.append(amount);
     const action=document.createElement('td'),edit=document.createElement('button');
     edit.type='button';edit.className='secondary';edit.textContent='수정';edit.dataset.movementId=movement.id;
-    action.append(edit);row.append(action);body.append(row);
+    action.append(edit);
+    if(movement.kind==='receipt'){
+      const remove=document.createElement('button');
+      remove.type='button';remove.className='secondary';remove.textContent='삭제';remove.dataset.deleteReceiptId=movement.id;
+      action.append(remove);
+    }
+    row.append(action);body.append(row);
   });
+}
+async function revertReceipt(id){
+  const movement=movementListRows.find(row=>row.id===id);
+  if(!movement||movement.kind!=='receipt'||!currentUser||busy)return;
+  const item=itemsById.get(movement.product_id);
+  if(!window.confirm(`입고 '${item?.product_code||''} ${item?.product_name||''}' ${number(movement.quantity)}${item?.unit||''} 내역을 삭제하고 미입고 상태로 되돌리시겠습니까?`))return;
+  const generation=authGeneration;busy=true;
+  try{
+    const {error}=await client.rpc('revert_stock_receipt',{p_movement_id:id});
+    if(error)throw error;
+    if(generation!==authGeneration)return;
+    movementListRows=(await readAll('stock_movements','sequence_id')).sort((a,b)=>Number(b.sequence_id)-Number(a.sequence_id));
+    renderMovementList();
+    $('movement-list-status').textContent='입고 내역을 삭제하고 미입고 상태로 되돌렸습니다.';
+    try{await Promise.all([loadStock(),loadPurchaseOrders()]);}
+    catch{$('movement-list-status').textContent+=' 목록 새로고침은 다시 시도해 주세요.';}
+  }catch(error){
+    if(generation!==authGeneration)return;
+    window.alert(/INSUFFICIENT_STOCK/.test(error?.message||'')?'이 입고분이 이미 출고에 사용되어 삭제할 수 없습니다. 관련 출고 내역을 먼저 정리해 주세요.':'입고 내역을 삭제하지 못했습니다. '+errorText(error));
+  }finally{busy=false;}
 }
 async function showMovementList(kind='') {
   if(!currentUser||busy||movementListLoading)return;
@@ -2660,7 +2686,7 @@ async function startApp(){
   $('receipt-details-fill').addEventListener('click',focusMissingReceiptDetail);
   $('receipt-details-ignore').addEventListener('click',ignoreReceiptDetailsAndSave);
   $('close-receipt-details').addEventListener('click',()=>$('receipt-details-dialog').close());
-  $('movement-list-items').addEventListener('click',event=>{const button=event.target.closest('[data-movement-id]');if(button)editMovement(button.dataset.movementId);});
+  $('movement-list-items').addEventListener('click',event=>{const button=event.target.closest('[data-movement-id]');if(button)editMovement(button.dataset.movementId);const remove=event.target.closest('[data-delete-receipt-id]');if(remove)revertReceipt(remove.dataset.deleteReceiptId);});
   $('movement-form').addEventListener('input',()=>{requestId=crypto.randomUUID();if(mode!=='issue')$('form-message').textContent='';});
   $('product_code').addEventListener('input',()=>populateProduct('product_code'));
   $('specification').addEventListener('input',()=>populateProduct('specification'));

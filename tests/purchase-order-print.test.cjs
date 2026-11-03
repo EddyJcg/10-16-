@@ -28,7 +28,17 @@ test('구매발주 입력 창에 인쇄 설정·인쇄 버튼과 인쇄 영역�
   assert.match(html,/data-print-settings="purchase-order"[^>]*>인쇄 설정<\/button><button[^>]*data-print="purchase-order"[^>]*>인쇄<\/button><button[^>]*id="close-purchase-order"/);
   assert.match(html,/id="purchase-order-print"/);
   assert.match(app,/'purchase-order':'purchase-order-dialog'/);
-  assert.match(app,/\?'landscape':'portrait'/);
-  assert.match(html,/name="purchase-print-orientation" value="portrait" checked>세로[\s\S]*?value="landscape">가로/);
+  assert.match(app,/\?'portrait':'landscape'/);
+  assert.match(html,/name="purchase-print-orientation" value="portrait">세로[\s\S]*?value="landscape" checked>가로/);
   assert.ok(app.includes('size:A4 ${purchasePrintOrientation()}'));
+});
+
+test('품목이 10개를 넘으면 행이 계속 늘어나고 일련번호가 이어진다', () => {
+  const make=count=>buildPurchaseOrderPrint({lines:Array.from({length:count},(_, i)=>({product_code:'P'+i,product_name:'품목'+i,quantity:1,unit_cost:100}))});
+  const rowsOf=out=>{const table=out.slice(out.indexOf('class="po-lines"'));return table.slice(0,table.indexOf('</table>')).match(/<tr>/g).length-1;};
+  assert.equal(rowsOf(make(3)),10);
+  assert.equal(rowsOf(make(10)),10);
+  assert.equal(rowsOf(make(11)),11);
+  assert.equal(rowsOf(make(35)),35);
+  assert.ok(make(35).includes('<td class="po-center">35</td>'));
 });

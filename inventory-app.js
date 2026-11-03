@@ -2215,7 +2215,7 @@ function purchaseOrderPrintData(){
     supplier:{name:vendor?String(vendor.legal_name||vendor.vendor_name||''):'',representative:profile.representative,address:profile.business_address,business_number:profile.business_registration_number,
       phone:profile.phone,contact:profile.contact_person,contact_phone:profile.manager_phone,email:profile.email}};
 }
-function purchasePrintOrientation(){return document.querySelector('input[name="purchase-print-orientation"]:checked')?.value==='landscape'?'landscape':'portrait';}
+function purchasePrintOrientation(){return document.querySelector('input[name="purchase-print-orientation"]:checked')?.value==='portrait'?'portrait':'landscape';}
 function openPrintSettings(target) {
   activePrintTarget=target;
   $('purchase-print-orientation').hidden=target!=='purchase-order';

@@ -334,7 +334,7 @@ let salesDraftSequence=0,salesDraftGroupId='';
 let salesRegisterQuery='',salesRegisterSearched=false,salesRegisterVisibleOrders=[],salesRegisterTargetOrderIds=[];
 let purchaseOrders=[],purchaseOrderLines=[],purchaseReceipts=[],purchaseDraftLines=[],purchaseOrderVendors=[],purchaseOrderVendorsLoaded=false,purchaseLoading=false,purchaseSaving=false,purchaseSyncTimer=null,purchaseOrderSaved=false;
 let receivingPurchaseLineId='',receivingPurchaseRequestId='';
-let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''},appliedSalesQueryFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''},salesStatusUpdating=false;
+let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''},appliedSalesQueryFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:'',orderNumber:'',vendorName:''},salesStatusUpdating=false;
 let appliedSalesBalanceFilters={startDate:'',endDate:'',orderType:''};
 const printMargins = {top:10,right:10,bottom:10,left:10};
 let printMarginDrag = null,activePrintTarget='product-list';
@@ -868,12 +868,13 @@ function schedulePurchaseOrderSync(){
 async function showSalesStatus(view='status'){
   if(!currentUser||busy||salesOrderSaving)return;
   const prefix=salesStatusPrefix(view),dialog=view==='query'?'sales-status-query-dialog':'sales-status-dialog';
-  const emptyFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''};
+  const emptyFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:'',orderNumber:'',vendorName:''};
   if(view==='query')appliedSalesQueryFilters=emptyFilters;else appliedSalesStatusFilters=emptyFilters;
   $(`${prefix}-start-date`).value='';$(`${prefix}-end-date`).value='';
   $(`${prefix}-type-filter`).value='';
   if(view!=='query')$(`${prefix}-filter`).value='';
-  $(`${prefix}-order-query`).value='';
+  if(view==='query'){$('sales-query-order-number').value='';$('sales-query-vendor').value='';}
+  else $(`${prefix}-order-query`).value='';
   $(`${prefix}-message`).textContent='';renderSalesStatus(view);$(dialog).showModal();
   await loadSalesOrders();
 }
@@ -1002,13 +1003,15 @@ function applySalesStatusSearch(clear=false,view='status'){
   const prefix=salesStatusPrefix(view);
   const startDate=clear?'':$(`${prefix}-start-date`).value,endDate=clear?'':$(`${prefix}-end-date`).value;
   const orderType=clear?'':$(`${prefix}-type-filter`).value,salesStatus=view==='query'||clear?'':$(`${prefix}-filter`).value;
-  const query=clear?'':$(`${prefix}-order-query`).value.trim();
+  const query=clear?'':view==='query'?'':$(`${prefix}-order-query`).value.trim();
   if((startDate&&!validOrderDueDate(startDate))||(endDate&&!validOrderDueDate(endDate))){
     $(`${prefix}-message`).textContent='올바른 시작일과 종료일을 입력하세요.';return;
   }
   if(startDate&&endDate&&startDate>endDate){$(`${prefix}-message`).textContent='시작일은 종료일보다 늦을 수 없습니다.';return;}
-  if(clear){$(`${prefix}-start-date`).value='';$(`${prefix}-end-date`).value='';$(`${prefix}-type-filter`).value='';if(view!=='query')$(`${prefix}-filter`).value='';$(`${prefix}-order-query`).value='';}
-  const filters={startDate,endDate,orderType,salesStatus,query};
+  if(clear){$(`${prefix}-start-date`).value='';$(`${prefix}-end-date`).value='';$(`${prefix}-type-filter`).value='';if(view!=='query')$(`${prefix}-filter`).value='';if(view==='query'){$('sales-query-order-number').value='';$('sales-query-vendor').value='';}else $(`${prefix}-order-query`).value='';}
+  const filters={startDate,endDate,orderType,salesStatus,query,
+    orderNumber:view==='query'&&!clear?$('sales-query-order-number').value.trim():'',
+    vendorName:view==='query'&&!clear?$('sales-query-vendor').value.trim():''};
   if(view==='query')appliedSalesQueryFilters=filters;else appliedSalesStatusFilters=filters;
   $(`${prefix}-message`).textContent='';renderSalesStatus(view);
 }
@@ -2601,7 +2604,6 @@ async function startApp(){
   $('search-sales-status-orders').addEventListener('click',()=>applySalesStatusSearch());
   $('clear-sales-status-search').addEventListener('click',()=>applySalesStatusSearch(true));
   $('apply-sales-query-search').addEventListener('click',()=>applySalesStatusSearch(false,'query'));
-  $('search-sales-query-orders').addEventListener('click',()=>applySalesStatusSearch(false,'query'));
   $('clear-sales-query-search').addEventListener('click',()=>applySalesStatusSearch(true,'query'));
   $('sales-status-items').addEventListener('change',changeSalesOrderStatus);
   $('sales-status-items').addEventListener('click',event=>{

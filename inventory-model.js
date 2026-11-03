@@ -32,14 +32,17 @@ function filterInventoryItems(rows,{query='',availability='all',dateProductIds=n
     String(item.supplier||'').toLowerCase().includes(vendor)
   );
 }
-function filterSalesOrders(rows,{startDate='',endDate='',orderType='',salesStatus='',query='',dateField='order_date'}={}) {
+function filterSalesOrders(rows,{startDate='',endDate='',orderType='',salesStatus='',query='',orderNumber='',vendorName='',dateField='order_date'}={}) {
   const search=String(query).trim().toLocaleLowerCase();
+  const orderNumberSearch=String(orderNumber).trim().toLocaleLowerCase(),vendorSearch=String(vendorName).trim().toLocaleLowerCase();
   return rows.filter(order=>{
     const date=String(order[dateField]||'').slice(0,10);
     const matchesSearch=!search||[order.order_number,order.vendor_name]
       .some(value=>String(value||'').toLocaleLowerCase().includes(search));
+    const matchesOrderNumber=!orderNumberSearch||String(order.order_number||'').toLocaleLowerCase().includes(orderNumberSearch);
+    const matchesVendor=!vendorSearch||String(order.vendor_name||'').toLocaleLowerCase().includes(vendorSearch);
     return (!startDate||date>=startDate)&&(!endDate||date<=endDate)&&
-      (!orderType||order.order_type===orderType)&&(!salesStatus||salesOrderStatus(order)===salesStatus)&&matchesSearch;
+      (!orderType||order.order_type===orderType)&&(!salesStatus||salesOrderStatus(order)===salesStatus)&&matchesSearch&&matchesOrderNumber&&matchesVendor;
   });
 }
 function salesOrderStatus(order) {

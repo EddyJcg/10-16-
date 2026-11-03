@@ -64,7 +64,11 @@ test('매출현황 조회는 수주현황과 별도 창과 독립된 검색 조�
   assert.match(status,/<h2 id="sales-status-title">수주현황<\/h2>/);
   assert.match(query,/<h2 id="sales-query-title">매출현황<\/h2>/);
   assert.match(query,/id="sales-query-items"/);
-  assert.doesNotMatch(query,/sales-query-filter/);
+  assert.doesNotMatch(query,/id="sales-query-filter"/);
+  assert.doesNotMatch(query,/sales-query-order-query|search-sales-query-orders/);
+  assert.match(query,/id="sales-query-order-number" type="search"/);
+  assert.match(query,/id="sales-query-vendor" type="search"/);
+  assert.match(query,/sales-query-order-number[\s\S]*sales-query-vendor[\s\S]*apply-sales-query-search/);
   assert.match(app,/sales-status-query-button'\)\.addEventListener\('click',\(\)=>showSalesStatus\('query'\)\)/);
   assert.match(app,/appliedSalesQueryFilters=/);
   assert.match(app,/'sales-status-query':'sales-status-query-dialog'/);
@@ -528,6 +532,18 @@ test('매출현황 조회 날짜 조건과 금액 요약은 출고일자를 기�
   assert.deepEqual(filterSalesOrders(orders,filters).map(order=>order.order_number),['SO-1','SO-2']);
   assert.deepEqual(summarizeSalesOrders(orders,filters),{total:30,completed:10,outstanding:20});
   assert.deepEqual(filterSalesOrders(orders,{startDate:'2026-10-01',endDate:'2026-10-02'}).map(order=>order.order_number),['SO-2']);
+});
+
+test('매출현황 조회는 수주번호와 거래처 조건을 각각 또는 함께 적용한다',()=>{
+  const rows=[
+    {order_number:'SO-100',vendor_name:'Alpha',shipped_date:'2026-11-01'},
+    {order_number:'SO-200',vendor_name:'Alpha',shipped_date:'2026-11-01'},
+    {order_number:'SO-100',vendor_name:'Beta',shipped_date:'2026-11-01'}
+  ];
+  assert.deepEqual(filterSalesOrders(rows,{orderNumber:'so-100'}),[rows[0],rows[2]]);
+  assert.deepEqual(filterSalesOrders(rows,{vendorName:'alpha'}),[rows[0],rows[1]]);
+  assert.deepEqual(filterSalesOrders(rows,{orderNumber:'SO-100',vendorName:'Alpha'}),[rows[0]]);
+  assert.equal(filterSalesOrders(rows,{orderNumber:'missing'}).length,0);
 });
 
 test('issue sales-order selector lists in-progress orders only and selects the linked product',()=>{

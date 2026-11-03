@@ -33,5 +33,24 @@
     cascade(this);
   };
   document.addEventListener('animationend',event=>{if(event.target.classList)event.target.classList.remove('popup-flash');},true);
+  // 제목줄을 잡고 끌면 팝업이 따라 움직입니다.
+  let drag=null;
+  document.addEventListener('pointerdown',event=>{
+    if(event.button>0||!event.target.closest)return;
+    const handle=event.target.closest('.dialog-header,.vendor-list-title');
+    const dialog=handle&&handle.closest('dialog.popup-floating[open]');
+    if(!dialog||event.target.closest('button,input,select,textarea,a,label'))return;
+    const rect=dialog.getBoundingClientRect();
+    stack+=1;dialog.style.zIndex=String(stack);
+    drag={dialog,dx:event.clientX-rect.left,dy:event.clientY-rect.top};
+    event.preventDefault();
+  },true);
+  document.addEventListener('pointermove',event=>{
+    if(!drag)return;
+    const rect=drag.dialog.getBoundingClientRect();
+    drag.dialog.style.left=Math.max(0,Math.min(event.clientX-drag.dx,innerWidth-rect.width))+'px';
+    drag.dialog.style.top=Math.max(0,Math.min(event.clientY-drag.dy,innerHeight-rect.height))+'px';
+  },true);
+  document.addEventListener('pointerup',()=>{drag=null;},true);
   if(typeof addEventListener==='function')addEventListener('resize',()=>document.querySelectorAll('dialog.popup-floating[open]').forEach(keepInViewport));
 })();

@@ -343,7 +343,7 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(resizeCss,/dialog \.vendor-query-toolbar\{gap:9px\}/);
   assert.match(resizeCss,/dialog \.vendor-toolbar\{gap:13px\}/);
   assert.match(resizeCss,/@media\(max-width:600px\)\{dialog \.vendor-toolbar\{gap:5\.2px\}\}/);
-  assert.match(resizeCss,/@media screen\{\s*dialog thead th,#app-layout main table th\{\s*background-color:rgba\(65,73,78,\.1\)!important;color:#424a50!important\s*\}\s*\}/);
+  assert.match(resizeCss,/@media screen\{\s*dialog \.dialog-header,\.search-calendar \.calendar-title,#app-layout main>\.intro\{\s*background-color:#454e54;color:#fff\s*\}[\s\S]*?dialog \.dialog-header h2,dialog \.dialog-header p,\.search-calendar \.calendar-title strong,#app-layout main>\.intro h1,#app-layout main>\.intro p,#app-layout main>\.intro #today\{\s*color:#fff\s*\}[\s\S]*?dialog thead th,#app-layout main table th\{\s*background-color:rgba\(65,73,78,\.1\)!important;color:#424a50!important\s*\}\s*\}/);
   assert.doesNotMatch(resizeCss,/dialog \.dialog-header\{[^}]*background-color:#41494e/);
   assert.match(resizeCss,/dialog \.close\{[\s\S]*?display:inline-flex;align-items:center;justify-content:center;text-align:center;[\s\S]*?letter-spacing:10px;text-indent:10px;[\s\S]*?width:62\.4px!important;min-width:62\.4px/);
   assert.match(resizeCss,/dialog \.dialog-header \.close\{[\s\S]*?width:calc\(3\.9em \+ 69\.81px\)!important;min-width:calc\(3\.9em \+ 69\.81px\);[\s\S]*?padding-left:0;padding-right:0/);
@@ -353,7 +353,7 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.match(resizeCss,/\.dialog-expand-icon::after\{[^}]*display:none;[^}]*top:-4px;left:4px;width:14px;height:14px;[\s\S]*?linear-gradient\(currentColor,currentColor\) 100% 100%\/4px 2px no-repeat/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon\{color:#929291\}/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon::after\{display:block\}/);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*table-header-10pct-charcoal/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*title-bars-454e54-all-popups/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

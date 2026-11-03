@@ -18,6 +18,13 @@ dialog .vendor-query-toolbar{gap:9px}
 dialog .vendor-toolbar{gap:13px}
 @media(max-width:600px){dialog .vendor-toolbar{gap:5.2px}}
 @media screen{
+  dialog .dialog-header,.search-calendar .calendar-title,#app-layout main>.intro{
+    background-color:#454e54;color:#fff
+  }
+  dialog .dialog-header h2,dialog .dialog-header p,.search-calendar .calendar-title strong,#app-layout main>.intro h1,#app-layout main>.intro p,#app-layout main>.intro #today{
+    color:#fff
+  }
+  #app-layout main>.intro{padding:12px 16px}
   dialog thead th,#app-layout main table th{
     background-color:rgba(65,73,78,.1)!important;color:#424a50!important
   }

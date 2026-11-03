@@ -93,4 +93,4 @@
   .vendor-toolbar{gap:2.6px;padding:7px 9px}
   .vendor-toolbar button{font-size:14.3px;padding:6.5px 6.5px}
 }
-.vendor-list-dialog .vendor-list-title{flex:none;margin:0;padding:10px 11.7px;font-size:36px;line-height:1.2;background:#fff;color:#1f2a30}
+#vendor-list-dialog .vendor-list-title{flex:none;margin:0;padding:10px 11.7px;font-size:36px;line-height:1.2;background:#41494e;color:#fff}

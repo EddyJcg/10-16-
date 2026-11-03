@@ -10,11 +10,13 @@ test('sales entry provides an editable order date before the order number',()=>{
   assert.ok(form.indexOf('id="sales_order_date"')<form.indexOf('id="sales_order_number"'));
 });
 
-test('sales status prints with shared settings and places print controls after Excel export',()=>{
+test('sales status places print controls in the header and Excel export in the footer',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
-  const toolbar=html.match(/<dialog id="sales-status-dialog"[\s\S]*?<div class="product-list-toolbar">([\s\S]*?)<\/div>/)[1];
-  assert.ok(toolbar.indexOf('export-sales-status')<toolbar.indexOf('data-print-settings="sales-status"'));
+  const dialog=html.match(/<dialog id="sales-status-dialog"[\s\S]*?<\/dialog>/)[0];
+  const toolbar=dialog.match(/<div class="product-list-toolbar">([\s\S]*?)<\/div>/)[1];
+  assert.ok(!toolbar.includes('export-sales-status'));
   assert.ok(toolbar.indexOf('data-print-settings="sales-status"')<toolbar.indexOf('data-print="sales-status"'));
+  assert.match(dialog,/<div class="dialog-footer"><button id="export-sales-status" class="secondary" type="button">↓ Excel 다운로드<\/button><\/div>/);
   const elements=new Map();
   const element=id=>{
     if(!elements.has(id))elements.set(id,{open:false,value:'100',textContent:'',close(){this.open=false;}});

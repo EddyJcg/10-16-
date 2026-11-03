@@ -105,7 +105,19 @@ test('product list dialog searches all stock fields and prints the displayed lis
 
 test('all requested status and inventory dialogs offer Excel downloads using visible result sets',()=>{
   const html=readFileSync('inventory.html','utf8'),script=readFileSync('inventory-app.js','utf8');
-  for(const id of ['export-sales-status','export-current-stock','export-product-list','export-product-info-status','export-movement-list'])
+  const placements=[
+    ['product-list-dialog','export-product-list'],
+    ['movement-list-dialog','export-movement-list'],
+    ['product-info-status-dialog','export-product-info-status'],
+    ['sales-status-dialog','export-sales-status'],
+    ['current-stock-dialog','export-current-stock']
+  ];
+  for(const [dialogId,buttonId] of placements){
+    const dialog=html.match(new RegExp(`<dialog id="${dialogId}"[\\s\\S]*?<\\/dialog>`))?.[0]||'';
+    assert.match(dialog,new RegExp(`<div class="dialog-footer"><button[^>]*id="${buttonId}"[^>]*>↓ Excel 다운로드<\\/button><\\/div>`),buttonId);
+    assert.doesNotMatch(dialog,new RegExp(`<div class="(?:dialog-header-actions|product-list-toolbar|print-toolbar)">[^<]*<button[^>]*id="${buttonId}"`),buttonId);
+  }
+  for(const [,id] of placements)
     assert.match(html,new RegExp(`id="${id}"[^>]*>↓ Excel 다운로드`),id);
   for(const [id,handler] of [
     ['export-sales-status','exportSalesStatusExcel'],['export-current-stock','exportCurrentStockExcel'],

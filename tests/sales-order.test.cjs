@@ -92,6 +92,8 @@ test('sales status view includes every order field and completion control after 
   const html=fs.readFileSync('inventory.html','utf8');
   const search=html.match(/<div class="sales-status-order-search">([\s\S]*?)<div class="sales-status-filters">/)?.[1]||'';
   const table=html.match(/<table aria-label="전체 수주현황">([\s\S]*?)<\/table>/)?.[1]||'';
+  assert.match(html,/<h2 id="sales-status-title">매출현황<\/h2>/);
+  assert.match(html,/id="close-sales-status" aria-label="매출현황 창 닫기"/);
   assert.match(html,/id="sales-status-button"[^>]*>수주 현황<\/button>/);
   assert.match(search,/for="sales-status-order-query">수주번호 또는 거래처\(성명\) 검색<\/label><input id="sales-status-order-query" type="search"/);
   assert.match(search,/id="search-sales-status-orders"[^>]*>검색<\/button>/);

@@ -9,8 +9,9 @@
   const headerRow=table=>table.tHead&&table.tHead.rows[0];
   const startsWithSerial=row=>{
     const first=row.cells[0];
-    return Boolean(first)&&!first.hasAttribute('data-grid-serial')&&first.textContent.trim()===SERIAL_LABEL;
+    return Boolean(first)&&first.textContent.trim()===SERIAL_LABEL;
   };
+  const isSerialHeader=cell=>Boolean(cell)&&(cell.hasAttribute('data-grid-serial')||cell.textContent.trim()===SERIAL_LABEL);
   const isEmptyNotice=row=>row.cells.length===1&&row.cells[0].colSpan>1;
 
   function makeCell(tag,text,serial){
@@ -21,15 +22,29 @@
   }
 
   function syncHeader(table,head){
-    if(startsWithSerial(head)||head.querySelector('[data-grid-serial]'))return;
-    const th=makeCell('th',SERIAL_LABEL,true);
-    th.scope='col';
-    head.insertBefore(th,head.firstChild);
-    const colgroup=table.querySelector('colgroup');
-    if(colgroup){
-      const col=document.createElement('col');
-      col.dataset.gridSerial='1';col.dataset.popupColumnKey=SERIAL_KEY;
-      colgroup.insertBefore(col,colgroup.firstChild);
+    let th=head.cells[0];
+    if(!isSerialHeader(th)){
+      th=makeCell('th','',true);
+      th.scope='col';
+      head.insertBefore(th,head.firstChild);
+      const colgroup=table.querySelector('colgroup');
+      if(colgroup){
+        const col=document.createElement('col');
+        col.dataset.gridSerial='1';col.dataset.popupColumnKey=SERIAL_KEY;
+        colgroup.insertBefore(col,colgroup.firstChild);
+      }
+    }else if(startsWithSerial(head)){
+      th.dataset.gridOwnSerial='1';
+      th.dataset.gridSerial='1';
+      th.dataset.popupColumnKey=SERIAL_KEY;
+    }
+    th.setAttribute('aria-label',SERIAL_LABEL);
+    if(!th.querySelector('img[data-popup-serial-icon]')){
+      const icon=document.createElement('img');
+      icon.src='/popup-serial-icon.png';
+      icon.alt=SERIAL_LABEL;
+      icon.dataset.popupSerialIcon='1';
+      th.replaceChildren(icon);
     }
   }
 
@@ -38,7 +53,7 @@
   const savedWidths=new Map();
   try{Object.entries(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')).forEach(([k,v])=>{if(v>0)savedWidths.set(k,v);});}catch(e){}
   function persistWidths(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(Object.fromEntries(savedWidths)));}catch(e){}}
-  const labelOf=th=>th.textContent.trim().toLowerCase();
+  const labelOf=th=>(th.hasAttribute('data-grid-serial')?SERIAL_LABEL:th.textContent.trim()).toLowerCase();
   function widthKey(table,th){
     const dialog=table.closest('dialog');
     const index=dialog?[...dialog.querySelectorAll('table')].indexOf(table):0;
@@ -98,7 +113,7 @@
     if(!head||!head.cells.length||!body)return;
     syncHeader(table,head);
     syncHandles(table,head);
-    const ownSerial=startsWithSerial(head);
+    const ownSerial=head.cells[0].dataset.gridOwnSerial==='1';
     const columns=head.cells.length;
     const rows=[...body.rows];
     const dataRows=[];

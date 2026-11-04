@@ -37,3 +37,15 @@ test('일련번호 열과 5개 빈 행 규칙이 있다', () => {
   const css = read('popup-table-grid.css');
   assert.match(css, /dialog table thead th/);
 });
+
+test('팝업 일련번호 제목은 투명 아이콘으로 표시하고 기존 행 번호는 유지한다', () => {
+  const js = read('popup-table-grid.js');
+  assert.match(js, /popup-serial-icon\.png/);
+  assert.match(js, /gridOwnSerial/);
+  assert.match(js, /head\.cells\[0\]\.dataset\.gridOwnSerial==='1'/);
+  assert.match(js, /hasAttribute\('data-grid-serial'\)\?SERIAL_LABEL/);
+  const css = read('popup-table-grid.css');
+  assert.match(css, /data-grid-serial\] img\[data-popup-serial-icon\]/);
+  const icon = fs.readFileSync(path.join(__dirname, '..', 'popup-serial-icon.png'));
+  assert.equal(icon.readUInt8(25), 6);
+});

@@ -450,3 +450,9 @@ th[draggable="true"]:active{cursor:grabbing}
     .profile-menu-toggle{gap:6px;font-size:13px}
   }
 }
+
+@media screen{
+  .sidebar .menu-folder{margin-bottom:6.4px}
+  .sidebar .menu-folder>summary{padding-top:9.6px;padding-bottom:9.6px}
+  .sidebar .folder-children{margin-top:5.6px;margin-bottom:9.6px}
+}

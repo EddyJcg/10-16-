@@ -88,6 +88,13 @@ test('sidebar text sizes are increased by approximately twenty percent',()=>{
   assert.match(style,/\.sidebar-action\{[^}]*font-size:16px/);
   assert.match(style,/\.sidebar-hint\{[^}]*font-size:13px/);
 });
+test('sidebar folder spacing is reduced by twenty percent without changing label sizes',()=>{
+  const style=fs.readFileSync('inventory.css','utf8');
+  assert.match(style,/\.sidebar \.menu-folder\{margin-bottom:6\.4px\}/);
+  assert.match(style,/\.sidebar \.menu-folder>summary\{padding-top:9\.6px;padding-bottom:9\.6px\}/);
+  assert.match(style,/\.sidebar \.folder-children\{margin-top:5\.6px;margin-bottom:9\.6px\}/);
+  assert.match(style,/\.sidebar \.menu-folder summary\{font-size:22\.0932px/);
+});
 test('procurement folder uses the supplied settings icon without a background',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const style=fs.readFileSync('purchase-folder-icon.css','utf8');

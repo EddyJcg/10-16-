@@ -430,12 +430,13 @@ th[draggable="true"]:active{cursor:grabbing}
   .profile-details strong{color:#303b44;font-size:13px}
   .profile-details[hidden],.profile-menu[hidden],.header-account[hidden]{display:none}
   #app-layout main{min-height:calc(100dvh - 100px);background:#d9e0e7}
-  .sidebar{background:#2c343b;border-right-color:#252c32;color:#e3e8ec}
-  .sidebar-heading,.sidebar .menu-folder summary{color:#e3e8ec}
+  .sidebar{background:#000;border-right-color:#000;color:#fff}
+  .sidebar-heading,.sidebar .menu-folder summary{color:#fff}
   .sidebar-heading span,.sidebar .sidebar-hint{color:#aab5bd}
-  .sidebar .menu-folder summary:hover,.sidebar .menu-folder[open]>summary{background:#20272d}
+  .sidebar .menu-folder>summary,.sidebar .menu-folder[open]>summary,.sidebar .menu-folder>summary:hover{background:transparent;color:#fff;border-radius:0}
+  .sidebar .folder-children{border-left-color:transparent}
   .sidebar .sidebar-action{color:#c7d0d6}
-  .sidebar .sidebar-action:hover{background:#39434b;color:#fff}
+  .sidebar .sidebar-action:hover{background:transparent;color:#fff}
   @media(max-width:700px){
     header{padding:14px 16px}
     .brand{font-size:22px}

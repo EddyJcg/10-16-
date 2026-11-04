@@ -48,7 +48,13 @@ function installDialogInteractions(){
     const expandIcon=document.createElement('span');
     expandIcon.className='dialog-expand-icon';expandIcon.setAttribute('aria-hidden','true');
     expandButton.appendChild(expandIcon);
-    controls.appendChild(minimizeButton);controls.appendChild(expandButton);
+    const resetButton=document.createElement('button');
+    resetButton.type='button';resetButton.className='dialog-window-button dialog-reset-button';
+    resetButton.setAttribute('aria-label','팝업 크기와 위치 초기화');resetButton.title='크기와 위치 초기화';
+    const resetIcon=document.createElement('span');
+    resetIcon.className='dialog-reset-icon';resetIcon.setAttribute('aria-hidden','true');
+    resetButton.appendChild(resetIcon);
+    controls.appendChild(minimizeButton);controls.appendChild(expandButton);controls.appendChild(resetButton);
     if(closeButton?.parentNode)closeButton.parentNode.insertBefore(controls,closeButton);
     else host.appendChild(controls);
     const title=dialog.querySelector('h1,h2,h3')?.textContent.trim()
@@ -99,6 +105,15 @@ function installDialogInteractions(){
       dialog.classList.add('dialog-expanded');
       expandButton.setAttribute('aria-label','팝업 크기 복원');
       expandButton.title='원래 크기로 복원';expandButton.setAttribute('aria-pressed','true');
+    });
+    resetButton.addEventListener('click',()=>{
+      if(dialog.classList.contains('dialog-expanded'))expandButton.click();
+      if(dialog.id){
+        try{window.localStorage.removeItem('inventory-dialog-size-'+dialog.id);}
+        catch{notify('팝업 설정을 초기화하지 못했습니다.',true);return;}
+      }
+      ['width','height','max-width','max-height','left','top','transform','margin','border-radius'].forEach(property=>dialog.style.removeProperty(property));
+      dialog.__expandedStyle=null;
     });
     dialog.addEventListener('close',()=>{
       clearTimeout(dialog.__minimizeTimeout);dialog.__minimizeTimeout=null;
@@ -1412,13 +1427,22 @@ async function updateSession(session) {
   $('admin-link').hidden = true;
   $('admin-folder').hidden = true;
   $('sidebar-toggle').hidden = !currentUser;
+  $('header-account').hidden = !currentUser;
+  $('profile-menu').hidden=true;
+  $('profile-menu-toggle').setAttribute('aria-expanded','false');
+  $('profile-details').hidden=true;
+  $('profile-info-menu').setAttribute('aria-expanded','false');
   $('app-layout').classList.toggle('signed-in',!!currentUser);
   items = []; agedStock=[];assetClassifications=[];editingAssetClassificationId='';salesOrders=[];salesDraftLines=[];purchaseOrders=[];purchaseOrderLines=[];purchaseReceipts=[];purchaseDraftLines=[];purchaseOrderVendors=[];purchaseOrderVendorsLoaded=false;populatePurchaseOrderVendorOptions();renderSalesOrders();renderSalesStatus();renderSalesStatus('query');renderSalesRegister();renderSalesBalance();updateSupplierOptions();render();
   $('login-panel').hidden = !!currentUser; $('workspace').hidden = !currentUser;
-  $('user-email').textContent = currentUser?.email || '';
+  const metadata=currentUser?.user_metadata||{};
+  const profileName=[metadata.full_name,metadata.name,metadata.display_name].find(value=>typeof value==='string'&&value.trim())?.trim()||currentUser?.email?.split('@')[0]||'사용자';
+  $('profile-name').textContent=profileName;
+  $('profile-detail-name').textContent=profileName;
+  $('profile-detail-email').textContent=currentUser?.email||'';
   if (!currentUser) {
     clearMinimizedDialogs();
-    $('movement-dialog').close(); $('product-info-dialog').close(); $('product-info-status-dialog').close(); $('asset-classification-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('sales-status-query-dialog').close(); $('sales-register-dialog').close(); $('sales-register-confirm-dialog').close(); $('purchase-order-dialog').close(); $('purchase-receive-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('password-dialog').close();$('movement-dialog').close(); $('product-info-dialog').close(); $('product-info-status-dialog').close(); $('asset-classification-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('sales-status-query-dialog').close(); $('sales-register-dialog').close(); $('sales-register-confirm-dialog').close(); $('purchase-order-dialog').close(); $('purchase-receive-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try {
     await loadStock();
@@ -2640,7 +2664,39 @@ async function startApp(){
   client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,storage:window.sessionStorage,storageKey:'inventory-note-stock-session',autoRefreshToken:true,detectSessionInUrl:false}});
   client.auth.onAuthStateChange((event,session)=>{if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event))setTimeout(()=>updateSession(session),0);});
   $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
-  $('logout').addEventListener('click',async()=>{if(busy)return;const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);});
+  $('logout').addEventListener('click',async()=>{closeProfileMenu();if(busy)return;const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);});
+  const profileButton=$('profile-menu-toggle'),profileMenu=$('profile-menu');
+  const closeProfileMenu=()=>{profileMenu.hidden=true;profileButton.setAttribute('aria-expanded','false');};
+  profileButton.addEventListener('click',()=>{
+    const open=profileMenu.hidden;
+    profileMenu.hidden=!open;profileButton.setAttribute('aria-expanded',String(open));
+  });
+  $('profile-info-menu').addEventListener('click',event=>{
+    const details=$('profile-details'),expanded=details.hidden;
+    details.hidden=!expanded;event.currentTarget.setAttribute('aria-expanded',String(expanded));
+  });
+  $('profile-password-menu').addEventListener('click',()=>{
+    closeProfileMenu();$('password-form').reset();$('password-status').textContent='';$('password-dialog').showModal();
+  });
+  $('password-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const password=$('new-password').value,confirmation=$('confirm-password').value;
+    if(password.length<12||password.length>128){$('password-status').textContent='비밀번호는 12~128자로 입력하세요.';return;}
+    if(password!==confirmation){$('password-status').textContent='비밀번호가 일치하지 않습니다.';return;}
+    if(!currentUser){$('password-status').textContent='로그인 상태를 확인해 주세요.';return;}
+    $('password-update-button').disabled=true;
+    try{
+      const {error}=await client.auth.updateUser({password});
+      if(error){$('password-status').textContent='비밀번호를 변경하지 못했습니다. 입력 내용을 확인해 주세요.';return;}
+      $('password-dialog').close();notify('비밀번호를 변경했습니다.');
+    }catch{
+      $('password-status').textContent='비밀번호 변경 서비스에 연결하지 못했습니다.';
+    }finally{$('password-update-button').disabled=false;}
+  });
+  $('close-password-dialog').addEventListener('click',()=>$('password-dialog').close());
+  $('password-dialog').addEventListener('close',()=>$('password-form').reset());
+  document.addEventListener('click',event=>{if(!event.target.closest('.account-menu-wrap'))closeProfileMenu();});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!profileMenu.hidden){closeProfileMenu();profileButton.focus();}});
   $('product-info-button').addEventListener('click',showProductInfo);
   $('product-info-status-button').addEventListener('click',showProductInfoStatus);
   $('asset-classification-button').addEventListener('click',showAssetClassifications);

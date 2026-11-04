@@ -74,3 +74,32 @@ dialog.dialog-expanded[open]:not(.search-calendar) .dialog-body{max-height:calc(
 .minimized-dialog-button:hover{background:#eaf2ec}
 @keyframes minimized-dialog-appear{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){dialog.dialog-minimizing,.minimized-dialogs{transition:none;animation:none}}
+
+@media screen{
+  dialog .dialog-header,.search-calendar .calendar-title,#app-layout main>.intro{background-color:#212529;color:#fff}
+  dialog .dialog-header h2,dialog .dialog-header p,.search-calendar .calendar-title strong,#app-layout main>.intro h1,#app-layout main>.intro p,#app-layout main>.intro #today{color:#fff}
+  .dialog-window-controls{gap:8px;margin-right:12px;padding-left:0}
+  .dialog-window-button{
+    width:21px!important;height:21px!important;min-width:21px!important;padding:0!important;
+    border:0!important;border-radius:50%!important;color:#fff!important
+  }
+  .dialog-window-button:hover{filter:brightness(.92)}
+  .dialog-window-button:active{filter:brightness(.84)}
+  .dialog-expand-button{background:#f4f5f6!important}
+  .dialog-expand-icon{width:10px;height:10px;border-width:2px;color:#47515a}
+  .dialog-expanded .dialog-expand-icon{width:15px;height:19px}
+  .dialog-reset-button{background:#00aaa5!important}
+  .dialog-reset-icon{font-size:17px;line-height:1;color:#fff}
+  .dialog-reset-icon::before{content:"↻"}
+  .dialog-minimize-button{background:#f5a623!important}
+  .dialog-minimize-icon{width:10px;height:2px;transform:none;color:#fff}
+  dialog .close,dialog .dialog-header .close{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:21px!important;height:21px!important;min-width:21px!important;padding:0!important;
+    border:0!important;border-radius:50%!important;background:#f05259!important;
+    color:#fff!important;font-size:0!important;letter-spacing:0;text-indent:0
+  }
+  dialog .close::before{content:"×";font-size:16px;line-height:1}
+  dialog .close:hover{filter:brightness(.92)}
+  @media(max-width:600px){.dialog-window-controls{gap:5px;margin-right:5px}}
+}

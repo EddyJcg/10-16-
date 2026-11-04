@@ -83,7 +83,7 @@ function makeDialogHarness(dialogOptions=[]){
     notify(records){this.callback(records);}
   }
   const context=vm.createContext({
-    document,window:{innerWidth:1200,innerHeight:900,localStorage:{getItem:key=>elements.get('store:'+key)||null,setItem(key,value){elements.set('store:'+key,value);}}},
+    document,window:{innerWidth:1200,innerHeight:900,localStorage:{getItem:key=>elements.get('store:'+key)||null,setItem(key,value){elements.set('store:'+key,value);},removeItem:key=>elements.delete('store:'+key)}},
     MutationObserver:TestMutationObserver,setTimeout:callback=>{timers.push(callback);return timers.length;},clearTimeout(){}
   });
   return{context,dialogs,body,elements,timers,observers,makeNode};
@@ -302,6 +302,23 @@ test('dialogs can be minimized to the restore tray and expanded back to their or
   assert.equal(dialog.style.getPropertyValue('left'),'120px');
   assert.equal(expandButton.getAttribute('aria-pressed'),'false');
 });
+test('popup reset control clears saved dimensions and restores the default layout',()=>{
+  const {context,dialogs:[dialog],elements}=makeDialogHarness([{id:'reset-dialog'}]);
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext('installDialogInteractions()',context);
+  const controls=dialog.querySelector('.dialog-header,.calendar-title').children.find(node=>node.className==='dialog-window-controls');
+  const resetButton=controls.children[2];
+  dialog.style.setProperty('width','620px','important');
+  dialog.style.setProperty('height','480px','important');
+  dialog.style.setProperty('left','120px');
+  elements.set('store:inventory-dialog-size-reset-dialog','{"width":620,"height":480}');
+  resetButton.dispatch('click');
+  assert.equal(dialog.style.getPropertyValue('width'),'');
+  assert.equal(dialog.style.getPropertyValue('height'),'');
+  assert.equal(dialog.style.getPropertyValue('left'),'');
+  assert.equal(elements.has('store:inventory-dialog-size-reset-dialog'),false);
+  assert.equal(resetButton.getAttribute('aria-label'),'팝업 크기와 위치 초기화');
+});
 test('dialogs added after initialization receive popup controls and resize handles',()=>{
   const {context,body,observers,makeNode}=makeDialogHarness();
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
@@ -376,7 +393,21 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
     }
   }
   assert.ok(hasVisibleWhitePixel);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-control-stroke-90/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-round-controls/);
+});
+test('dashboard adopts the reference background, round popup controls and account dropdown',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  const css=fs.readFileSync('inventory.css','utf8'),resizeCss=fs.readFileSync('dialog-resize.css','utf8');
+  assert.match(html,/aria-hidden="true">🇰🇷<\/span><span>Korean<\/span>/);
+  assert.match(html,/id="profile-menu" class="profile-menu" hidden/);
+  assert.match(html,/id="profile-info-menu"[^>]*>나의정보<\/button>/);
+  assert.match(html,/id="profile-password-menu"[^>]*>비밀번호<\/button>/);
+  assert.match(html,/id="logout"[^>]*>로그아웃<\/button>/);
+  assert.match(html,/id="password-dialog"/);
+  assert.match(css,/:root,body\{background:#d9e0e7/);
+  assert.match(resizeCss,/\.dialog-reset-button\{background:#00aaa5!important\}/);
+  assert.match(resizeCss,/\.dialog-minimize-button\{background:#f5a623!important\}/);
+  assert.match(resizeCss,/background:#f05259!important/);
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

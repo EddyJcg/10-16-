@@ -430,7 +430,7 @@ th[draggable="true"]:active{cursor:grabbing}
   .profile-details strong{color:#303b44;font-size:13px}
   .profile-details[hidden],.profile-menu[hidden],.header-account[hidden]{display:none}
   #app-layout main{min-height:calc(100dvh - 100px);background:#d9e0e7}
-  .sidebar{background:#1a1a1a;border-right-color:#1a1a1a;color:#fff}
+  .sidebar{background:#2d353c;border-right-color:#2d353c;color:#fff}
   .sidebar-heading,.sidebar .menu-folder summary{color:#fff}
   .sidebar-heading span,.sidebar .sidebar-hint{color:#aab5bd}
   .sidebar .menu-folder>summary,.sidebar .menu-folder[open]>summary,.sidebar .menu-folder>summary:hover{background:transparent;color:#fff;border-radius:0}

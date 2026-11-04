@@ -406,7 +406,7 @@ test('all popup header control icons and buttons are scaled to 120 percent',()=>
 test('dashboard adopts the reference background, round popup controls and account dropdown',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const css=fs.readFileSync('inventory.css','utf8'),resizeCss=fs.readFileSync('dialog-resize.css','utf8');
-  assert.match(html,/aria-hidden="true">🇰🇷<\/span><span>Korean<\/span>/);
+  assert.match(html,/class="header-language"><img src="\/korean-flag\.png" alt="" aria-hidden="true"><span>Korean<\/span>/);
   assert.match(html,/id="profile-menu" class="profile-menu" hidden/);
   assert.match(html,/id="profile-info-menu"[^>]*>나의정보<\/button>/);
   assert.match(html,/id="profile-password-menu"[^>]*>비밀번호<\/button>/);
@@ -416,6 +416,28 @@ test('dashboard adopts the reference background, round popup controls and accoun
   assert.match(resizeCss,/\.dialog-reset-button\{background:#00aaa5!important\}/);
   assert.match(resizeCss,/\.dialog-minimize-button\{background:#f5a623!important\}/);
   assert.match(resizeCss,/background:#f05259!important/);
+});
+test('header flag uses the provided image with a transparent surround',()=>{
+  const html=fs.readFileSync('inventory.html','utf8'),css=fs.readFileSync('inventory.css','utf8'),image=fs.readFileSync('korean-flag.png');
+  assert.match(html,/inventory\.css\?v=[^"]*header-flag-image/);
+  assert.match(css,/\.header-language img\{display:block;width:20px;height:17px;flex:0 0 auto;object-fit:contain\}/);
+  assert.match(css,/\.header-language img\{width:16px;height:13\.6px\}/);
+  assert.equal(image.readUInt32BE(16),20);
+  assert.equal(image.readUInt32BE(20),17);
+  assert.equal(image[25],6);
+  const chunks=[];let offset=8;
+  while(offset<image.length){
+    const length=image.readUInt32BE(offset),type=image.toString('ascii',offset+4,offset+8);
+    if(type==='IDAT')chunks.push(image.subarray(offset+8,offset+8+length));
+    offset+=length+12;
+  }
+  const pixels=zlib.inflateSync(Buffer.concat(chunks)),alpha=[];
+  for(let y=0;y<17;y++){
+    assert.equal(pixels[y*(20*4+1)],0);
+    for(let x=0;x<20;x++)alpha.push(pixels[y*(20*4+1)+1+x*4+3]);
+  }
+  assert.ok(alpha.includes(0));
+  assert.ok(alpha.includes(255));
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});

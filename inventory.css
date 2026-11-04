@@ -456,3 +456,8 @@ th[draggable="true"]:active{cursor:grabbing}
   .sidebar .menu-folder>summary{padding-top:4.8px;padding-bottom:4.8px}
   .sidebar .folder-children{margin-top:2.8px;margin-bottom:4.8px}
 }
+
+@media screen{
+  .header-language img{display:block;width:20px;height:17px;flex:0 0 auto;object-fit:contain}
+  @media(max-width:700px){.header-language img{width:16px;height:13.6px}}
+}

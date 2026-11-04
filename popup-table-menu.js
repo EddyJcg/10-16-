@@ -5,6 +5,12 @@
   const VISIBILITY_PREFIX='popup-table-hidden-columns:';
   const FILTERED_CLASS='popup-table-menu-filtered';
   const ADDABLE_BODIES=new Set(['product-info-items','sales-order-draft-items','purchase-draft-items']);
+  const MENU_ICON_SHAPES={
+    add:[['path',{d:'M3 3.5h10v10H3z'}],['path',{d:'M3 7h10M6.5 3.5v10'}],['path',{d:'M16.5 12.5v6M13.5 15.5h6'}]],
+    reset:[['path',{d:'M3.5 8a7 7 0 1 1 .8 6.5'}],['path',{d:'M3 3.5V8h4.5'}]],
+    columns:[['path',{d:'M1.5 10s3.1-5.5 8.5-5.5 8.5 5.5 8.5 5.5-3.1 5.5-8.5 5.5-8.5-5.5-8.5-5.5Z'}],['circle',{cx:'10',cy:'10',r:'2.5'}]],
+    filter:[['path',{d:'M2.5 3h15l-5.8 6.5v6l-3.4 1.8v-7.8L2.5 3Z'}]]
+  };
   const visibilityStates=new WeakMap();
   const filterStates=new WeakMap();
   const initializedTables=new WeakSet();
@@ -121,10 +127,22 @@
     panel.style.left=Math.max(6,Math.min(x,window.innerWidth-rect.width-6))+'px';
     panel.style.top=Math.max(6,Math.min(y,window.innerHeight-rect.height-6))+'px';
   }
-  function menuButton(label,action,disabled=false,title=''){
+  function menuButton(label,action,iconName='',disabled=false,title=''){
     const button=document.createElement('button');
-    button.type='button';button.className='popup-table-menu-item';button.textContent=label;
+    button.type='button';button.className='popup-table-menu-item';
     button.dataset.popupMenuAction=action;button.setAttribute('role','menuitem');button.disabled=disabled;
+    const icon=document.createElement('span');icon.className='popup-table-menu-icon';icon.setAttribute('aria-hidden','true');
+    if(iconName){
+      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('viewBox','0 0 20 20');svg.setAttribute('focusable','false');
+      MENU_ICON_SHAPES[iconName].forEach(([tag,attributes])=>{
+        const shape=document.createElementNS('http://www.w3.org/2000/svg',tag);
+        Object.entries(attributes).forEach(([name,value])=>shape.setAttribute(name,value));
+        svg.append(shape);
+      });
+      icon.append(svg);
+    }
+    button.append(icon,document.createTextNode(label));
     if(title)button.title=title;
     return button;
   }
@@ -134,12 +152,12 @@
     const dialog=table.closest('dialog');
     menu=document.createElement('div');menu.className='popup-table-context-menu';menu.setAttribute('role','menu');
     menu.append(menuButton('Excel로 내보내기','export'));
-    menu.append(menuButton('행 추가','add-row',!ADDABLE_BODIES.has(table.tBodies[0]?.id),
+    menu.append(menuButton('행 추가','add-row','add',!ADDABLE_BODIES.has(table.tBodies[0]?.id),
       '기존 등록 흐름이 있는 작성 표에서만 행을 추가할 수 있습니다.'));
     const divider=document.createElement('div');divider.className='popup-table-menu-divider';divider.setAttribute('role','separator');menu.append(divider);
-    menu.append(menuButton('시트 초기화','reset'));
-    menu.append(menuButton('컬럼보기 설정','columns'));
-    menu.append(menuButton('필터','filters'));
+    menu.append(menuButton('시트 초기화','reset','reset'));
+    menu.append(menuButton('컬럼보기 설정','columns','columns'));
+    menu.append(menuButton('필터','filters','filter'));
     dialog.append(menu);positionPanel(menu,x,y);
   }
   function enableFilters(table){

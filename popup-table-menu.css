@@ -1,6 +1,8 @@
 .popup-table-context-menu,.popup-table-column-panel,.popup-table-filter-panel{position:fixed;z-index:10000;box-sizing:border-box;color:#203b32;background:#fff;border:1px solid #d4dfd6;border-radius:9px;box-shadow:0 12px 32px #14372630}
 .popup-table-context-menu{min-width:210px;padding:6px}
-.popup-table-menu-item{display:block;width:100%;padding:9px 12px;border:0;border-radius:6px;background:transparent;color:#294638;text-align:left;font:inherit;font-size:13px}
+.popup-table-menu-item{display:flex;align-items:center;gap:10px;width:100%;min-height:34px;padding:7px 12px;border:0;border-radius:6px;background:transparent;color:#294638;text-align:left;font:inherit;font-size:13px}
+.popup-table-menu-icon{display:inline-flex;flex:0 0 20px;align-items:center;justify-content:center;width:20px;height:20px}
+.popup-table-menu-icon svg{display:block;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .popup-table-menu-item:hover:not(:disabled),.popup-table-menu-item:focus-visible{background:#edf4ef}
 .popup-table-menu-item:disabled{color:#9aa69e;cursor:not-allowed}
 .popup-table-menu-divider{height:1px;margin:5px 3px;background:#e4ebe3}

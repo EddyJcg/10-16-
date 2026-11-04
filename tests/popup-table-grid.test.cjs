@@ -90,6 +90,16 @@ test('팝업 아이콘 메뉴에서 내보내기·행 추가·시트 설정 기�
   assert.match(menu,/contextmenu/);
   assert.match(menu,/localStorage\.setItem\(visibilityKey\(table\)/);
   assert.match(menu,/FILTERED_CLASS/);
+  for(const [label,action,icon] of [
+    ['행 추가','add-row','add'],
+    ['시트 초기화','reset','reset'],
+    ['컬럼보기 설정','columns','columns'],
+    ['필터','filters','filter']
+  ])assert.ok(menu.includes(`menuButton('${label}','${action}','${icon}'`));
+  assert.match(menu,/createElementNS\('http:\/\/www\.w3\.org\/2000\/svg','svg'\)/);
+  const menuCss = read('popup-table-menu.css');
+  assert.match(menuCss,/\.popup-table-menu-item\{display:flex;align-items:center/);
+  assert.match(menuCss,/\.popup-table-menu-icon\{display:inline-flex;flex:0 0 20px/);
   assert.match(menu,/저장된 업무 데이터는 삭제하지 않았습니다/);
   const app = read('inventory-app.js');
   assert.match(app,/function addPopupTableDraftRow\(bodyId\)/);

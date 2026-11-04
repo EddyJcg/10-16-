@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const read = (name) => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');
 
@@ -49,4 +50,32 @@ test('팝업 일련번호 제목은 투명 아이콘으로 표시하고 기존 �
   assert.match(css, /width:19\.8px;height:19\.8px/);
   const icon = fs.readFileSync(path.join(__dirname, '..', 'popup-serial-icon.png'));
   assert.equal(icon.readUInt8(25), 6);
+});
+
+test('메인 화면의 일련번호 제목도 아이콘으로 바꾸고 팝업 표는 건너뛴다', () => {
+  const makeHeader = (textContent) => ({
+    textContent,
+    dataset: {},
+    children: [],
+    setAttribute(name, value) { this[name] = value; },
+    replaceChildren(child) { this.children = [child]; }
+  });
+  const mainHeader = makeHeader('일련번호');
+  const popupHeader = makeHeader('일련번호');
+  const tables = [
+    { tHead: { rows: [{ cells: [mainHeader] }] }, closest: () => null },
+    { tHead: { rows: [{ cells: [popupHeader] }] }, closest: () => ({}) }
+  ];
+  const context = vm.createContext({
+    document: {
+      querySelectorAll: () => tables,
+      createElement: () => ({ dataset: {} })
+    }
+  });
+  vm.runInContext(read('inventory-render.js'), context);
+  vm.runInContext('convertMainPageSerialHeaders()', context);
+  assert.equal(mainHeader.children[0].src, '/popup-serial-icon.png');
+  assert.equal(mainHeader.children[0].alt, '일련번호');
+  assert.equal(mainHeader.dataset.gridOwnSerial, '1');
+  assert.equal(popupHeader.children.length, 0);
 });

@@ -6,10 +6,24 @@ function formatStockQuantityTotals(rows){
   rows.forEach(item=>{const quantity=Number(item.stock_quantity)||0;if(quantity<=0)return;const unit=item.unit||'EA(개)';totals.set(unit,(totals.get(unit)||0)+quantity);});
   return totals.size?[...totals].map(([unit,quantity])=>number(quantity)+' '+unit).join(' · '):'0';
 }
+function setSerialHeaderIcon(header){
+  header.dataset.gridSerial='1';header.dataset.gridOwnSerial='1';header.dataset.popupColumnKey='일련번호#0';
+  header.setAttribute('aria-label','일련번호');
+  const icon=document.createElement('img');icon.src='/popup-serial-icon.png';icon.alt='일련번호';icon.dataset.popupSerialIcon='1';
+  header.replaceChildren(icon);
+}
+function convertMainPageSerialHeaders(){
+  document.querySelectorAll('table').forEach(table=>{
+    if(table.closest('dialog'))return;
+    const header=table.tHead?.rows[0]?.cells[0];
+    if(header&&header.textContent.trim()==='일련번호')setSerialHeaderIcon(header);
+  });
+}
 function renderHeaders(){
   $('stock-head').replaceChildren();
-  const serialHeader=document.createElement('th');serialHeader.scope='col';serialHeader.textContent='일련번호';serialHeader.className='numeric';$('stock-head').append(serialHeader);
+  const serialHeader=document.createElement('th');serialHeader.scope='col';serialHeader.className='numeric';setSerialHeaderIcon(serialHeader);$('stock-head').append(serialHeader);
   STOCK_DISPLAY_FIELDS.forEach(field=>{const cell=document.createElement('th');cell.scope='col';cell.textContent=field.label;cell.className=(field.numeric?'numeric ':'')+(field.numeric?'group-'+field.key.split('_')[0]:'');$('stock-head').append(cell);});
+  convertMainPageSerialHeaders();
 }
 function render(){
   const ledgerItems=items.filter(isStockLedgerManaged);

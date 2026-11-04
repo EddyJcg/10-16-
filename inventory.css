@@ -416,7 +416,7 @@ th[draggable="true"]:active{cursor:grabbing}
   .header-actions{gap:20px}
   .header-account{gap:20px}
   .header-language{gap:9px;color:#46525c;font-size:15px}
-  .header-language [aria-hidden=true]{font-size:20px}
+  .header-language [aria-hidden=true]{font-size:60px;line-height:1}
   .account-menu-wrap{position:relative}
   .profile-menu-toggle{gap:10px;padding:0;border:0;background:transparent;color:#36414b;font-size:16px;font-weight:600}
   .profile-avatar{position:relative;display:inline-block;width:38px;height:38px;flex:0 0 38px;overflow:hidden;border-radius:50%;background:#566680}
@@ -443,7 +443,7 @@ th[draggable="true"]:active{cursor:grabbing}
     .brand-logo{width:48px;height:48px}
     .header-actions,.header-account{gap:10px}
     .header-language{gap:5px;font-size:12px}
-    .header-language [aria-hidden=true]{font-size:16px}
+    .header-language [aria-hidden=true]{font-size:48px;line-height:1}
     .profile-avatar{width:32px;height:32px;flex-basis:32px}
     .profile-avatar::before{left:11px;top:6px;width:10px;height:10px}
     .profile-avatar::after{left:7px;width:19px;height:18px}

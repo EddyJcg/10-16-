@@ -102,6 +102,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.doesNotMatch(form,/id="sales_vendor_id"/);
   assert.doesNotMatch(form,/id="sales_vendor_contact" readonly/);
   assert.match(form,/id="sales_amount" readonly/);
+  assert.match(form,/class="field sales-order-due-date-field"><label for="sales_due_date">납기일자<\/label><div class="sales-order-due-date-actions"><input id="sales_due_date" type="date" required min="1900-01-01"><button id="save-sales-order-draft" type="button" class="primary sales-order-draft-register">가수주 등록<\/button><\/div><\/div>/);
   assert.match(form,/id="add-sales-line-footer"[^>]*>수주품목 추가<\/button>/);
   assert.match(form,/id="import-sales-order-button"[^>]*>Excel 업로드<\/button>/);
   assert.match(form,/id="sales-order-import-file" type="file" accept="[^"]*\.xlsx/);
@@ -114,6 +115,9 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(html,/<link rel="stylesheet" href="\/sales-order\.css/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);
   assert.match(style,/@media\(min-width:851px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
+  assert.match(style,/@media\(min-width:1600px\)\{[\s\S]*?\.sales-order-dialog \.sales-order-line-grid\{grid-template-columns:repeat\(6,minmax\(0,1fr\)\) minmax\(320px,2fr\)/);
+  assert.match(style,/\.sales-order-dialog \.sales-order-draft-register\{flex:0 0 160px;width:160px;min-width:150px\}/);
+  assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('save-sales-order-draft'\)\.addEventListener\('click',addSalesOrderLine\)/);
   assert.match(style,/@media\(max-width:850px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(style,/@media\(max-width:520px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:1fr\}/);
 });

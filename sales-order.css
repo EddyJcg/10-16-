@@ -29,6 +29,25 @@
   .sales-status-order-search .field{max-width:none}
   .sales-register-confirm-dialog .dialog-footer button{flex:1}
 }
+.sales-order-dialog .sales-order-due-date-actions{display:flex;align-items:stretch;gap:8px}
+.sales-order-dialog .sales-order-due-date-actions input{flex:1;min-width:0}
+.sales-order-dialog .sales-order-draft-register{flex:0 0 160px;width:160px;min-width:150px}
+.sales-order-dialog .sales-order-save-actions #save-sales-order,
+.sales-order-dialog .sales-order-draft-register{width:160px}
+@media(min-width:1600px){
+  .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(6,minmax(0,1fr)) minmax(320px,2fr)}
+}
+@media(min-width:851px) and (max-width:1599px){
+  .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .sales-order-dialog .sales-order-due-date-field{grid-column:span 2}
+}
+@media(max-width:850px){
+  .sales-order-dialog .sales-order-due-date-field{grid-column:1/-1}
+}
+@media(max-width:520px){
+  .sales-order-dialog .sales-order-due-date-actions{flex-direction:column}
+  .sales-order-dialog .sales-order-draft-register{flex:0 0 auto;width:100%}
+}
 @media print{
   .sales-status-order-search{display:none!important}
 }

@@ -2744,6 +2744,7 @@ async function startApp(){
   $('sales-order-form').addEventListener('submit',saveSalesOrder);
   $('import-sales-order-button').addEventListener('click',openSalesOrderFilePicker);
   $('sales-order-import-file').addEventListener('change',importSalesOrderFile);
+  $('save-sales-order-draft').addEventListener('click',addSalesOrderLine);
   $('add-sales-line-footer').addEventListener('click',addSalesOrderLine);
   $('sales-order-draft-items').addEventListener('click',event=>{
     const button=event.target.closest('[data-register-sales-line]');

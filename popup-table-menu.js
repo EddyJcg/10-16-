@@ -166,9 +166,6 @@
     exportPanel=document.createElement('section');exportPanel.className='popup-table-export-panel';
     exportPanel.setAttribute('role','dialog');exportPanel.setAttribute('aria-label','Excel 내보내기');
     const title=document.createElement('strong');title.textContent='Excel 내보내기';exportPanel.append(title);
-    const description=document.createElement('p');
-    description.textContent='Excel에서 열기는 파일을 다운로드합니다. 브라우저 보안상 데스크톱 Excel을 직접 실행할 수 없으므로 다운로드 목록에서 파일을 열어주세요. 다른 이름으로 저장은 지원 브라우저에서 저장 위치를 선택합니다.';
-    exportPanel.append(description);
     const actions=document.createElement('div');actions.className='popup-table-panel-actions popup-table-export-actions';
     const open=document.createElement('button');open.type='button';open.className='primary';open.textContent='Excel에서 열기';
     open.addEventListener('click',()=>{closePanels();exportTable(table,'open');});

@@ -49,7 +49,7 @@ test('팝업 일련번호 제목은 투명 아이콘으로 표시하고 기존 �
   assert.match(js, /hasAttribute\('data-grid-serial'\)\?SERIAL_LABEL/);
   const css = read('popup-table-grid.css');
   assert.match(css, /data-grid-serial\] img\[data-popup-serial-icon\]/);
-  assert.match(css, /width:19\.8px;height:19\.8px/);
+  assert.match(css, /width:21\.78px;height:21\.78px/);
   const icon = fs.readFileSync(path.join(__dirname, '..', 'popup-serial-icon.png'));
   assert.equal(icon.readUInt8(25), 6);
 });
@@ -92,6 +92,7 @@ test('팝업 아이콘 메뉴에서 내보내기·행 추가·시트 설정 기�
   assert.match(menu,/showSaveFilePicker/);
   assert.match(menu,/msSaveOrOpenBlob/);
   assert.match(menu,/exportPanel\?\.contains\(event\.target\)/);
+  assert.doesNotMatch(menu,/브라우저 보안상 데스크톱 Excel/);
   assert.doesNotMatch(menu,/Excel로 내보낼 표 행이 없습니다/);
   assert.match(menu,/localStorage\.setItem\(visibilityKey\(table\)/);
   assert.match(menu,/FILTERED_CLASS/);

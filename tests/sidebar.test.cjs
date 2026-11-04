@@ -95,6 +95,12 @@ test('sidebar folder spacing is halved without changing label sizes',()=>{
   assert.match(style,/\.sidebar \.folder-children\{margin-top:2\.8px;margin-bottom:4\.8px\}/);
   assert.match(style,/\.sidebar \.menu-folder summary\{font-size:22\.0932px/);
 });
+test('expanded sidebar subfolders use half the current vertical spacing',()=>{
+  const style=fs.readFileSync('inventory.css','utf8');
+  assert.match(style,/\.sidebar \.folder-children \.menu-folder\{margin-bottom:1\.6px\}/);
+  assert.match(style,/\.sidebar \.folder-children \.menu-folder>summary\{padding-top:2\.4px;padding-bottom:2\.4px\}/);
+  assert.match(style,/\.sidebar \.menu-folder summary\{font-size:22\.0932px/);
+});
 test('procurement folder uses the supplied settings icon without a background',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const style=fs.readFileSync('purchase-folder-icon.css','utf8');

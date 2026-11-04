@@ -393,7 +393,15 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
     }
   }
   assert.ok(hasVisibleWhitePixel);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-round-controls/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-controls-120/);
+});
+test('all popup header control icons and buttons are scaled to 120 percent',()=>{
+  const css=fs.readFileSync('dialog-resize.css','utf8');
+  assert.match(css,/\.dialog-window-button\{\s*width:25\.2px!important;height:25\.2px!important;min-width:25\.2px!important/);
+  assert.match(css,/\.dialog-expand-icon\{width:12px;height:12px;border-width:2\.4px/);
+  assert.match(css,/\.dialog-reset-icon\{font-size:20\.4px/);
+  assert.match(css,/\.dialog-minimize-icon\{width:12px;height:2\.4px/);
+  assert.match(css,/width:25\.2px!important;height:25\.2px!important;min-width:25\.2px!important;padding:0!important;[\s\S]*?dialog \.close::before\{content:"×";font-size:19\.2px/);
 });
 test('dashboard adopts the reference background, round popup controls and account dropdown',()=>{
   const html=fs.readFileSync('inventory.html','utf8');

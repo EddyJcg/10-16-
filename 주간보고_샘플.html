@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주간 구매 업무 보고서 (샘플)</title>
+<style>
+  body { font-family: Arial, "Malgun Gothic", sans-serif; background: #f4f6fa; color: #222; margin: 0; padding: 24px; }
+  .wrap { max-width: 960px; margin: 0 auto; background: #fff; padding: 24px 32px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  h1 { font-size: 22px; color: #1F3864; margin: 0 0 4px; }
+  .meta { font-size: 13px; color: #666; margin-bottom: 20px; }
+  .sample { display: inline-block; background: #FFF2CC; color: #7F6000; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px; }
+  h2 { font-size: 16px; color: #1F3864; border-bottom: 2px solid #D9E1F2; padding-bottom: 6px; margin: 28px 0 12px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi { border: 1px solid #D9E1F2; border-radius: 6px; padding: 14px; }
+  .kpi .label { font-size: 12px; color: #666; }
+  .kpi .value { font-size: 26px; font-weight: bold; color: #1F3864; margin: 6px 0; }
+  .kpi .delta { font-size: 12px; }
+  .ok { color: #2E7D32; }
+  .warn { color: #C62828; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+  .badge.ok { background: #E8F5E9; color: #2E7D32; }
+  .badge.warn { background: #FFEBEE; color: #C62828; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #1F3864; color: #fff; padding: 8px; text-align: center; }
+  td { border: 1px solid #D9E1F2; padding: 7px 8px; }
+  td.num { text-align: right; }
+  td.center { text-align: center; }
+  .footnote { font-size: 12px; color: #888; margin-top: 24px; }
+  @media (max-width: 720px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>주간 구매 업무 보고서 <span class="sample">샘플 데이터</span></h1>
+  <div class="meta">기준일: 2026-11-04 &nbsp;|&nbsp; 보고 주차: 2026년 45주차 &nbsp;|&nbsp; 단위: 백만원</div>
+
+  <h2>핵심 지표</h2>
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label">프로젝트별 원가 집행률</div>
+      <div class="value">62.4%</div>
+      <div class="delta">전주 대비 <span class="ok">▼ 1.8%p</span></div>
+      <div style="margin-top:6px"><span class="badge ok">양호</span></div>
+    </div>
+    <div class="kpi">
+      <div class="label">발주 진행율</div>
+      <div class="value">78.0%</div>
+      <div class="delta">전주 대비 <span class="ok">▲ 3.2%p</span></div>
+      <div style="margin-top:6px"><span class="badge ok">양호</span></div>
+    </div>
+    <div class="kpi">
+      <div class="label">입고 진행율</div>
+      <div class="value">54.5%</div>
+      <div class="delta">전주 대비 <span class="warn">▼ 2.0%p</span></div>
+      <div style="margin-top:6px"><span class="badge warn">주의</span></div>
+    </div>
+    <div class="kpi">
+      <div class="label">납기 지연율</div>
+      <div class="value">12.5%</div>
+      <div class="delta">전주 대비 <span class="warn">▲ 1.5%p</span></div>
+      <div style="margin-top:6px"><span class="badge warn">주의</span></div>
+    </div>
+  </div>
+
+  <h2>주요 이슈 Top 3</h2>
+  <table>
+    <thead>
+      <tr><th style="width:50px">순위</th><th>이슈</th><th>영향</th><th>조치 현황</th><th style="width:90px">의사결정 필요</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="center">1</td><td>니켈 공급사 A 납기 지연</td><td>라인 2 일정 5일 지연</td><td>대체 공급사 견적 요청 완료</td><td class="center">Y</td></tr>
+      <tr><td class="center">2</td><td>수입 전장 부품 통관 지연</td><td>입고 예정 3건 이월</td><td>항공 운송 전환 검토 중</td><td class="center">Y</td></tr>
+      <tr><td class="center">3</td><td>구리 단가 상승</td><td>원가 약 4.2 증가 예상</td><td>장기계약 협상 진행</td><td class="center">N</td></tr>
+    </tbody>
+  </table>
+
+  <h2>원자재 · 환율 주간 동향</h2>
+  <table>
+    <thead>
+      <tr><th>구분</th><th>항목</th><th>금주</th><th>전주</th><th>등락률</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="center">LME</td><td>구리(Cu), USD/t</td><td class="num">9,420</td><td class="num">9,260</td><td class="num warn">▲ 1.7%</td></tr>
+      <tr><td class="center">LME</td><td>알루미늄(Al), USD/t</td><td class="num">2,585</td><td class="num">2,610</td><td class="num ok">▼ 1.0%</td></tr>
+      <tr><td class="center">LME</td><td>니켈(Ni), USD/t</td><td class="num">16,850</td><td class="num">16,300</td><td class="num warn">▲ 3.4%</td></tr>
+      <tr><td class="center">LME</td><td>코발트(Co), USD/t</td><td class="num">33,100</td><td class="num">33,400</td><td class="num ok">▼ 0.9%</td></tr>
+      <tr><td class="center">환율</td><td>USD/KRW</td><td class="num">1,378.50</td><td class="num">1,365.20</td><td class="num warn">▲ 1.0%</td></tr>
+      <tr><td class="center">환율</td><td>CNY/KRW</td><td class="num">190.40</td><td class="num">188.90</td><td class="num warn">▲ 0.8%</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Catch-up 방안</h2>
+  <table>
+    <thead>
+      <tr><th>품목</th><th>조치 방안</th><th>담당</th><th>완료 목표일</th><th>상태</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>니켈 판재</td><td>대체 공급사 2곳 샘플 승인</td><td class="center">김구매</td><td class="center">2026-11-12</td><td class="center"><span class="badge warn">지연</span></td></tr>
+      <tr><td>전장 부품 PCB</td><td>항공 운송 전환</td><td class="center">이발주</td><td class="center">2026-11-08</td><td class="center"><span class="badge ok">진행</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="footnote">
+    출처: LME(https://www.lme.com), 서울외국환중개(https://www.smbs.biz) 샘플 값이며 실제 시세가 아닙니다.
+  </div>
+</div>
+</body>
+</html>

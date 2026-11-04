@@ -50,6 +50,7 @@ test('팝업 일련번호 제목은 투명 아이콘으로 표시하고 기존 �
   const css = read('popup-table-grid.css');
   assert.match(css, /data-grid-serial\] img\[data-popup-serial-icon\]/);
   assert.match(css, /width:21\.78px;height:21\.78px/);
+  assert.match(css,/table thead th\[data-grid-serial\] img\[data-popup-serial-icon\]\{[^}]*filter:brightness\(0\) saturate\(100%\) invert\(35%\) sepia\(99%\) saturate\(4104%\) hue-rotate\(202deg\) brightness\(101%\) contrast\(101%\)/);
   const icon = fs.readFileSync(path.join(__dirname, '..', 'popup-serial-icon.png'));
   assert.equal(icon.readUInt8(25), 6);
 });

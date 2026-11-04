@@ -2,19 +2,34 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const ADMIN = '1a5b77e2-e8b2-4f7f-980d-e1974834be5c';
 const USER = '00000000-0000-4000-8000-000000000001';
-const env = {SUPABASE_URL:'https://example.supabase.co',SUPABASE_SECRET_KEY:'test-server-secret',ADMIN_USER_IDS:ADMIN};
+const env = {SUPABASE_URL:'https://example.supabase.co',SUPABASE_SECRET_KEY:'test-server-secret'};
 
 async function invoke({method='GET',body,actor=ADMIN,headers={authorization:'Bearer test-token'},config=env,authError=false,banned=false,query={}} = {}) {
   const {createAdminHandler} = await import('../server/user-admin.mjs');
   const calls = [];
+  const adminIds = new Set([ADMIN]);
+  const adminQuery = {
+    select(){return this;},
+    order(){return this;},
+    then(resolve,reject){return Promise.resolve({data:[...adminIds].map((user_id,slot)=>({user_id,slot:slot+1})),error:null}).then(resolve,reject);}
+  };
   const client = {auth:{
     getUser:async token => ({data:{user:authError ? null : {id:actor}},error:authError ? {} : null}),
     admin:{
-      getUserById:async id => ({data:{user:{id,banned_until:banned ? '2099-01-01T00:00:00Z' : null}},error:null}),
+      getUserById:async id => ({data:{user:{id,banned_until:banned ? '2099-01-01T00:00:00Z' : null,app_metadata:{inventory_access:true}}},error:null}),
       listUsers:async () => {calls.push(['list']);return {data:{users:[{id:USER,email:'user@example.com',encrypted_password:'must-not-leak',app_metadata:{private:'hidden'}}]},error:null};},
       createUser:async attributes => {calls.push(['create',attributes]);return {data:{user:{id:USER,email:attributes.email}},error:null};},
       updateUserById:async (id,attributes) => {calls.push(['update',id,attributes]);return {data:{user:{id,email:'user@example.com'}},error:null};}
     }
+  },
+  from:()=>adminQuery,
+  rpc:async(name,args)=>{
+      calls.push(['rpc',name,args]);
+      if(args.target_user_id==='00000000-0000-4000-8000-000000000002') {
+        return {data:null,error:{message:args.make_admin?'ADMIN_LIMIT':'LAST_ADMIN'}};
+      }
+      if(args.make_admin)adminIds.add(args.target_user_id);else adminIds.delete(args.target_user_id);
+      return {data:[{admin_count:adminIds.size}],error:null};
   }};
   const handler = createAdminHandler({createClient:() => client,env:config});
   const response = {headers:{},setHeader(key,value){this.headers[key] = value;},status(value){this.code = value;return this;},json(value){this.body = value;return this;}};
@@ -72,7 +87,9 @@ test('missing server configuration fails closed',async () => {
 test('permission check reports verified admin status without listing users',async()=>{
   for(const [actor,expected] of [[ADMIN,true],[USER,false]]){
     const {response,calls}=await invoke({actor,query:{action:'permissions'}});
-    assert.equal(response.code,200);assert.deepEqual(response.body,{is_admin:expected});assert.equal(calls.length,0);
+    assert.equal(response.code,200);
+    assert.deepEqual(response.body,expected?{is_admin:true,admin_count:1,max_admins:3}:{is_admin:false});
+    assert.equal(calls.length,0);
   }
   assert.equal((await invoke({banned:true,query:{action:'permissions'}})).response.code,403);
   assert.equal((await invoke({authError:true,query:{action:'permissions'}})).response.code,401);
@@ -80,6 +97,65 @@ test('permission check reports verified admin status without listing users',asyn
 test('ordinary users cannot list or edit users through direct API access',async()=>{
   for(const method of ['GET','PATCH']){
     const {response,calls}=await invoke({method,actor:USER,body:{id:USER,email:'changed@example.test'}});
-    assert.equal(response.code,403);assert.equal(calls.length,0);
+    assert.equal(response.code,403);assert.equal(calls.some(([name])=>['list','create','update','rpc'].includes(name)),false);
   }
+});
+
+test('active admins can change user roles but the client cannot manage the role list directly',async()=>{
+  const promoted=await invoke({method:'PATCH',body:{id:USER,is_admin:true}});
+  assert.equal(promoted.response.code,200);
+  assert.equal(promoted.response.body.user.is_admin,true);
+  assert.equal(promoted.response.body.adminCount,2);
+  assert.deepEqual(promoted.calls[0],['rpc','set_inventory_admin',{target_user_id:USER,make_admin:true}]);
+  const forged=await invoke({method:'PATCH',body:{id:USER,is_admin:true,email:'forged@example.test'}});
+  assert.equal(forged.response.code,400);
+  assert.equal(forged.calls.length,0);
+  const selfDemotion=await invoke({method:'PATCH',actor:ADMIN,body:{id:ADMIN,is_admin:false}});
+  assert.equal(selfDemotion.response.code,400);
+});
+
+test('admin changes respect the database three-admin limit and preserve a final administrator',async()=>{
+  const target='00000000-0000-4000-8000-000000000002';
+  const cap=await invoke({method:'PATCH',body:{id:target,is_admin:true}});
+  assert.equal(cap.response.code,409);
+  const last=await invoke({method:'PATCH',body:{id:target,is_admin:false}});
+  assert.equal(last.response.code,409);
+});
+
+test('administrator slots and transaction-locked RPC enforce the three-admin cap',()=>{
+  const sql=require('node:fs').readFileSync('supabase/user-admins.sql','utf8');
+  assert.match(sql,/slot smallint primary key check \(slot between 1 and 3\)/);
+  assert.match(sql,/pg_advisory_xact_lock/);
+  assert.match(sql,/raise exception 'ADMIN_LIMIT'/);
+  assert.match(sql,/raise exception 'LAST_ADMIN'/);
+  assert.match(sql,/grant select on public\.inventory_admins to service_role/);
+  assert.doesNotMatch(sql,/grant [^;]*(insert|delete)[^;]*on public\.inventory_admins to service_role/i);
+  assert.match(sql,/grant execute on function public\.set_inventory_admin\(uuid,boolean\) to service_role/);
+});
+
+test('administrator database migration assigns at most three users and preserves one admin',async()=>{
+  const {PGlite}=await import('@electric-sql/pglite');
+  const db=new PGlite();
+  try{
+    await db.exec(`create role anon; create role authenticated; create role service_role;
+      create schema auth; create table auth.users(id uuid primary key);
+      insert into auth.users(id) values
+        ('${ADMIN}'),('${USER}'),('00000000-0000-4000-8000-000000000002'),
+        ('00000000-0000-4000-8000-000000000003');`);
+    const migration=require('node:fs').readFileSync('supabase/user-admins.sql','utf8');
+    await db.exec(migration); await db.exec(migration);
+    const privileges=await db.query(`select
+      has_table_privilege('service_role','public.inventory_admins','select') as can_select,
+      has_table_privilege('service_role','public.inventory_admins','insert') as can_insert,
+      has_table_privilege('service_role','public.inventory_admins','delete') as can_delete`);
+    assert.deepEqual(privileges.rows[0],{can_select:true,can_insert:false,can_delete:false});
+    await db.query('select * from public.set_inventory_admin($1,true)',['00000000-0000-4000-8000-000000000002']);
+    await db.query('select * from public.set_inventory_admin($1,true)',['00000000-0000-4000-8000-000000000003']);
+    await assert.rejects(db.query('select * from public.set_inventory_admin($1,true)',['00000000-0000-4000-8000-000000000004']),/ADMIN_LIMIT/);
+    await db.query('select * from public.set_inventory_admin($1,false)',['00000000-0000-4000-8000-000000000002']);
+    await db.query('select * from public.set_inventory_admin($1,false)',['00000000-0000-4000-8000-000000000003']);
+    await assert.rejects(db.query('select * from public.set_inventory_admin($1,false)',[ADMIN]),/LAST_ADMIN/);
+    const total=await db.query('select count(*)::integer as count from public.inventory_admins');
+    assert.equal(total.rows[0].count,1);
+  }finally{await db.close();}
 });

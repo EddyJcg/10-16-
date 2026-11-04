@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let client, users = [], page = 1, hasMore = false, activityRows = [], activityPage = 1, activityHasMore = false, activitySearch = '', editing = null, busy = false, sessionGeneration = 0, activityLoadGeneration = 0;
+let client, users = [], page = 1, hasMore = false, adminCount = 0, maxAdmins = 3, adminUserId = '', activityRows = [], activityPage = 1, activityHasMore = false, activitySearch = '', editing = null, busy = false, sessionGeneration = 0, activityLoadGeneration = 0;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function resetEditor() {
   editing = null; $('user-form').reset(); $('user-password').required = true;
@@ -12,7 +12,9 @@ function updateControls() {
   $('editor').disabled = busy; $('refresh').disabled = busy;
   $('previous').disabled = busy || page <= 1; $('next').disabled = busy || !hasMore;
   $('page-label').textContent = page + ' 페이지';
+  $('admin-count').textContent = '관리자 ' + adminCount + '/' + maxAdmins;
   $('users').querySelectorAll('button').forEach(button => button.disabled = busy || button.dataset.protected === 'true');
+  $('users').querySelectorAll('button[data-locked]').forEach(button => button.disabled = busy || button.dataset.locked === 'true');
   $('activity-search-button').disabled = busy;
   $('activity-search-reset').disabled = busy;
   $('activity-previous').disabled = busy || activityPage <= 1;
@@ -56,7 +58,22 @@ function renderUsers() {
       if (!confirm(user.email + (user.disabled ? ' 계정을 다시 활성화할까요?' : ' 계정의 사용을 중지할까요?'))) return;
       runMutation(() => api('PATCH',{id:user.id,disabled:!user.disabled}),user.disabled ? '계정을 재활성화했습니다.' : '계정 사용을 중지했습니다.');
     });
-    actions.append(edit,toggle); row.append(email,state,actions); $('users').append(row);
+    const role = document.createElement('button');
+    role.textContent = user.is_admin ? '관리자 해제' : '관리자 지정';
+    role.className = user.is_admin ? 'danger' : '';
+    const locked = (!user.is_admin && user.disabled) || (user.is_admin && (adminCount <= 1 || user.id === adminUserId))
+      || (!user.is_admin && adminCount >= maxAdmins);
+    role.dataset.locked = String(locked);
+    role.title = user.disabled ? '사용 중인 계정에만 관리자 권한을 부여할 수 있습니다.'
+      : user.is_admin && user.id === adminUserId ? '현재 로그인한 관리자의 권한은 다른 관리자가 변경해야 합니다.'
+      : user.is_admin && adminCount <= 1 ? '관리자는 최소 한 명을 유지해야 합니다.'
+      : !user.is_admin && adminCount >= maxAdmins ? '관리자는 최대 3명까지 지정할 수 있습니다.' : '';
+    role.setAttribute('aria-label',user.email + ' ' + role.textContent);
+    role.addEventListener('click',() => {
+      if (locked || !confirm(user.email + (user.is_admin ? '의 관리자 권한을 해제할까요?' : '에 관리자 권한을 부여할까요?'))) return;
+      runMutation(() => api('PATCH',{id:user.id,is_admin:!user.is_admin}),user.is_admin ? '관리자 권한을 해제했습니다.' : '관리자 권한을 부여했습니다.');
+    });
+    actions.append(edit,toggle,role); row.append(email,state,actions); $('users').append(row);
   });
   updateControls();
 }
@@ -95,7 +112,7 @@ function renderActivity() {
 async function loadUsers() {
   const generation = sessionGeneration, result = await api();
   if (generation !== sessionGeneration) return false;
-  users = result.users; hasMore = result.hasMore; renderUsers(); return true;
+  users = result.users; hasMore = result.hasMore; adminCount = result.adminCount; maxAdmins = result.maxAdmins; renderUsers(); return true;
 }
 async function loadActivity() {
   const generation = sessionGeneration, request = ++activityLoadGeneration, result = await activityRequest();
@@ -115,7 +132,7 @@ async function runMutation(action,message) {
   finally { $('user-password').value = ''; busy = false; updateControls(); }
 }
 async function onSession(session) {
-  sessionGeneration++; users = []; activityRows = []; activityPage = 1; activityHasMore = false; activitySearch = ''; $('activity-user-search').value = ''; $('users').replaceChildren(); $('activity-rows').replaceChildren(); resetEditor();
+  sessionGeneration++; users = []; activityRows = []; activityPage = 1; activityHasMore = false; activitySearch = ''; adminUserId = session?.user?.id || ''; $('activity-user-search').value = ''; $('users').replaceChildren(); $('activity-rows').replaceChildren(); resetEditor();
   const generation = sessionGeneration;
   $('admin-panel').hidden = true; $('login-panel').hidden = !!session;
   if (!session) return;

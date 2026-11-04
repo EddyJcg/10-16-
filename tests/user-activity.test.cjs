@@ -3,21 +3,22 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const ADMIN = '1a5b77e2-e8b2-4f7f-980d-e1974834be5c';
 const USER = '00000000-0000-4000-8000-000000000001';
-const env = {SUPABASE_URL:'https://example.supabase.co',SUPABASE_SECRET_KEY:'test-server-secret',ADMIN_USER_IDS:ADMIN};
+const env = {SUPABASE_URL:'https://example.supabase.co',SUPABASE_SECRET_KEY:'test-server-secret'};
 
 async function invoke({method='POST',body={event_type:'login'},actor=USER,actorEmail='user@example.com',admin=false,banned=false,headers={authorization:'Bearer verified-token'},query={},config=env}={}) {
   const {createUserActivityHandler} = await import('../server/user-activity.mjs');
   const calls=[];
   const result={data:[{id:'event-1',user_id:USER,email:'user@example.com',event_type:'login',occurred_at:'2026-11-04T00:00:00Z'}],error:null};
-  const builder={
+  const builder=(table)=>({
     insert(value){calls.push(['insert',value]);return this;},
     select(value){calls.push(['select',value]);return this;},
     single:async()=>({data:result.data[0],error:null}),
     order(column,options){calls.push(['order',column,options]);return this;},
     range(start,end){calls.push(['range',start,end]);return this;},
     ilike(column,value){calls.push(['ilike',column,value]);return this;},
-    then(resolve,reject){return Promise.resolve(result).then(resolve,reject);}
-  };
+    then(resolve,reject){return Promise.resolve(table==='inventory_admins'
+      ?{data:[{user_id:ADMIN,slot:1}],error:null}:result).then(resolve,reject);}
+  });
   const client={
     auth:{
       getUser:async()=>({data:{user:{id:actor,email:actorEmail}},error:null}),
@@ -26,7 +27,7 @@ async function invoke({method='POST',body={event_type:'login'},actor=USER,actorE
         deleted_at:null,app_metadata:{inventory_access:admin||actor===ADMIN||actor===USER}
       }},error:null})}
     },
-    from:table=>{calls.push(['from',table]);return builder;}
+    from:table=>{calls.push(['from',table]);return builder(table);}
   };
   const handler=createUserActivityHandler({createClient:()=>client,env:config});
   const response={headers:{},setHeader(key,value){this.headers[key]=value;},status(value){this.code=value;return this;},json(value){this.body=value;return this;}};
@@ -78,6 +79,8 @@ test('user management shows searchable activity history and login/logout forms r
   assert.match(html,/id="activity-user-search" type="search"/);
   assert.match(html,/id="activity-rows"/);
   assert.match(adminScript,/activitySearch = \$\('activity-user-search'\)\.value\.trim\(\)/);
+  assert.match(adminScript,/user\.is_admin \? '관리자 해제' : '관리자 지정'/);
+  assert.match(adminScript,/adminCount >= maxAdmins/);
   assert.match(adminScript,/recordActivity\('login'\)/);
   assert.match(adminScript,/recordActivity\('logout'\)/);
   assert.match(appScript,/recordUserAuthActivity\('login',data\.session\)/);

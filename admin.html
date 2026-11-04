@@ -20,10 +20,10 @@
         <section class="card"><h2 id="form-title">사용자 등록</h2><p>아이디는 이메일을 사용합니다.</p>
           <form id="user-form"><fieldset id="editor"><label for="user-email">아이디 (이메일)</label><input id="user-email" type="email" autocomplete="off" required maxlength="254"><label for="user-password">새 비밀번호</label><input id="user-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required><small id="password-help">12~128자로 입력하세요. 기존 비밀번호는 조회할 수 없습니다.</small><button class="primary" id="save-user">계정 만들기</button><button id="cancel-edit" type="button" hidden>수정 취소</button></fieldset></form>
         </section>
-        <section class="card"><div class="toolbar"><h2>등록된 사용자</h2><button id="refresh">새로고침</button></div>
+        <section class="card"><div class="toolbar"><h2>등록된 사용자</h2><span id="admin-count" class="note"></span><button id="refresh">새로고침</button></div>
           <div class="table-wrap"><table><thead><tr><th>아이디</th><th>권한 / 상태</th><th>관리</th></tr></thead><tbody id="users"></tbody></table></div>
           <div class="pagination"><button id="previous">이전</button><span id="page-label"></span><button id="next">다음</button></div>
-          <p class="note">관리자 계정은 이 화면에서 사용 중지할 수 없습니다. 관리자 지정은 서버 환경변수에서 관리합니다.</p>
+          <p class="note">관리자는 최대 3명까지 지정할 수 있습니다. 본인 관리자 권한은 다른 관리자가 해제해야 합니다.</p>
           <section class="activity-section" aria-labelledby="activity-title">
             <div class="toolbar"><h2 id="activity-title">사용자 로그인/로그아웃 내역</h2></div>
             <form id="activity-search-form" class="activity-search">

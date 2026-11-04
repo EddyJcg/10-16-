@@ -1,4 +1,3 @@
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const banned = user => user.banned_until && new Date(user.banned_until).getTime() > Date.now();
 
 export function createUserActivityHandler({createClient,env = process.env}) {
@@ -11,8 +10,7 @@ export function createUserActivityHandler({createClient,env = process.env}) {
     }
     const url = env.SUPABASE_URL;
     const secret = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
-    const admins = new Set((env.ADMIN_USER_IDS || '').split(',').map(id => id.trim()).filter(id => UUID.test(id)));
-    if (!url || !secret || !admins.size) return reply(503,'사용자 활동 기록을 위한 Vercel 환경변수 설정이 필요합니다.');
+    if (!url || !secret) return reply(503,'사용자 활동 기록을 위한 Vercel 환경변수 설정이 필요합니다.');
     const match = /^Bearer\s+(.+)$/i.exec(req.headers?.authorization || '');
     if (!match) return reply(401,'로그인이 필요합니다.');
     try {
@@ -20,6 +18,9 @@ export function createUserActivityHandler({createClient,env = process.env}) {
       const {data:auth,error:authError} = await client.auth.getUser(match[1]);
       if (authError || !auth?.user) return reply(401,'로그인 세션이 만료되었습니다.');
       const actorId = auth.user.id;
+      const {data:adminRows,error:adminRowsError} = await client.from('inventory_admins').select('user_id');
+      if (adminRowsError) return reply(503,'관리자 권한 DB 설정이 필요합니다. supabase/user-admins.sql을 실행하세요.');
+      const admins = new Set((adminRows || []).map(row => row.user_id));
 
       if (req.method === 'POST') {
         let body;

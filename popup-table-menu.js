@@ -15,7 +15,7 @@
   const filterStates=new WeakMap();
   const initializedTables=new WeakSet();
   const tableObservers=new WeakMap();
-  let activeTable=null,menu=null,columnPanel=null,filterPanel=null,menuPoint={x:12,y:12},exporting=false;
+  let activeTable=null,menu=null,columnPanel=null,filterPanel=null,exportPanel=null,menuPoint={x:12,y:12},exporting=false;
 
   function report(message,error=false){
     if(typeof window.notify==='function')window.notify(message,error);
@@ -117,9 +117,10 @@
     if(name==='menu'&&menu){menu.remove();menu=null;}
     if(name==='columns'&&columnPanel){columnPanel.remove();columnPanel=null;}
     if(name==='filter'&&filterPanel){filterPanel.remove();filterPanel=null;}
+    if(name==='export'&&exportPanel){exportPanel.remove();exportPanel=null;}
   }
   function closePanels(){
-    removePanel('menu');removePanel('columns');removePanel('filter');activeTable=null;
+    removePanel('menu');removePanel('columns');removePanel('filter');removePanel('export');activeTable=null;
   }
   function positionPanel(panel,x,y){
     panel.style.left='0px';panel.style.top='0px';
@@ -159,6 +160,25 @@
     menu.append(menuButton('컬럼보기 설정','columns','columns'));
     menu.append(menuButton('필터','filters','filter'));
     dialog.append(menu);positionPanel(menu,x,y);
+  }
+  function openExportPanel(table){
+    removePanel('menu');removePanel('columns');removePanel('filter');
+    exportPanel=document.createElement('section');exportPanel.className='popup-table-export-panel';
+    exportPanel.setAttribute('role','dialog');exportPanel.setAttribute('aria-label','Excel 내보내기');
+    const title=document.createElement('strong');title.textContent='Excel 내보내기';exportPanel.append(title);
+    const description=document.createElement('p');
+    description.textContent='Excel에서 열기는 파일을 다운로드합니다. 브라우저 보안상 데스크톱 Excel을 직접 실행할 수 없으므로 다운로드 목록에서 파일을 열어주세요. 다른 이름으로 저장은 지원 브라우저에서 저장 위치를 선택합니다.';
+    exportPanel.append(description);
+    const actions=document.createElement('div');actions.className='popup-table-panel-actions popup-table-export-actions';
+    const open=document.createElement('button');open.type='button';open.className='primary';open.textContent='Excel에서 열기';
+    open.addEventListener('click',()=>{closePanels();exportTable(table,'open');});
+    const save=document.createElement('button');save.type='button';save.className='secondary';save.textContent='다른 이름으로 저장';
+    save.addEventListener('click',()=>{closePanels();exportTable(table,'save');});
+    const cancel=document.createElement('button');cancel.type='button';cancel.className='secondary';cancel.textContent='취소';
+    cancel.addEventListener('click',closePanels);
+    actions.append(open,save,cancel);exportPanel.append(actions);
+    table.closest('dialog').append(exportPanel);positionPanel(exportPanel,menuPoint.x,menuPoint.y);
+    open.focus();
   }
   function enableFilters(table){
     initializeTable(table);
@@ -261,15 +281,15 @@
     report(`현재 표 설정을 초기화했습니다.${removed?' 임시로 추가한 행도 되돌렸습니다.':''} 저장된 업무 데이터는 삭제하지 않았습니다.${storageError}`,Boolean(storageError));
   }
   function safeText(value){return String(value??'').trim();}
-  function exportTable(table){
+  function exportTable(table,mode){
     if(exporting)return;
     const header=[...table.tHead.rows[0].cells],visibleIndexes=header.map((cell,index)=>({cell,index}))
       .filter(({cell})=>cell.style.display!=='none'&&!cell.hidden);
     const rows=rowsOf(table).filter(row=>!row.hidden&&!row.classList.contains(FILTERED_CLASS));
-    if(!rows.length){report('Excel로 내보낼 표 행이 없습니다.',true);return;}
     if(!window.ExcelJS||typeof window.createDataWorkbook!=='function'){
       report('Excel 도구를 불러오지 못했습니다. 새로고침해 주세요.',true);return;
     }
+    if(!visibleIndexes.length){report('Excel로 내보낼 표시 열이 없습니다.',true);return;}
     const headers=visibleIndexes.map(({cell,index})=>columnLabel(cell,index));
     const values=rows.map(row=>visibleIndexes.map(({index})=>safeText(cellText(row.cells[index]))));
     const numericColumns=[];
@@ -282,17 +302,49 @@
     const dialogTitle=table.getAttribute('aria-label')||table.closest('dialog').getAttribute('aria-label')||'팝업 표';
     const sheetName=dialogTitle.replace(/[\\/?*:[\]]/g,' ').slice(0,31)||'팝업 표';
     const fileName=dialogTitle.replace(/[<>:"/\\|?*]/g,'-').trim()||'팝업 표';
+    const date=typeof window.todayDate==='function'?window.todayDate():new Date().toISOString().slice(0,10);
+    const downloadName=fileName+'-'+date+'.xlsx';
+    let savePickerRequest=null;
+    if(mode==='save'&&typeof window.showSaveFilePicker==='function'){
+      try{
+        savePickerRequest=window.showSaveFilePicker({
+          suggestedName:downloadName,
+          types:[{description:'Excel 통합 문서',accept:{'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx']}}]
+        }).then(handle=>({handle}),error=>({error}));
+      }catch(error){
+        if(error.name==='AbortError'){report('Excel 저장을 취소했습니다.');return;}
+        report('저장 위치 선택 창을 열지 못했습니다. '+String(error.message||error),true);return;
+      }
+    }
     exporting=true;
     (async()=>{
       try{
         const workbook=window.createDataWorkbook(window.ExcelJS,{sheetName,headers,rows:values,numericColumns});
         const buffer=await workbook.xlsx.writeBuffer();
-        const url=URL.createObjectURL(new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
-        const date=typeof window.todayDate==='function'?window.todayDate():new Date().toISOString().slice(0,10);
-        const link=document.createElement('a');link.href=url;link.download=fileName+'-'+date+'.xlsx';
+        const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        if(savePickerRequest){
+          const result=await savePickerRequest;
+          if(result.error)throw result.error;
+          const writable=await result.handle.createWritable();
+          await writable.write(blob);await writable.close();
+          report(`${downloadName} 파일을 저장했습니다.`);
+          return;
+        }
+        if(mode==='open'&&typeof navigator.msSaveOrOpenBlob==='function'){
+          navigator.msSaveOrOpenBlob(blob,downloadName);
+          report('Excel 파일의 열기 또는 저장을 선택했습니다.');
+          return;
+        }
+        const url=URL.createObjectURL(blob);
+        const link=document.createElement('a');link.href=url;link.download=downloadName;
         document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-        report(`${dialogTitle} 표 ${rows.length.toLocaleString('ko-KR')}건을 Excel로 내보냈습니다.`);
-      }catch(error){report('Excel 파일을 만들지 못했습니다. '+String(error.message||error),true);}
+        if(mode==='open')report(rows.length?'파일을 다운로드했습니다. 브라우저 다운로드 목록에서 Excel 파일을 열어주세요.':'내보낼 데이터가 없어 제목 열만 있는 Excel 파일을 다운로드했습니다.');
+        else if(mode==='save')report('이 브라우저는 저장 위치 선택을 지원하지 않아 기본 다운로드 폴더에 저장했습니다.');
+        else report(`${dialogTitle} 표 ${rows.length.toLocaleString('ko-KR')}건을 Excel로 내보냈습니다.`);
+      }catch(error){
+        if(error.name==='AbortError')report('Excel 저장을 취소했습니다.');
+        else report('Excel 파일을 만들거나 저장하지 못했습니다. '+String(error.message||error),true);
+      }
       finally{exporting=false;}
     })();
   }
@@ -311,7 +363,7 @@
     if(!action||!activeTable)return;
     event.preventDefault();
     const table=activeTable,name=action.dataset.popupMenuAction;
-    if(name==='export'){removePanel('menu');exportTable(table);}
+    if(name==='export')openExportPanel(table);
     else if(name==='add-row'){
       removePanel('menu');
       const added=typeof window.addPopupTableDraftRow==='function'&&window.addPopupTableDraftRow(table.tBodies[0]?.id);
@@ -322,7 +374,7 @@
     else if(name==='filters'){removePanel('menu');enableFilters(table);report('각 열 제목의 ▼ 버튼에서 고유값 필터를 설정할 수 있습니다.');}
   });
   document.addEventListener('pointerdown',event=>{
-    if(menu?.contains(event.target)||columnPanel?.contains(event.target)||filterPanel?.contains(event.target))return;
+    if(menu?.contains(event.target)||columnPanel?.contains(event.target)||filterPanel?.contains(event.target)||exportPanel?.contains(event.target))return;
     closePanels();
   });
   document.addEventListener('keydown',event=>{if(event.key==='Escape')closePanels();});

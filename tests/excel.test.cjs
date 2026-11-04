@@ -27,3 +27,11 @@ test('filtered list export writes typed values, headers, filters and frozen head
   assert.equal(sheet.autoFilter,'A1:B2');
   assert.equal(sheet.views[0].ySplit,1);
 });
+test('empty filtered list export still writes a header-only workbook',async()=>{
+  const workbook=createDataWorkbook(ExcelJS,{sheetName:'품목정보',headers:['품번','품명'],rows:[]});
+  const loaded=new ExcelJS.Workbook();await loaded.xlsx.load(await workbook.xlsx.writeBuffer());
+  const sheet=loaded.getWorksheet('품목정보');
+  assert.deepEqual(sheet.getRow(1).values.slice(1),['품번','품명']);
+  assert.equal(sheet.rowCount,1);
+  assert.equal(sheet.autoFilter,'A1:B1');
+});

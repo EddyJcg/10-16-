@@ -88,6 +88,11 @@ test('팝업 아이콘 메뉴에서 내보내기·행 추가·시트 설정 기�
     assert.ok(menu.includes(label));
   }
   assert.match(menu,/contextmenu/);
+  assert.match(menu,/function openExportPanel\(table\)/);
+  assert.match(menu,/showSaveFilePicker/);
+  assert.match(menu,/msSaveOrOpenBlob/);
+  assert.match(menu,/exportPanel\?\.contains\(event\.target\)/);
+  assert.doesNotMatch(menu,/Excel로 내보낼 표 행이 없습니다/);
   assert.match(menu,/localStorage\.setItem\(visibilityKey\(table\)/);
   assert.match(menu,/FILTERED_CLASS/);
   for(const [label,action,icon] of [

@@ -103,6 +103,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.doesNotMatch(form,/id="sales_vendor_contact" readonly/);
   assert.match(form,/id="sales_amount" readonly/);
   assert.match(form,/class="field sales-order-due-date-field"><label for="sales_due_date">납기일자<\/label><div class="sales-order-due-date-actions"><input id="sales_due_date" type="date" required min="1900-01-01"><button id="save-sales-order-draft" type="button" class="primary sales-order-draft-register">가수주 등록<\/button><\/div><\/div>/);
+  assert.match(fs.readFileSync('inventory.css','utf8'),/button\[id\^="save-"\][\s\S]*?background:#348fe2!important/);
   assert.match(form,/id="add-sales-line-footer"[^>]*>수주품목 추가<\/button>/);
   assert.match(form,/id="import-sales-order-button"[^>]*>Excel 업로드<\/button>/);
   assert.match(form,/id="sales-order-import-file" type="file" accept="[^"]*\.xlsx/);
@@ -118,8 +119,63 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(style,/@media\(min-width:1600px\)\{[\s\S]*?\.sales-order-dialog \.sales-order-line-grid\{grid-template-columns:repeat\(6,minmax\(0,1fr\)\) minmax\(320px,2fr\)/);
   assert.match(style,/\.sales-order-dialog \.sales-order-draft-register\{flex:0 0 160px;width:160px;min-width:150px\}/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('save-sales-order-draft'\)\.addEventListener\('click',addSalesOrderLine\)/);
+  assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('add-sales-line-footer'\)\.addEventListener\('click',startNewSalesOrder\)/);
+  assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('sales-order-draft-items'\)\.addEventListener\('change',changeSalesDraftSelection\)/);
   assert.match(style,/@media\(max-width:850px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(style,/@media\(max-width:520px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:1fr\}/);
+});
+
+test('draft management checkboxes are preselected and saving requires a selection',()=>{
+  class Element{
+    constructor(name=''){this.name=name;this.children=[];this.dataset={};this.attributes={};this.disabled=false;this.checked=false;}
+    append(...children){this.children.push(...children);}
+    replaceChildren(...children){this.children=children;}
+    setAttribute(name,value){this.attributes[name]=value;}
+  }
+  const body=new Element('tbody'),saveButton=new Element('button');
+  const context=vm.createContext({
+    document:{
+      getElementById:id=>id==='sales-order-draft-items'?body:saveButton,
+      createElement:name=>new Element(name)
+    },
+    makeCell:value=>{const cell=new Element('td');cell.textContent=String(value);return cell;},
+    emptyRow(){},number:value=>String(value),money:value=>String(value)
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`salesDraftLines=[
+    {draftId:'draft-a',product_name:'품목 A',unit:'EA',quantity:1,unit_price:10,due_date:'2026-12-01',selected:true},
+    {draftId:'draft-b',product_name:'품목 B',unit:'EA',quantity:2,unit_price:20,due_date:'2026-12-01',selected:false}
+  ];renderSalesDraftLines()`,context);
+  const first=body.children[0].children[7].children[0],second=body.children[1].children[7].children[0];
+  assert.equal(first.type,'checkbox');
+  assert.equal(first.checked,true);
+  assert.equal(second.checked,false);
+  assert.equal(saveButton.disabled,false);
+  first.checked=false;
+  vm.runInContext('changeSalesDraftSelection',context)({target:{closest:()=>first}});
+  assert.equal(vm.runInContext('salesDraftLines[0].selected',context),false);
+  assert.equal(saveButton.disabled,true);
+});
+
+test('starting another sales order resets its draft while preserving saved orders',()=>{
+  const elements=new Map();
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false,reset(){}});
+    return elements.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:element}});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  context.renderSalesDraftLines=()=>{};
+  vm.runInContext(`todayDate=()=> '2026-11-03';
+    salesOrders=[{id:'saved-1'}];salesDraftGroupId='group-1';
+    salesDraftLines=[{draftId:'draft-1'}];
+    $('sales_order_number').value='SO-1'`,context);
+  vm.runInContext('startNewSalesOrder()',context);
+  assert.equal(vm.runInContext('salesDraftLines.length',context),0);
+  assert.equal(vm.runInContext('salesDraftGroupId',context),'');
+  assert.equal(vm.runInContext('salesOrders.length',context),1);
+  assert.equal(element('sales_order_date').value,'2026-11-03');
+  assert.match(element('sales-order-status').textContent,/저장된 수주 이력은 유지됩니다/);
 });
 
 test('individual sales order registration removes its draft and blocks repeated saves',async()=>{
@@ -161,7 +217,7 @@ test('individual sales order registration removes its draft and blocks repeated 
   assert.equal(calls.length,1);
 });
 
-test('individual and batch sales registration retain the same order group',async()=>{
+test('individual and batch sales registration retain one group and batch saving respects selections',async()=>{
   const elements=new Map(),calls=[];
   const element=id=>{
     if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false,reset(){}});
@@ -193,7 +249,10 @@ test('individual and batch sales registration retain the same order group',async
   await vm.runInContext("registerSalesOrderLine('draft-a')",context);
   vm.runInContext(`salesDraftLines=[{draftId:'draft-b',product_name:'품목 B',specification:'',unit:'Box',quantity:2,unit_price:10,due_date:'2026-12-01'}]`,context);
   await vm.runInContext("registerSalesOrderLine('draft-b')",context);
-  vm.runInContext(`salesDraftLines=[{draftId:'draft-c',product_name:'품목 C',specification:'',unit:'M',quantity:3,unit_price:5,due_date:'2026-12-01'}]`,context);
+  vm.runInContext(`salesDraftLines=[
+    {draftId:'draft-c',product_name:'품목 C',specification:'',unit:'M',quantity:3,unit_price:5,due_date:'2026-12-01',selected:true},
+    {draftId:'draft-d',product_name:'품목 D',specification:'',unit:'EA',quantity:4,unit_price:5,due_date:'2026-12-01',selected:false}
+  ]`,context);
   vm.runInContext('resetSalesOrderForm=()=>{salesDraftLines=[]}',context);
   await vm.runInContext("saveSalesOrder({preventDefault(){}})",context);
   assert.deepEqual(calls.map(([name])=>name),[
@@ -205,7 +264,15 @@ test('individual and batch sales registration retain the same order group',async
   assert.equal(calls[2][1].p_group_id,'group-shared');
   assert.equal(calls[2][1].p_lines.length,3);
   assert.equal(calls[2][1].p_lines.filter(line=>!line.line_id).length,1);
-  assert.equal(vm.runInContext('salesOrders.length',context),3);
+  assert.equal(vm.runInContext('salesDraftLines.length',context),1);
+  assert.equal(vm.runInContext('salesDraftLines[0].draftId',context),'draft-d');
+  vm.runInContext('salesDraftLines[0].selected=true',context);
+  await vm.runInContext("saveSalesOrder({preventDefault(){}})",context);
+  assert.equal(calls[3][1].p_group_id,'group-shared');
+  assert.equal(calls[3][1].p_lines.length,4);
+  assert.equal(calls[3][1].p_lines.filter(line=>!line.line_id).length,1);
+  assert.equal(vm.runInContext('salesDraftLines.length',context),0);
+  assert.equal(vm.runInContext('salesOrders.length',context),4);
   assert.ok(vm.runInContext('salesOrders.every(order=>order.order_group_id==="group-shared")',context));
 });
 
@@ -643,7 +710,7 @@ test('sales order dialog is connected to the authenticated database save flow',(
   assert.match(script,/client\.rpc\('update_sales_order_group'/);
   assert.match(script,/function addSalesOrderLine\(\)/);
   assert.match(script,/p_vendor_name:\$\('sales_vendor_name'\)\.value\.trim\(\)/);
-  assert.match(script,/p_lines:\[\.\.\.existingGroupLines,\.\.\.salesDraftLines\.map/);
+  assert.match(script,/p_lines:\[\.\.\.existingGroupLines,\.\.\.selectedDraftLines\.map/);
   assert.match(script,/client\.rpc\('set_sales_order_status'/);
   assert.match(script,/sales-order-form'\)\.addEventListener\('submit',saveSalesOrder\)/);
   assert.match(script,/\$\('cancel-sales-order'\)\.addEventListener\('click',cancelSalesOrder\)/);

@@ -34,6 +34,9 @@
 .sales-order-dialog .sales-order-draft-register{flex:0 0 160px;width:160px;min-width:150px}
 .sales-order-dialog .sales-order-save-actions #save-sales-order,
 .sales-order-dialog .sales-order-draft-register{width:160px}
+.sales-order-draft-table input[type="checkbox"]{
+  width:20px;height:20px;margin:0 6px 0 0;padding:0;vertical-align:middle;accent-color:#348fe2;cursor:pointer
+}
 @media(min-width:1600px){
   .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(6,minmax(0,1fr)) minmax(320px,2fr)}
 }

@@ -2603,6 +2603,33 @@ async function exportExcel() {
     const link=document.createElement('a');link.href=url;link.download='재고현황-'+todayDate()+'.xlsx';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('19개 필드의 재고현황을 Excel로 내보냈습니다.');
   }catch{notify('Excel 파일을 만들지 못했습니다.',true);}finally{exporting=false;$('export').disabled=false;}
 }
+const popupMenuDraftRows=new Map();
+function popupDraftConfig(bodyId){
+  if(bodyId==='product-info-items')return{rows:()=>productInfoDrafts,set:rows=>{productInfoDrafts=rows;},add:addProductInfoDraft,render:renderProductInfoItems};
+  if(bodyId==='sales-order-draft-items')return{rows:()=>salesDraftLines,set:rows=>{salesDraftLines=rows;},add:addSalesOrderLine,render:renderSalesDraftLines};
+  if(bodyId==='purchase-draft-items')return{rows:()=>purchaseDraftLines,set:rows=>{purchaseDraftLines=rows;},add:addPurchaseDraftLine,render:renderPurchaseDraftLines};
+  return null;
+}
+function addPopupTableDraftRow(bodyId){
+  const config=popupDraftConfig(bodyId);
+  if(!config)return false;
+  const before=new Set(config.rows());
+  config.add();
+  const added=config.rows().filter(row=>!before.has(row));
+  if(!added.length)return false;
+  const tracked=popupMenuDraftRows.get(bodyId)||new Set();
+  added.forEach(row=>tracked.add(row));
+  popupMenuDraftRows.set(bodyId,tracked);
+  return true;
+}
+function resetPopupTableDraftRows(bodyId){
+  const config=popupDraftConfig(bodyId),tracked=popupMenuDraftRows.get(bodyId);
+  if(!config||!tracked?.size||bodyId==='purchase-draft-items'&&purchaseOrderSaved)return false;
+  const rows=config.rows(),remaining=rows.filter(row=>!tracked.has(row));
+  if(remaining.length===rows.length)return false;
+  config.set(remaining);tracked.clear();config.render();
+  return true;
+}
 async function startApp(){
   installDialogInteractions();
   installPopupTableTools();

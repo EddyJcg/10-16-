@@ -9,9 +9,11 @@ const read = (name) => fs.readFileSync(path.join(__dirname, '..', name), 'utf8')
 test('팝업 표 그리드 스크립트와 CSS가 연결되고 앱보다 먼저 로드된다', () => {
   const html = read('inventory.html');
   assert.match(html, /popup-table-grid\.css/);
+  assert.match(html, /popup-table-menu\.css/);
   const grid = html.indexOf('popup-table-grid.js');
   const app = html.indexOf('inventory-app.js');
   assert.ok(grid > 0 && grid < app);
+  assert.ok(html.indexOf('popup-table-menu.js')>app);
 });
 
 test('열 경계 드래그 크기 조절과 넘친 내용 숨김 규칙이 있다', () => {
@@ -78,4 +80,18 @@ test('메인 화면의 일련번호 제목도 아이콘으로 바꾸고 팝업 �
   assert.equal(mainHeader.children[0].alt, '일련번호');
   assert.equal(mainHeader.dataset.gridOwnSerial, '1');
   assert.equal(popupHeader.children.length, 0);
+});
+
+test('팝업 아이콘 메뉴에서 내보내기·행 추가·시트 설정 기능을 연결한다', () => {
+  const menu = read('popup-table-menu.js');
+  for(const label of ['Excel로 내보내기','행 추가','시트 초기화','컬럼보기 설정','필터']){
+    assert.ok(menu.includes(label));
+  }
+  assert.match(menu,/contextmenu/);
+  assert.match(menu,/localStorage\.setItem\(visibilityKey\(table\)/);
+  assert.match(menu,/FILTERED_CLASS/);
+  assert.match(menu,/저장된 업무 데이터는 삭제하지 않았습니다/);
+  const app = read('inventory-app.js');
+  assert.match(app,/function addPopupTableDraftRow\(bodyId\)/);
+  assert.match(app,/function resetPopupTableDraftRows\(bodyId\)/);
 });

@@ -10,6 +10,12 @@ test('sales entry provides an editable order date before the order number',()=>{
   assert.ok(form.indexOf('id="sales_order_date"')<form.indexOf('id="sales_order_number"'));
 });
 
+test('sales order draft table uses the same heading style as saved orders',()=>{
+  const dialog=fs.readFileSync('inventory.html','utf8').match(/<dialog id="sales-order-dialog"[\s\S]*?<\/dialog>/)[0];
+  assert.match(dialog,/<h3>가수주 현황<\/h3>\s*<div class="table-wrap sales-order-draft-table">/);
+  assert.match(dialog,/<h3>저장된 수주<\/h3>/);
+});
+
 test('sales order cancel button sits beside save and clears the draft before closing',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const footer=html.match(/<div class="dialog-footer sales-order-save-actions">([\s\S]*?)<\/div>/)[1];

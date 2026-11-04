@@ -88,17 +88,13 @@ test('sidebar text sizes are increased by approximately twenty percent',()=>{
   assert.match(style,/\.sidebar-action\{[^}]*font-size:16px/);
   assert.match(style,/\.sidebar-hint\{[^}]*font-size:13px/);
 });
-test('sidebar folder spacing is halved without changing label sizes',()=>{
+test('sidebar subfolder spacing is halved without changing label sizes',()=>{
   const style=fs.readFileSync('inventory.css','utf8');
-  assert.match(style,/\.sidebar \.menu-folder\{margin-bottom:3\.2px\}/);
-  assert.match(style,/\.sidebar \.menu-folder>summary\{padding-top:4\.8px;padding-bottom:4\.8px\}/);
-  assert.match(style,/\.sidebar \.folder-children\{margin-top:2\.8px;margin-bottom:4\.8px\}/);
-  assert.match(style,/\.sidebar \.menu-folder summary\{font-size:22\.0932px/);
-});
-test('expanded sidebar subfolders use half the current vertical spacing',()=>{
-  const style=fs.readFileSync('inventory.css','utf8');
-  assert.match(style,/\.sidebar \.folder-children \.menu-folder\{margin-bottom:1\.6px\}/);
-  assert.match(style,/\.sidebar \.folder-children \.menu-folder>summary\{padding-top:2\.4px;padding-bottom:2\.4px\}/);
+  assert.match(style,/\.sidebar \.menu-folder\{margin-bottom:6\.4px\}/);
+  assert.match(style,/\.sidebar \.menu-folder>summary\{padding-top:9\.6px;padding-bottom:9\.6px\}/);
+  assert.match(style,/\.sidebar \.folder-children\{margin-top:5\.6px;margin-bottom:9\.6px\}/);
+  assert.match(style,/\.sidebar \.folder-children \.menu-folder\{margin-bottom:3\.2px\}/);
+  assert.match(style,/\.sidebar \.folder-children \.menu-folder>summary\{padding-top:4\.8px;padding-bottom:4\.8px\}/);
   assert.match(style,/\.sidebar \.menu-folder summary\{font-size:22\.0932px/);
 });
 test('procurement folder uses the supplied settings icon without a background',()=>{
@@ -107,7 +103,7 @@ test('procurement folder uses the supplied settings icon without a background',(
   const icon=fs.readFileSync('purchase-settings.svg','utf8');
   assert.match(html,/href="\/purchase-folder-icon\.css\?v=20261104-sidebar-black-unboxed"/);
   assert.match(fs.readFileSync('purchase-folder-icon.css','utf8'),/\.sidebar \.menu-folder>summary[^{]*\{background:transparent;color:#fff\}/);
-  assert.match(fs.readFileSync('inventory.css','utf8'),/\.sidebar\{background:#0d0d0d;border-right-color:#0d0d0d;color:#fff\}/);
+  assert.match(fs.readFileSync('inventory.css','utf8'),/\.sidebar\{background:#1a1a1a;border-right-color:#1a1a1a;color:#fff\}/);
   assert.match(fs.readFileSync('inventory.css','utf8'),/\.sidebar \.menu-folder>summary,[^{]*\{background:transparent;color:#fff;border-radius:0\}/);
   assert.match(fs.readFileSync('inventory.css','utf8'),/\.sidebar \.folder-children\{border-left-color:transparent\}/);
   assert.match(style,/#purchase-folder>summary::before\{[^}]*width:29\.9px;height:29\.9px[^}]*mask:url\('\/purchase-settings\.svg'\)/);

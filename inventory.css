@@ -430,7 +430,7 @@ th[draggable="true"]:active{cursor:grabbing}
   .profile-details strong{color:#303b44;font-size:13px}
   .profile-details[hidden],.profile-menu[hidden],.header-account[hidden]{display:none}
   #app-layout main{min-height:calc(100dvh - 100px);background:#d9e0e7}
-  .sidebar{background:#0d0d0d;border-right-color:#0d0d0d;color:#fff}
+  .sidebar{background:#1a1a1a;border-right-color:#1a1a1a;color:#fff}
   .sidebar-heading,.sidebar .menu-folder summary{color:#fff}
   .sidebar-heading span,.sidebar .sidebar-hint{color:#aab5bd}
   .sidebar .menu-folder>summary,.sidebar .menu-folder[open]>summary,.sidebar .menu-folder>summary:hover{background:transparent;color:#fff;border-radius:0}
@@ -452,17 +452,9 @@ th[draggable="true"]:active{cursor:grabbing}
 }
 
 @media screen{
-  .sidebar .menu-folder{margin-bottom:3.2px}
-  .sidebar .menu-folder>summary{padding-top:4.8px;padding-bottom:4.8px}
-  .sidebar .folder-children{margin-top:2.8px;margin-bottom:4.8px}
-}
-
-@media screen{
-  .header-language img{display:block;width:40px;height:34px;flex:0 0 auto;object-fit:contain}
-  @media(max-width:700px){.header-language img{width:32px;height:27.2px}}
-}
-
-@media screen{
-  .sidebar .folder-children .menu-folder{margin-bottom:1.6px}
-  .sidebar .folder-children .menu-folder>summary{padding-top:2.4px;padding-bottom:2.4px}
+  .sidebar .menu-folder{margin-bottom:6.4px}
+  .sidebar .menu-folder>summary{padding-top:9.6px;padding-bottom:9.6px}
+  .sidebar .folder-children{margin-top:5.6px;margin-bottom:9.6px}
+  .sidebar .folder-children .menu-folder{margin-bottom:3.2px}
+  .sidebar .folder-children .menu-folder>summary{padding-top:4.8px;padding-bottom:4.8px}
 }

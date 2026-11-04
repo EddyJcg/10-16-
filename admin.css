@@ -4,3 +4,9 @@ input{margin-bottom:15.3px}label{margin-bottom:5.4px}.layout{gap:19.8px}.session
 main{max-width:100%}
 #save-user{background:#348fe2;border-color:#348fe2;color:#fff}
 #save-user:hover{background:#2e80cc}
+.activity-section{margin-top:24px;padding-top:20px;border-top:1px solid #edf1ed}
+.activity-search{display:grid;grid-template-columns:minmax(160px,1fr) auto auto;gap:8px;align-items:end;margin:12px 0}
+.activity-search label{grid-column:1/-1;margin:0}
+.activity-search input{margin:0}
+.activity-search button{min-height:42px}
+.activity-section td:nth-child(2){white-space:nowrap}

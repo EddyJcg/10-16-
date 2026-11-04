@@ -2691,6 +2691,17 @@ function resetPopupTableDraftRows(bodyId){
   config.set(remaining);tracked.clear();config.render();
   return true;
 }
+async function recordUserAuthActivity(eventType,session){
+  const activeSession=session||(await client.auth.getSession()).data.session;
+  if(!activeSession)throw new Error('로그인 세션을 확인할 수 없습니다.');
+  const response=await fetch('/api/user-activity',{
+    method:'POST',headers:{Authorization:'Bearer '+activeSession.access_token,'Content-Type':'application/json'},
+    body:JSON.stringify({event_type:eventType}),cache:'no-store'
+  });
+  let result;
+  try{result=await response.json();}catch{throw new Error('로그인 이력 서버에 연결하지 못했습니다.');}
+  if(!response.ok)throw new Error(result.error||'로그인 이력을 저장하지 못했습니다.');
+}
 async function startApp(){
   installDialogInteractions();
   installPopupTableTools();
@@ -2700,8 +2711,8 @@ async function startApp(){
   if(!window.supabase){$('login-panel').hidden=false;notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}
   client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,storage:window.sessionStorage,storageKey:'inventory-note-stock-session',autoRefreshToken:true,detectSessionInUrl:false}});
   client.auth.onAuthStateChange((event,session)=>{if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event))setTimeout(()=>updateSession(session),0);});
-  $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
-  $('logout').addEventListener('click',async()=>{closeProfileMenu();if(busy)return;const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);});
+  $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {data,error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);else try{await recordUserAuthActivity('login',data.session);}catch(activityError){notify('로그인은 완료했지만 이력을 저장하지 못했습니다: '+activityError.message,true);}}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
+  $('logout').addEventListener('click',async()=>{closeProfileMenu();if(busy)return;let activityError;try{await recordUserAuthActivity('logout');}catch(error){activityError=error;}const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);else if(activityError)notify('로그아웃했지만 이력을 저장하지 못했습니다: '+activityError.message,true);});
   const profileButton=$('profile-menu-toggle'),profileMenu=$('profile-menu');
   const closeProfileMenu=()=>{profileMenu.hidden=true;profileButton.setAttribute('aria-expanded','false');};
   profileButton.addEventListener('click',()=>{

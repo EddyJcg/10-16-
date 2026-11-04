@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let client, users = [], page = 1, hasMore = false, editing = null, busy = false, sessionGeneration = 0;
+let client, users = [], page = 1, hasMore = false, activityRows = [], activityPage = 1, activityHasMore = false, activitySearch = '', editing = null, busy = false, sessionGeneration = 0, activityLoadGeneration = 0;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function resetEditor() {
   editing = null; $('user-form').reset(); $('user-password').required = true;
@@ -13,6 +13,11 @@ function updateControls() {
   $('previous').disabled = busy || page <= 1; $('next').disabled = busy || !hasMore;
   $('page-label').textContent = page + ' 페이지';
   $('users').querySelectorAll('button').forEach(button => button.disabled = busy || button.dataset.protected === 'true');
+  $('activity-search-button').disabled = busy;
+  $('activity-search-reset').disabled = busy;
+  $('activity-previous').disabled = busy || activityPage <= 1;
+  $('activity-next').disabled = busy || !activityHasMore;
+  $('activity-page-label').textContent = activityPage + ' 페이지';
 }
 async function api(method = 'GET',body) {
   const {data,error} = await client.auth.getSession();
@@ -55,10 +60,50 @@ function renderUsers() {
   });
   updateControls();
 }
+async function activityRequest(method = 'GET',body) {
+  const {data,error} = await client.auth.getSession();
+  if (error || !data.session) throw new Error('관리자 계정으로 로그인해 주세요.');
+  const params = new URLSearchParams({page:String(activityPage)});
+  if (activitySearch) params.set('user',activitySearch);
+  const response = await fetch('/api/user-activity' + (method === 'GET' ? '?' + params : ''),{
+    method,headers:{Authorization:'Bearer ' + data.session.access_token,'Content-Type':'application/json'},
+    body:body ? JSON.stringify(body) : undefined,cache:'no-store'
+  });
+  let result;
+  try { result = await response.json(); } catch { throw new Error('로그인 이력 API에 연결하지 못했습니다.'); }
+  if (!response.ok) throw new Error(result.error || '로그인 이력을 처리하지 못했습니다.');
+  return result;
+}
+function renderActivity() {
+  $('activity-rows').replaceChildren();
+  if (!activityRows.length) {
+    const row = document.createElement('tr'),cell = document.createElement('td');
+    cell.colSpan = 3; cell.textContent = activitySearch ? '검색 조건에 해당하는 로그인 이력이 없습니다.' : '로그인 이력이 없습니다.';
+    row.append(cell); $('activity-rows').append(row);
+  }
+  activityRows.forEach(entry => {
+    const row = document.createElement('tr'),email = document.createElement('td'),event = document.createElement('td'),time = document.createElement('td');
+    email.textContent = entry.email;
+    event.textContent = entry.event_type === 'login' ? '로그인' : '로그아웃';
+    const date = new Date(entry.occurred_at);
+    time.textContent = Number.isNaN(date.getTime()) ? entry.occurred_at
+      : new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(date);
+    row.append(email,event,time); $('activity-rows').append(row);
+  });
+  updateControls();
+}
 async function loadUsers() {
   const generation = sessionGeneration, result = await api();
   if (generation !== sessionGeneration) return false;
   users = result.users; hasMore = result.hasMore; renderUsers(); return true;
+}
+async function loadActivity() {
+  const generation = sessionGeneration, request = ++activityLoadGeneration, result = await activityRequest();
+  if (generation !== sessionGeneration || request !== activityLoadGeneration) return false;
+  activityRows = result.events; activityHasMore = result.hasMore; renderActivity(); return true;
+}
+async function recordActivity(eventType) {
+  await activityRequest('POST',{event_type:eventType});
 }
 async function runMutation(action,message) {
   if (busy) return; busy = true; updateControls();
@@ -70,14 +115,18 @@ async function runMutation(action,message) {
   finally { $('user-password').value = ''; busy = false; updateControls(); }
 }
 async function onSession(session) {
-  sessionGeneration++; users = []; $('users').replaceChildren(); resetEditor();
+  sessionGeneration++; users = []; activityRows = []; activityPage = 1; activityHasMore = false; activitySearch = ''; $('activity-user-search').value = ''; $('users').replaceChildren(); $('activity-rows').replaceChildren(); resetEditor();
   const generation = sessionGeneration;
   $('admin-panel').hidden = true; $('login-panel').hidden = !!session;
   if (!session) return;
   $('admin-email').textContent = session.user.email;
   try {
     page = 1;
-    if (await loadUsers()) { $('admin-panel').hidden = false; $('login-panel').hidden = true; notify('관리자 권한을 확인했습니다.'); }
+    if (await loadUsers()) {
+      $('admin-panel').hidden = false; $('login-panel').hidden = true;
+      try { await loadActivity(); notify('관리자 권한을 확인했습니다.'); }
+      catch (error) { notify('사용자 목록은 불러왔지만 로그인 이력 조회에 실패했습니다: ' + error.message,true); }
+    }
   } catch (error) {
     if (generation !== sessionGeneration) return;
     if (error.status === 403) { window.location.replace('/'); return; }
@@ -96,13 +145,19 @@ async function startAdmin() {
     try {
       const {error} = await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
       if (error) notify('아이디, 비밀번호 또는 계정 상태를 확인하세요.',true);
+      else {
+        try { await recordActivity('login'); await loadActivity(); }
+        catch (activityError) { notify('로그인은 완료했지만 로그인 이력을 저장하지 못했습니다: ' + activityError.message,true); }
+      }
     } catch { notify('로그인 서버에 연결하지 못했습니다.',true); }
     finally { $('password').value = ''; $('login-button').disabled = false; }
   });
   $('logout').addEventListener('click',async () => {
     if (busy) return;
+    let activityError;
+    try { await recordActivity('logout'); } catch (error) { activityError = error; }
     const {error} = await client.auth.signOut({scope:'local'});
-    notify(error ? '로그아웃하지 못했습니다.' : '로그아웃했습니다.',!!error);
+    notify(error ? '로그아웃하지 못했습니다.' : activityError ? '로그아웃했지만 이력을 저장하지 못했습니다: ' + activityError.message : '로그아웃했습니다.',!!error || !!activityError);
   });
   $('user-form').addEventListener('submit',event => {
     event.preventDefault(); const body = {email:$('user-email').value.trim()};
@@ -113,11 +168,39 @@ async function startAdmin() {
   $('cancel-edit').addEventListener('click',resetEditor);
   async function refresh() {
     if (busy) return; busy = true; updateControls();
-    try { await loadUsers(); notify('사용자 목록을 불러왔습니다.'); } catch (error) { notify(error.message,true); }
+    try { await loadUsers(); await loadActivity(); notify('사용자 목록과 로그인 이력을 불러왔습니다.'); } catch (error) { notify(error.message,true); }
     finally { busy = false; updateControls(); }
   }
   $('refresh').addEventListener('click',refresh);
   $('previous').addEventListener('click',() => { if (page > 1 && !busy) { page--; refresh(); } });
   $('next').addEventListener('click',() => { if (hasMore && !busy) { page++; refresh(); } });
+  $('activity-search-form').addEventListener('submit',async event => {
+    event.preventDefault(); if (busy) return;
+    activitySearch = $('activity-user-search').value.trim(); activityPage = 1; busy = true; updateControls();
+    try { await loadActivity(); notify('로그인 이력을 불러왔습니다.'); }
+    catch (error) { notify(error.message,true); }
+    finally { busy = false; updateControls(); }
+  });
+  $('activity-search-reset').addEventListener('click',async () => {
+    if (busy) return;
+    $('activity-user-search').value = ''; activitySearch = ''; activityPage = 1; busy = true; updateControls();
+    try { await loadActivity(); notify('로그인 이력을 불러왔습니다.'); }
+    catch (error) { notify(error.message,true); }
+    finally { busy = false; updateControls(); }
+  });
+  $('activity-previous').addEventListener('click',async () => {
+    if (activityPage <= 1 || busy) return;
+    activityPage--; busy = true; updateControls();
+    try { await loadActivity(); }
+    catch (error) { notify(error.message,true); }
+    finally { busy = false; updateControls(); }
+  });
+  $('activity-next').addEventListener('click',async () => {
+    if (!activityHasMore || busy) return;
+    activityPage++; busy = true; updateControls();
+    try { await loadActivity(); }
+    catch (error) { notify(error.message,true); }
+    finally { busy = false; updateControls(); }
+  });
 }
 startAdmin();

@@ -419,9 +419,9 @@ test('dashboard adopts the reference background, round popup controls and accoun
 });
 test('header flag uses the provided image with a transparent surround',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),css=fs.readFileSync('inventory.css','utf8'),image=fs.readFileSync('korean-flag.png');
-  assert.match(html,/inventory\.css\?v=[^"]*header-flag-image/);
-  assert.match(css,/\.header-language img\{display:block;width:20px;height:17px;flex:0 0 auto;object-fit:contain\}/);
-  assert.match(css,/\.header-language img\{width:16px;height:13\.6px\}/);
+  assert.match(html,/inventory\.css\?v=[^"]*header-flag-2x/);
+  assert.match(css,/\.header-language img\{display:block;width:40px;height:34px;flex:0 0 auto;object-fit:contain\}/);
+  assert.match(css,/\.header-language img\{width:32px;height:27\.2px\}/);
   assert.equal(image.readUInt32BE(16),20);
   assert.equal(image.readUInt32BE(20),17);
   assert.equal(image[25],6);

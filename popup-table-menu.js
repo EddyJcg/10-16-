@@ -169,7 +169,7 @@
     const actions=document.createElement('div');actions.className='popup-table-panel-actions popup-table-export-actions';
     const open=document.createElement('button');open.type='button';open.className='primary';open.textContent='Excel에서 열기';
     open.addEventListener('click',()=>{closePanels();exportTable(table,'open');});
-    const save=document.createElement('button');save.type='button';save.className='secondary';save.textContent='다른 이름으로 저장';
+    const save=document.createElement('button');save.type='button';save.className='secondary popup-table-save-button';save.textContent='다른 이름으로 저장';
     save.addEventListener('click',()=>{closePanels();exportTable(table,'save');});
     const cancel=document.createElement('button');cancel.type='button';cancel.className='secondary';cancel.textContent='취소';
     cancel.addEventListener('click',closePanels);

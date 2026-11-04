@@ -458,3 +458,10 @@ th[draggable="true"]:active{cursor:grabbing}
   .sidebar .folder-children .menu-folder{margin-bottom:3.2px}
   .sidebar .folder-children .menu-folder>summary{padding-top:4.8px;padding-bottom:4.8px}
 }
+
+button[data-print],button[data-print-settings],
+button[id^="save-"],button[data-vendor-action="save"],
+#complete-sales-register-confirm,#password-update-button,
+.popup-table-save-button,.popup-table-column-panel .popup-table-panel-actions .primary{
+  background:#348fe2!important;border-color:#348fe2!important;color:#fff!important
+}

@@ -33,6 +33,15 @@ test('구매발주 입력 창에 인쇄 설정·인쇄 버튼과 인쇄 영역�
   assert.ok(app.includes('size:A4 ${purchasePrintOrientation()}'));
 });
 
+test('인쇄 및 저장 관련 버튼은 첨부한 파란색을 사용한다',()=>{
+  const inventoryCss=fs.readFileSync('inventory.css','utf8');
+  const adminCss=fs.readFileSync('admin.css','utf8');
+  const menu=fs.readFileSync('popup-table-menu.js','utf8');
+  assert.match(inventoryCss,/button\[data-print\],button\[data-print-settings\][\s\S]*?button\[id\^="save-"\],button\[data-vendor-action="save"\][\s\S]*?#complete-sales-register-confirm,#password-update-button,[\s\S]*?background:#348fe2!important;border-color:#348fe2!important;color:#fff!important/);
+  assert.match(adminCss,/#save-user\{background:#348fe2;border-color:#348fe2;color:#fff\}/);
+  assert.match(menu,/save\.className='secondary popup-table-save-button'/);
+});
+
 test('품목이 많으면 다음 페이지로 넘어가고 페이지 번호가 표시된다', () => {
   const make=(count,orientation)=>buildPurchaseOrderPrint({orientation,lines:Array.from({length:count},(_, i)=>({product_code:'P'+i,product_name:'품목'+i,quantity:1,unit_cost:100}))});
   const sheets=out=>(out.match(/class="po-sheet /g)||[]).length;

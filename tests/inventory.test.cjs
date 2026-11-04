@@ -407,7 +407,7 @@ test('dashboard adopts the reference background, round popup controls and accoun
   const html=fs.readFileSync('inventory.html','utf8');
   const css=fs.readFileSync('inventory.css','utf8'),resizeCss=fs.readFileSync('dialog-resize.css','utf8');
   assert.match(html,/class="header-language"><img src="\/korean-flag\.svg" alt="" aria-hidden="true"><span>Korean<\/span>/);
-  assert.match(html,/inventory\.css\?v=20261104-korean-flag-svg/);
+  assert.match(html,/inventory\.css\?v=20261104-sidebar-arrow-130/);
   assert.match(css,/\.header-language img\[aria-hidden=true\]\{width:60px;height:51px;flex:0 0 60px;object-fit:contain\}/);
   assert.match(fs.readFileSync("korean-flag.svg","utf8"),/viewBox="-72 -48 144 96"/);
   assert.match(html,/id="profile-menu" class="profile-menu" hidden/);

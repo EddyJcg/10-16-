@@ -1,4 +1,4 @@
 #purchase-folder>summary::before{content:'';display:inline-block;flex:0 0 29.9px;width:29.9px;height:29.9px;background:currentColor;-webkit-mask:url('/purchase-settings.svg') center/contain no-repeat;mask:url('/purchase-settings.svg') center/contain no-repeat}
 #purchase-entry-folder>summary::before,#purchase-query-folder>summary::before{content:none;display:none}
 .sidebar .menu-folder>summary,.sidebar .menu-folder[open]>summary,.sidebar .menu-folder>summary:hover{background:transparent;color:#fff}
-.sidebar .menu-folder>summary::after{color:#fff}
+.sidebar .menu-folder>summary::after{color:#fff;font-size:24.7px}

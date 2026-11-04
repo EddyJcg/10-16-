@@ -5,17 +5,18 @@ const ADMIN = '1a5b77e2-e8b2-4f7f-980d-e1974834be5c';
 const USER = '00000000-0000-4000-8000-000000000001';
 const env = {SUPABASE_URL:'https://example.supabase.co',SUPABASE_SECRET_KEY:'test-server-secret'};
 
-async function invoke({method='POST',body={event_type:'login'},actor=USER,actorEmail='user@example.com',admin=false,banned=false,headers={authorization:'Bearer verified-token'},query={},config=env}={}) {
+async function invoke({method='POST',body={event_type:'login'},actor=USER,actorEmail='user@example.com',admin=false,banned=false,headers={authorization:'Bearer verified-token'},query={},config=env,activityError=null}={}) {
   const {createUserActivityHandler} = await import('../server/user-activity.mjs');
   const calls=[];
-  const result={data:[{id:'event-1',user_id:USER,email:'user@example.com',event_type:'login',occurred_at:'2026-11-04T00:00:00Z'}],error:null};
+  const result={data:activityError?null:[{id:'event-1',user_id:USER,email:'user@example.com',event_type:'login',occurred_at:'2026-11-04T00:00:00Z'}],error:activityError};
   const builder=(table)=>({
     insert(value){calls.push(['insert',value]);return this;},
     select(value){calls.push(['select',value]);return this;},
-    single:async()=>({data:result.data[0],error:null}),
+    single:async()=>({data:result.data?.[0] ?? null,error:result.error}),
     order(column,options){calls.push(['order',column,options]);return this;},
     range(start,end){calls.push(['range',start,end]);return this;},
     ilike(column,value){calls.push(['ilike',column,value]);return this;},
+    eq(column,value){calls.push(['eq',column,value]);return this;},
     then(resolve,reject){return Promise.resolve(table==='inventory_admins'
       ?{data:[{user_id:ADMIN,slot:1}],error:null}:result).then(resolve,reject);}
   });
@@ -70,15 +71,32 @@ test('only active admins can search activity and email search is escaped',async(
   assert.deepEqual(calls.find(([name])=>name==='ilike'),['ilike','email','%alice\\%\\_@example.com%']);
 });
 
+test('admins can filter activity by login or logout and missing migration errors identify the SQL file',async()=>{
+  const filtered=await invoke({method:'GET',actor:ADMIN,admin:true,query:{event_type:'logout'}});
+  assert.equal(filtered.response.code,200);
+  assert.deepEqual(filtered.calls.find(([name])=>name==='eq'),['eq','event_type','logout']);
+  const invalid=await invoke({method:'GET',actor:ADMIN,admin:true,query:{event_type:'delete'}});
+  assert.equal(invalid.response.code,400);
+  const missing=await invoke({method:'GET',actor:ADMIN,admin:true,activityError:{code:'PGRST205'}});
+  assert.equal(missing.response.code,503);
+  assert.match(missing.response.body.error,/supabase\/user-auth-activity\.sql/);
+  const missingOnWrite=await invoke({body:{event_type:'login'},activityError:{code:'PGRST205'}});
+  assert.equal(missingOnWrite.response.code,503);
+  assert.match(missingOnWrite.response.body.error,/supabase\/user-auth-activity\.sql/);
+});
+
 test('user management shows searchable activity history and login/logout forms record events',()=>{
   const html=fs.readFileSync('admin.html','utf8');
   const adminScript=fs.readFileSync('admin.js','utf8');
   const appScript=fs.readFileSync('inventory-app.js','utf8');
   const sql=fs.readFileSync('supabase/user-auth-activity.sql','utf8');
   assert.match(html,/id="activity-title">사용자 로그인\/로그아웃 내역/);
+  assert.match(html,/id="activity-search-field"/);
   assert.match(html,/id="activity-user-search" type="search"/);
+  assert.match(html,/id="activity-event-type"/);
   assert.match(html,/id="activity-rows"/);
-  assert.match(adminScript,/activitySearch = \$\('activity-user-search'\)\.value\.trim\(\)/);
+  assert.match(adminScript,/activitySearch = searchField === 'email'/);
+  assert.match(adminScript,/params\.set\('event_type',activityEventType\)/);
   assert.match(adminScript,/user\.is_admin \? '관리자 해제' : '관리자 지정'/);
   assert.match(adminScript,/adminCount >= maxAdmins/);
   assert.match(adminScript,/recordActivity\('login'\)/);

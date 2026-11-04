@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let client, users = [], page = 1, hasMore = false, adminCount = 0, maxAdmins = 3, adminUserId = '', activityRows = [], activityPage = 1, activityHasMore = false, activitySearch = '', editing = null, busy = false, sessionGeneration = 0, activityLoadGeneration = 0;
+let client, users = [], page = 1, hasMore = false, adminCount = 0, maxAdmins = 3, adminUserId = '', activityRows = [], activityPage = 1, activityHasMore = false, activitySearch = '', activityEventType = '', editing = null, busy = false, sessionGeneration = 0, activityLoadGeneration = 0;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function resetEditor() {
   editing = null; $('user-form').reset(); $('user-password').required = true;
@@ -17,6 +17,9 @@ function updateControls() {
   $('users').querySelectorAll('button[data-locked]').forEach(button => button.disabled = busy || button.dataset.locked === 'true');
   $('activity-search-button').disabled = busy;
   $('activity-search-reset').disabled = busy;
+  $('activity-search-field').disabled = busy;
+  $('activity-user-search').disabled = busy;
+  $('activity-event-type').disabled = busy;
   $('activity-previous').disabled = busy || activityPage <= 1;
   $('activity-next').disabled = busy || !activityHasMore;
   $('activity-page-label').textContent = activityPage + ' 페이지';
@@ -82,6 +85,7 @@ async function activityRequest(method = 'GET',body) {
   if (error || !data.session) throw new Error('관리자 계정으로 로그인해 주세요.');
   const params = new URLSearchParams({page:String(activityPage)});
   if (activitySearch) params.set('user',activitySearch);
+  if (activityEventType) params.set('event_type',activityEventType);
   const response = await fetch('/api/user-activity' + (method === 'GET' ? '?' + params : ''),{
     method,headers:{Authorization:'Bearer ' + data.session.access_token,'Content-Type':'application/json'},
     body:body ? JSON.stringify(body) : undefined,cache:'no-store'
@@ -95,7 +99,7 @@ function renderActivity() {
   $('activity-rows').replaceChildren();
   if (!activityRows.length) {
     const row = document.createElement('tr'),cell = document.createElement('td');
-    cell.colSpan = 3; cell.textContent = activitySearch ? '검색 조건에 해당하는 로그인 이력이 없습니다.' : '로그인 이력이 없습니다.';
+    cell.colSpan = 3; cell.textContent = activitySearch || activityEventType ? '검색 조건에 해당하는 로그인 이력이 없습니다.' : '로그인 이력이 없습니다.';
     row.append(cell); $('activity-rows').append(row);
   }
   activityRows.forEach(entry => {
@@ -132,7 +136,7 @@ async function runMutation(action,message) {
   finally { $('user-password').value = ''; busy = false; updateControls(); }
 }
 async function onSession(session) {
-  sessionGeneration++; users = []; activityRows = []; activityPage = 1; activityHasMore = false; activitySearch = ''; adminUserId = session?.user?.id || ''; $('activity-user-search').value = ''; $('users').replaceChildren(); $('activity-rows').replaceChildren(); resetEditor();
+  sessionGeneration++; users = []; activityRows = []; activityPage = 1; activityHasMore = false; activitySearch = ''; activityEventType = ''; adminUserId = session?.user?.id || ''; $('activity-search-field').value = 'email'; $('activity-user-search').value = ''; $('activity-event-type').value = ''; $('activity-email-filter').hidden = false; $('activity-event-filter').hidden = true; $('users').replaceChildren(); $('activity-rows').replaceChildren(); resetEditor();
   const generation = sessionGeneration;
   $('admin-panel').hidden = true; $('login-panel').hidden = !!session;
   if (!session) return;
@@ -193,14 +197,24 @@ async function startAdmin() {
   $('next').addEventListener('click',() => { if (hasMore && !busy) { page++; refresh(); } });
   $('activity-search-form').addEventListener('submit',async event => {
     event.preventDefault(); if (busy) return;
-    activitySearch = $('activity-user-search').value.trim(); activityPage = 1; busy = true; updateControls();
+    const searchField = $('activity-search-field').value;
+    activitySearch = searchField === 'email' ? $('activity-user-search').value.trim() : '';
+    activityEventType = searchField === 'event_type' ? $('activity-event-type').value : '';
+    activityPage = 1; busy = true; updateControls();
     try { await loadActivity(); notify('로그인 이력을 불러왔습니다.'); }
     catch (error) { notify(error.message,true); }
     finally { busy = false; updateControls(); }
   });
+  $('activity-search-field').addEventListener('change',() => {
+    const byEmail = $('activity-search-field').value === 'email';
+    $('activity-email-filter').hidden = !byEmail;
+    $('activity-event-filter').hidden = byEmail;
+  });
   $('activity-search-reset').addEventListener('click',async () => {
     if (busy) return;
-    $('activity-user-search').value = ''; activitySearch = ''; activityPage = 1; busy = true; updateControls();
+    $('activity-search-field').value = 'email'; $('activity-user-search').value = ''; $('activity-event-type').value = '';
+    $('activity-email-filter').hidden = false; $('activity-event-filter').hidden = true;
+    activitySearch = ''; activityEventType = ''; activityPage = 1; busy = true; updateControls();
     try { await loadActivity(); notify('로그인 이력을 불러왔습니다.'); }
     catch (error) { notify(error.message,true); }
     finally { busy = false; updateControls(); }

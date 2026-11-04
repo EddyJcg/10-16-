@@ -465,3 +465,14 @@ button[id^="save-"],button[data-vendor-action="save"],
 .popup-table-save-button,.popup-table-column-panel .popup-table-panel-actions .primary{
   background:#348fe2!important;border-color:#348fe2!important;color:#fff!important
 }
+
+body button:not([data-print]):not([data-print-settings]):not([id^="save-"]):not([data-vendor-action="save"]):not(#complete-sales-register-confirm):not(#password-update-button):not(.popup-table-save-button):not(.popup-table-column-panel .popup-table-panel-actions .primary):not([id^="export-"]):not(#export):not(#import-product-info-button):not(#import-receipt-button):not(#import-sales-order-button):not(.popup-table-menu-item[data-popup-menu-action="export"]):not(.popup-table-export-actions .primary):not(#search-product-list):not(#search-movement-list):not(#search-sales-status-orders):not(#search-sales-register):not(#search-purchase-orders):not(#apply-sales-balance-search):not(#apply-search):not(#apply-sales-status-search):not(#apply-sales-query-search){
+  background:#d2edf5!important;border-color:#d2edf5!important;color:#203b32!important
+}
+
+body button[id^="export-"],body button#export,
+body button#import-product-info-button,body button#import-receipt-button,body button#import-sales-order-button,
+body button.popup-table-menu-item[data-popup-menu-action="export"],
+body .popup-table-export-actions button.primary{
+  background:#2b9fc1!important;border-color:#2b9fc1!important;color:#fff!important
+}

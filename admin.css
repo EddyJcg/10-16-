@@ -4,3 +4,4 @@ input{margin-bottom:15.3px}label{margin-bottom:5.4px}.layout{gap:19.8px}.session
 main{max-width:100%}
 #save-user{background:#348fe2;border-color:#348fe2;color:#fff}
 #save-user:hover{background:#2e80cc}
+body button:not(#save-user){background:#d2edf5!important;border-color:#d2edf5!important;color:#203b32!important}

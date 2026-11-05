@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주간 구매 업무 대시보드 (샘플)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f1f5f9; font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif; color: #0f172a; font-size: 13px; }
+  header { background: #1e3a8a; color: #fff; padding: 18px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header .meta { font-size: 12px; opacity: .9; }
+  .sample { background: #fde68a; color: #78350f; font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+  main { padding: 20px 28px; max-width: 1280px; margin: 0 auto; }
+  .grid { display: grid; gap: 16px; }
+  .kpis { grid-template-columns: repeat(4, 1fr); }
+  .cols { grid-template-columns: 1.4fr 1fr; margin-top: 16px; }
+  .row2 { grid-template-columns: 1fr 1fr; margin-top: 16px; }
+  .card { background: #fff; border-radius: 10px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
+  .card h2 { font-size: 14px; margin: 0 0 12px; color: #334155; }
+  .kpi .label { color: #64748b; font-size: 12px; }
+  .kpi .value { font-size: 28px; font-weight: 700; margin: 4px 0; }
+  .kpi .sub { font-size: 12px; color: #64748b; }
+  .bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+  .bar span { display: block; height: 100%; background: #2563eb; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .good { background: #dcfce7; color: #15803d; }
+  .warn { background: #fee2e2; color: #b91c1c; }
+  .up { color: #b91c1c; font-weight: 700; }
+  .down { color: #15803d; font-weight: 700; }
+  .hbar { display: grid; grid-template-columns: 110px 1fr 60px; gap: 8px; align-items: center; margin: 9px 0; }
+  .hbar .name { font-size: 12px; }
+  .hbar .track { height: 14px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+  .hbar .fill { height: 100%; background: #3b82f6; }
+  .hbar .fill.hot { background: #f59e0b; }
+  .hbar .pct { text-align: right; font-weight: 700; font-size: 12px; }
+  .issue { border-left: 4px solid #ef4444; background: #fff7f7; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; }
+  .issue.n { border-left-color: #94a3b8; background: #f8fafc; }
+  .issue .t { font-weight: 700; }
+  .issue .d { font-size: 12px; color: #475569; margin-top: 3px; }
+  .market { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tile { background: #f8fafc; border-radius: 8px; padding: 10px; }
+  .tile .n { font-size: 12px; color: #64748b; }
+  .tile .v { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 6px 6px; border-bottom: 1px solid #e2e8f0; text-align: right; }
+  th { color: #64748b; font-weight: 600; background: #f8fafc; }
+  td.l, th.l { text-align: left; }
+  tr.total td { font-weight: 700; background: #f8fafc; }
+  .neg { color: #b91c1c; }
+  .footer { margin-top: 16px; color: #64748b; font-size: 11px; text-align: center; }
+  @media (max-width: 900px) { .kpis { grid-template-columns: 1fr 1fr; } .cols, .row2 { grid-template-columns: 1fr; } }
+  @media print { body { background: #fff; } header { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>주간 구매 업무 대시보드</h1>
+    <div class="meta">기준일 2026-11-05 · 45주차 · 금액 단위: 백만원</div>
+  </div>
+  <span class="sample">샘플 데이터</span>
+</header>
+
+<main>
+
+  <!-- 핵심 지표 -->
+  <section class="grid kpis">
+    <div class="card kpi">
+      <div class="label">프로젝트별 원가 집행률</div>
+      <div class="value">61.5%</div>
+      <div class="sub">전주 58.0% · 목표 65.0% <span class="badge good">양호</span></div>
+      <div class="bar"><span style="width:61.5%"></span></div>
+    </div>
+    <div class="card kpi">
+      <div class="label">발주 진행율</div>
+      <div class="value">82.0%</div>
+      <div class="sub">전주 78.5% · 목표 85.0% <span class="badge warn">주의</span></div>
+      <div class="bar"><span style="width:82%"></span></div>
+    </div>
+    <div class="card kpi">
+      <div class="label">입고 진행율</div>
+      <div class="value">74.0%</div>
+      <div class="sub">전주 70.0% · 목표 80.0% <span class="badge warn">주의</span></div>
+      <div class="bar"><span style="width:74%"></span></div>
+    </div>
+    <div class="card kpi">
+      <div class="label">납기 지연율</div>
+      <div class="value">6.5%</div>
+      <div class="sub">전주 8.0% · 목표 5.0% <span class="badge warn">주의</span></div>
+      <div class="bar"><span style="width:6.5%; background:#ef4444"></span></div>
+    </div>
+  </section>
+
+  <section class="grid cols">
+
+    <!-- 원가 집행 차트 -->
+    <div class="card">
+      <h2>프로젝트별 원가 집행률 (누적 투입 ÷ 예산)</h2>
+      <div class="hbar"><div class="name">A라인 설비</div><div class="track"><div class="fill" style="width:71%"></div></div><div class="pct">71.0%</div></div>
+      <div class="hbar"><div class="name">B라인 자동화</div><div class="track"><div class="fill" style="width:54%"></div></div><div class="pct">54.0%</div></div>
+      <div class="hbar"><div class="name">C라인 검사장비</div><div class="track"><div class="fill" style="width:71%"></div></div><div class="pct">71.0%</div></div>
+      <div class="hbar"><div class="name">D라인 물류설비</div><div class="track"><div class="fill" style="width:33.9%"></div></div><div class="pct">33.9%</div></div>
+      <div class="hbar"><div class="name">E라인 유틸리티</div><div class="track"><div class="fill hot" style="width:80%"></div></div><div class="pct">80.0%</div></div>
+
+      <table style="margin-top:14px">
+        <thead>
+          <tr><th class="l">프로젝트</th><th>예산</th><th>누적 투입</th><th>금주 투입</th><th>잔여 예산</th><th>예상 최종원가</th><th>예산 대비 차이</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="l">A라인 설비</td><td>4,200</td><td>2,980</td><td>210</td><td>1,220</td><td>4,150</td><td>50</td></tr>
+          <tr><td class="l">B라인 자동화</td><td>3,500</td><td>1,890</td><td>180</td><td>1,610</td><td>3,620</td><td class="neg">(120)</td></tr>
+          <tr><td class="l">C라인 검사장비</td><td>2,000</td><td>1,420</td><td>95</td><td>580</td><td>1,980</td><td>20</td></tr>
+          <tr><td class="l">D라인 물류설비</td><td>1,800</td><td>610</td><td>140</td><td>1,190</td><td>1,800</td><td>0</td></tr>
+          <tr><td class="l">E라인 유틸리티</td><td>900</td><td>720</td><td>60</td><td>180</td><td>930</td><td class="neg">(30)</td></tr>
+          <tr class="total"><td class="l">합계</td><td>12,400</td><td>7,620</td><td>685</td><td>4,780</td><td>12,480</td><td class="neg">(80)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 주요 이슈 -->
+    <div class="card">
+      <h2>주요 이슈 Top 3</h2>
+      <div class="issue">
+        <div class="t">1. A라인 모터 리드타임 지연 <span class="badge warn">의사결정 필요</span></div>
+        <div class="d">영향: 출고 일정 약 2주 지연 우려 · 조치: 대체 공급사 견적 진행 중</div>
+      </div>
+      <div class="issue">
+        <div class="t">2. B라인 PLC 단가 인상 요청 <span class="badge warn">의사결정 필요</span></div>
+        <div class="d">영향: 예산 대비 약 120 초과 예상 · 조치: 원가절감안 협상 진행</div>
+      </div>
+      <div class="issue n">
+        <div class="t">3. 환율 상승에 따른 수입품 원가 상승</div>
+        <div class="d">영향: 수입 부품 원가 약 0.9% 상승 · 조치: 선도환 헤지 검토</div>
+      </div>
+    </div>
+
+  </section>
+
+  <section class="grid row2">
+
+    <!-- 원자재·환율 -->
+    <div class="card">
+      <h2>원자재·환율 주간 동향</h2>
+      <div class="market">
+        <div class="tile"><div class="n">구리(Cu) USD/t</div><div class="v">9,450</div><div class="up">▲ +1.5%</div></div>
+        <div class="tile"><div class="n">알루미늄(Al) USD/t</div><div class="v">2,480</div><div class="up">▲ +1.0%</div></div>
+        <div class="tile"><div class="n">니켈(Ni) USD/t</div><div class="v">16,200</div><div class="down">▼ -2.1%</div></div>
+        <div class="tile"><div class="n">코발트(Co) USD/t</div><div class="v">33,500</div><div class="up">▲ +1.5%</div></div>
+        <div class="tile"><div class="n">USD/KRW</div><div class="v">1,385.0</div><div class="up">▲ +0.9%</div></div>
+        <div class="tile"><div class="n">CNY/KRW</div><div class="v">191.2</div><div class="up">▲ +0.9%</div></div>
+      </div>
+      <div style="font-size:11px;color:#64748b;margin-top:8px">LME 및 서울외국환중개(SMBS) 기준 샘플 값 · 빨간색 ▲는 상승</div>
+    </div>
+
+    <!-- 발주·입고·납기 요약 -->
+    <div class="card">
+      <h2>진행 현황 요약</h2>
+      <table>
+        <thead>
+          <tr><th class="l">구분</th><th>금주</th><th>전주</th><th>목표</th><th>판정</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="l">원가 집행률</td><td>61.5%</td><td>58.0%</td><td>65.0%</td><td><span class="badge good">양호</span></td></tr>
+          <tr><td class="l">발주 진행율</td><td>82.0%</td><td>78.5%</td><td>85.0%</td><td><span class="badge warn">주의</span></td></tr>
+          <tr><td class="l">입고 진행율</td><td>74.0%</td><td>70.0%</td><td>80.0%</td><td><span class="badge warn">주의</span></td></tr>
+          <tr><td class="l">납기 지연율</td><td>6.5%</td><td>8.0%</td><td>5.0%</td><td><span class="badge warn">주의</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+
+  <div class="footer">※ 모든 수치는 샘플 값입니다. 실제 보고 시에는 엑셀 템플릿 입력 값으로 대체하세요.</div>
+
+</main>
+</body>
+</html>

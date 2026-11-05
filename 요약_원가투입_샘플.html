@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주간 구매 업무 보고 - 요약 / 원가투입 (샘플)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: #f3f4f6; font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif; color: #1f2937; font-size: 13px; }
+  .page { max-width: 1000px; margin: 0 auto; background: #fff; padding: 24px 28px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 22px 0 8px; padding-left: 8px; border-left: 4px solid #2563eb; }
+  .note { color: #6b7280; font-size: 12px; margin: 2px 0 10px; }
+  .sample { display: inline-block; background: #fef3c7; color: #92400e; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: center; }
+  th { background: #e5e7eb; font-weight: 600; }
+  td.left { text-align: left; }
+  tr.total td { background: #f9fafb; font-weight: 700; }
+  .good { color: #15803d; font-weight: 700; }
+  .warn { color: #b91c1c; font-weight: 700; }
+  .neg { color: #b91c1c; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .badge.good { background: #dcfce7; color: #15803d; }
+  .badge.warn { background: #fee2e2; color: #b91c1c; }
+  .footer { margin-top: 18px; color: #6b7280; font-size: 11px; }
+  @media print { body { background: #fff; padding: 0; } .page { box-shadow: none; padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>주간 구매 업무 보고서</h1>
+  <div class="note">기준일: 2026-11-05 &nbsp;|&nbsp; 보고 주차: 45주차 &nbsp;|&nbsp; 금액 단위: 백만원</div>
+  <span class="sample">샘플 데이터 (템플릿 시트 구조 기준)</span>
+
+  <h2>요약 - 핵심 지표</h2>
+  <table>
+    <thead>
+      <tr><th>구분</th><th>핵심 지표</th><th>금주</th><th>전주</th><th>목표</th><th>증감</th><th>방향</th><th>판정</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>원가</td><td class="left">프로젝트별 원가 집행률</td><td>61.5%</td><td>58.0%</td><td>65.0%</td><td>+3.5%p</td><td>낮을수록</td><td><span class="badge good">양호</span></td></tr>
+      <tr><td>발주</td><td class="left">발주 진행율</td><td>82.0%</td><td>78.5%</td><td>85.0%</td><td>+3.5%p</td><td>높을수록</td><td><span class="badge warn">주의</span></td></tr>
+      <tr><td>입고</td><td class="left">입고 진행율</td><td>74.0%</td><td>70.0%</td><td>80.0%</td><td>+4.0%p</td><td>높을수록</td><td><span class="badge warn">주의</span></td></tr>
+      <tr><td>납기</td><td class="left">납기 지연율</td><td>6.5%</td><td>8.0%</td><td>5.0%</td><td>-1.5%p</td><td>낮을수록</td><td><span class="badge warn">주의</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>요약 - 주요 이슈 Top 3</h2>
+  <table>
+    <thead>
+      <tr><th style="width:50px">순위</th><th>이슈</th><th>영향</th><th>조치 현황</th><th style="width:110px">의사결정 필요</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td class="left">A라인 모터 리드타임 지연</td><td class="left">출고 일정 약 2주 지연 우려</td><td class="left">대체 공급사 견적 진행 중</td><td>Y</td></tr>
+      <tr><td>2</td><td class="left">B라인 PLC 단가 인상 요청</td><td class="left">예산 대비 약 120 초과 예상</td><td class="left">원가절감안 협상 진행</td><td>Y</td></tr>
+      <tr><td>3</td><td class="left">환율 상승에 따른 수입품 원가 상승</td><td class="left">수입 부품 원가 약 0.9% 상승</td><td class="left">선도환 헤지 검토</td><td>N</td></tr>
+    </tbody>
+  </table>
+
+  <h2>요약 - 원자재·환율 주간 동향</h2>
+  <table>
+    <thead>
+      <tr><th style="width:70px">구분</th><th>항목</th><th>금주</th><th>전주</th><th>등락률</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>LME</td><td class="left">구리(Cu), USD/t</td><td>9,450</td><td>9,310</td><td>+1.5%</td></tr>
+      <tr><td>LME</td><td class="left">알루미늄(Al), USD/t</td><td>2,480</td><td>2,455</td><td>+1.0%</td></tr>
+      <tr><td>LME</td><td class="left">니켈(Ni), USD/t</td><td>16,200</td><td>16,540</td><td class="good">-2.1%</td></tr>
+      <tr><td>LME</td><td class="left">코발트(Co), USD/t</td><td>33,500</td><td>33,000</td><td>+1.5%</td></tr>
+      <tr><td>환율</td><td class="left">USD/KRW</td><td>1,385.0</td><td>1,372.0</td><td>+0.9%</td></tr>
+      <tr><td>환율</td><td class="left">CNY/KRW</td><td>191.2</td><td>189.5</td><td>+0.9%</td></tr>
+    </tbody>
+  </table>
+
+  <h2>1. 프로젝트별 원가 투입 현황</h2>
+  <div class="note">단위: 백만원 | 집행률 = 누적 투입 ÷ 예산 | 예상 최종원가가 예산을 넘으면 차이가 음수(괄호)로 표시</div>
+  <table>
+    <thead>
+      <tr><th>프로젝트</th><th>예산</th><th>누적 투입</th><th>금주 투입</th><th>집행률</th><th>잔여 예산</th><th>예상 최종원가</th><th>예산 대비 차이</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="left">A라인 설비</td><td>4,200</td><td>2,980</td><td>210</td><td>71.0%</td><td>1,220</td><td>4,150</td><td>50</td></tr>
+      <tr><td class="left">B라인 자동화</td><td>3,500</td><td>1,890</td><td>180</td><td>54.0%</td><td>1,610</td><td>3,620</td><td class="neg">(120)</td></tr>
+      <tr><td class="left">C라인 검사장비</td><td>2,000</td><td>1,420</td><td>95</td><td>71.0%</td><td>580</td><td>1,980</td><td>20</td></tr>
+      <tr><td class="left">D라인 물류설비</td><td>1,800</td><td>610</td><td>140</td><td>33.9%</td><td>1,190</td><td>1,800</td><td>0</td></tr>
+      <tr><td class="left">E라인 유틸리티</td><td>900</td><td>720</td><td>60</td><td>80.0%</td><td>180</td><td>930</td><td class="neg">(30)</td></tr>
+      <tr class="total"><td>합계</td><td>12,400</td><td>7,620</td><td>685</td><td>61.5%</td><td>4,780</td><td>12,480</td><td class="neg">(80)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    ※ 모든 수치는 샘플 값입니다. 실제 보고 시에는 엑셀 템플릿의 노란 칸(파란 글씨)에 입력하면 시트의 계산 결과와 같은 방식으로 산출합니다.
+  </div>
+
+</div>
+</body>
+</html>

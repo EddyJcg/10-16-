@@ -1496,6 +1496,38 @@ function activeProduct() {
   const code = $('product_code').value.trim().toUpperCase();
   return items.find(item=>item.product_code===code&&stockLedgerManaged(item));
 }
+function openingCostDraftKey(item){
+  return 'inventory-opening-cost-draft:'+currentUser.id+':'+item.id;
+}
+function restoreOpeningCostDraft(item,previous){
+  if(mode!=='opening'||editingMovementId||!item?.id||!currentUser?.id||previous===item.product_code)return;
+  try{
+    const saved=window.localStorage.getItem(openingCostDraftKey(item));
+    if(saved!==null){
+      const cost=Number(saved);
+      if(!saved.trim()||!Number.isFinite(cost)||cost<0||cost>1000000000||Math.abs(cost*100-Math.round(cost*100))>0.0001)
+        throw new Error('임시 단가 형식이 올바르지 않습니다.');
+      $('movement_cost').value=saved;
+      $('form-message').textContent='임시 저장한 기초단가를 불러왔습니다. 수량 입력 후 저장하면 정식 재고에 반영됩니다.';
+    }
+  }catch(error){
+    $('movement_cost').value='0';
+    $('form-message').textContent='임시 기초단가를 불러오지 못했습니다. '+String(error?.message||error);
+  }
+}
+function saveOpeningCostDraft(){
+  const item=activeProduct(),raw=$('movement_cost').value.trim(),cost=Number(raw);
+  if(!item?.id||!currentUser?.id){$('form-message').textContent='품목정보를 먼저 등록하고 해당 품번을 선택하세요.';return;}
+  if(!raw||!Number.isFinite(cost)||cost<0||cost>1000000000||Math.abs(cost*100-Math.round(cost*100))>0.0001){
+    $('form-message').textContent='임시 저장할 기초단가를 확인하세요. 0 이상, 소수 둘째 자리까지 입력합니다.';return;
+  }
+  try{
+    window.localStorage.setItem(openingCostDraftKey(item),raw);
+    $('form-message').textContent='기초단가를 이 브라우저에 임시 저장했습니다. 재고에는 반영되지 않았습니다. 수량 입력 후 저장하세요.';
+  }catch(error){
+    $('form-message').textContent='기초단가를 임시 저장하지 못했습니다. '+String(error?.message||error);
+  }
+}
 function inProgressSalesOrders(){
   return salesOrders.filter(order=>salesOrderStatus(order)==='진행'
     &&Number(order.quantity)>Number(order.shipped_quantity||0));
@@ -1592,6 +1624,9 @@ function populateProduct(source='product_code') {
     if(item)$(key).value=item[key]||'';
     else if(previous&&key!==source)$(key).value='';
   });
+  if(mode==='opening'&&!editingMovementId&&previous&&previous!==selectedCode)$('movement_cost').value='0';
+  restoreOpeningCostDraft(item,previous);
+  if(mode==='opening')updateAmounts();
   if(mode==='issue'){productLots=[];productLotsReady=false;updateIssueSalesOrders(previous!==selectedCode);updateAmounts();loadSelectedLots();}
 }
 async function loadSelectedLots() {
@@ -1610,6 +1645,8 @@ function updateAmounts() {
   if(mode!=='issue'){
     $('movement_cost').readOnly=valueDisabled;
     if(valueDisabled)$('movement_cost').value='0';
+    if(mode==='opening'&&!editingMovementId&&$('save-movement'))
+      $('save-movement').textContent=$('movement_quantity').value.trim()===''?'단가 임시 저장':'저장';
     $('movement_amount').value=money(quantity*(valueDisabled?0:cost));return;
   }
   const unit=$('unit').value||'EA(개)';
@@ -1640,11 +1677,12 @@ function openMovement(kind) {
   $('dialog-title').textContent = mode==='opening'?'기초재고 등록':title;
   $('dialog-description').textContent = mode==='issue' ? '먼저 들어온 입고 건부터 자동 차감합니다.'
     : mode==='receipt' ? '품목정보에 등록된 품번을 선택하세요. Excel 업로드에는 품목분류, 품번, 품명, 규격, 색상, 저장위치, 납품업체, 입고일자, 입고수량, 입고단가 열이 필요합니다.'
-    : '품목정보에 등록된 품번을 선택하세요.';
+    : '품번을 선택하고 수량 없이 저장하면 단가만 이 브라우저에 임시 보관합니다. 수량 입력 후 저장해야 정식 재고에 반영됩니다.';
   $('import-receipt-button').hidden=mode!=='receipt';
   $('receipt-import-file').value='';
   $('date-label').textContent=dateLabel; $('quantity-label').textContent=prefix+'수량'; $('cost-label').textContent=prefix+'단가'; $('amount-label').textContent=prefix+'금액';
   $('movement_date').value=todayDate(); $('movement_date').max=todayDate();
+  $('movement_quantity').required=mode!=='opening';
   $('movement_cost').readOnly=mode==='issue'; $('movement_cost').required=mode!=='issue'; $('movement_cost').value='0';
   $('fifo-section').hidden=mode!=='issue'; $('form-message').textContent=''; $('movement-editor').disabled=false;
   if($('issue-sales-order-field'))$('issue-sales-order-field').hidden=mode!=='issue';
@@ -2510,6 +2548,7 @@ async function editMovement(id){
   openMovement(movement.kind);
   const item=items.find(row=>row.id===movement.product_id);if(!item)return;
   editingMovementId=movement.id;
+  $('movement_quantity').required=true;
   $('import-receipt-button').hidden=true;
   $('product_code').value=item.product_code;populateProduct('product_code');
   PRODUCT_FIELDS.forEach(key=>{
@@ -2554,6 +2593,9 @@ async function saveMovement(event) {
     $('form-message').textContent='품목정보를 먼저 등록하고 해당 품번을 선택하세요.';
     return;
   }
+  if(mode==='opening'&&!editingMovementId&&$('movement_quantity').value.trim()===''){
+    saveOpeningCostDraft();return;
+  }
   const quantity=Number($('movement_quantity').value), unitCost=mode==='issue' ? 0 : Number($('movement_cost').value), date=$('movement_date').value;
   if (!Number.isSafeInteger(quantity) || quantity<1 || quantity>1000000 || !validDate(date) || !Number.isFinite(unitCost) || unitCost<0 || unitCost>1000000000 || Math.abs(unitCost*100-Math.round(unitCost*100))>0.0001) {
     $('form-message').textContent='날짜와 수량, 단가를 확인하세요. 수량은 양의 정수, 단가는 소수 둘째 자리까지 입력합니다.';return;
@@ -2590,6 +2632,10 @@ async function saveMovement(event) {
     if (error) throw error;
     if (generation!==authGeneration) return;
     const wasEditing=!!editingMovementId;
+    if(mode==='opening'&&!wasEditing){
+      try{window.localStorage.removeItem(openingCostDraftKey(activeProduct()));}
+      catch(error){window.alert('기초재고는 저장했지만 임시 단가를 지우지 못했습니다. '+String(error?.message||error));}
+    }
     $('movement-dialog').close(); requestId=null;editingMovementId='';$('save-movement').textContent='저장';
     const hasSerial=data?.sequence_id!=null;
     const text=MODE_LABELS[mode][0]+(wasEditing?' 수정 완료':' 저장 완료')+' · 일련번호 '+(hasSerial?number(data.sequence_id):'확인 필요')+' · '+number(data.quantity)+' '+details.unit+' / '+money(data.amount)+'원';

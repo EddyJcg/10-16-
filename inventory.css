@@ -47,6 +47,7 @@
 #receipt-folder>summary::before{color:#FB8C00}
 #issue-folder>summary::before{color:#E91E63}
 #opening-folder>summary::before{color:#6D4C41}
+#opening-status-folder>summary::before{content:none;display:none}
 #stock-folder>summary::before{color:#3949AB}
 #admin-folder>summary::before{color:#E53935}
 .menu-folder[open]>summary{background:#edf4ef;color:#24634b}

@@ -102,9 +102,9 @@ test('procurement folder uses the supplied settings icon without a background',(
   const style=fs.readFileSync('purchase-folder-icon.css','utf8');
   const icon=fs.readFileSync('purchase-settings.svg','utf8');
   assert.match(html,/href="\/purchase-folder-icon\.css\?v=20261104-sidebar-black-unboxed"/);
-  assert.match(fs.readFileSync('purchase-folder-icon.css','utf8'),/\.sidebar \.menu-folder>summary[^{]*\{background:transparent;color:#fff\}/);
-  assert.match(fs.readFileSync('inventory.css','utf8'),/\.sidebar\{background:#2d353c;border-right-color:#2d353c;color:#fff\}/);
-  assert.match(fs.readFileSync('inventory.css','utf8'),/\.sidebar \.menu-folder>summary,[^{]*\{background:transparent;color:#fff;border-radius:0\}/);
+  assert.match(fs.readFileSync('purchase-folder-icon.css','utf8'),/\.sidebar \.menu-folder>summary[^{]*\{background:transparent;color:#2d343b\}/);
+  assert.match(fs.readFileSync('inventory.css','utf8'),/\.sidebar\{background:#F8F9FA;border-right-color:#dfe3e8;color:#2d343b\}/);
+  assert.match(fs.readFileSync('inventory.css','utf8'),/\.sidebar \.menu-folder>summary,[^{]*\{background:transparent;color:#2d343b;border-radius:0\}/);
   assert.match(fs.readFileSync('inventory.css','utf8'),/\.sidebar \.folder-children\{border-left-color:transparent\}/);
   assert.match(style,/#purchase-folder>summary::before\{[^}]*width:29\.9px;height:29\.9px[^}]*mask:url\('\/purchase-settings\.svg'\)/);
   assert.match(style,/#purchase-entry-folder>summary::before,#purchase-query-folder>summary::before\{content:none;display:none\}/);

@@ -1554,22 +1554,23 @@ function productForLookup(source,value=$(source).value) {
 }
 function populateProductInfo(source) {
   if(editingProductInfoId)return;
-  const previous=selectedProductInfoCode,item=productForLookup(source);
+  const item=productForLookup(source);
   selectedProductInfoCode=item?.product_code||'';
-  $('info_product_name').readOnly=!!item?.product_name;
-  ['specification','material','color'].forEach(field=>{$('info_'+field).readOnly=!!item?.[field]?.trim();});
+  ['info_product_name','info_material','info_color','info_specification'].forEach(id=>$(id).readOnly=false);
+  $('info_standard_stock_quantity').readOnly=item?.standard_stock_quantity!==null&&item?.standard_stock_quantity!==undefined;
   $('info_product_category').disabled=!!item?.classification_id;
   $('info_unit').disabled=!!item?.unit;
-  $('info_standard_stock_quantity').readOnly=item?.standard_stock_quantity!==null&&item?.standard_stock_quantity!==undefined;
-  if(item){
-    $('info_product_category').value=item.classification_id||'';
-    if(!item.classification_id)$('info_product_category').options[0].textContent=item.product_category+' (기존 분류)';
-  }else $('info_product_category').options[0].textContent='품목자산분류를 선택하세요';
-  if(item)$('info_product_code').value=item.product_code;
-  else if(source==='info_specification')$('info_product_code').value='';
-  ['product_category','product_code','product_name','specification','material','color','unit','standard_stock_quantity'].forEach(key=>{
-    if(item)$('info_'+key).value=item[key]??(key==='unit'?'EA(개)':'');
-    else if(previous&&source!=='info_'+key)$('info_'+key).value=key==='unit'?'EA(개)':'';
+  if(!item){
+    $('info_product_category').options[0].textContent='품목자산분류를 선택하세요';
+    return;
+  }
+  if(item.classification_id)$('info_product_category').value=item.classification_id;
+  else $('info_product_category').options[0].textContent=item.product_category+' (기존 분류)';
+  const fillBlankOnly=source==='info_specification';
+  ['product_code','product_name','specification','material','color','unit','standard_stock_quantity'].forEach(key=>{
+    const field=$('info_'+key),value=item[key]??(key==='unit'?'EA(개)':'');
+    if(fillBlankOnly&&String(field.value).trim())return;
+    field.value=value;
   });
 }
 function populateProduct(source='product_code') {
@@ -1732,7 +1733,7 @@ function renderProductInfoItems() {
     const row=document.createElement('tr'),classification=assetClassifications.find(entry=>entry.id===draft.classification_id||entry.name===draft.product_category);
     row.append(makeCell(draft.product_category||''),makeCell(classification?.inventory_asset_type||'미지정'));
     ['product_code','product_name','specification','material','color','unit'].forEach(key=>row.append(makeCell(draft[key]||'')));
-    row.append(makeCell(number(draft.standard_stock_quantity)+' '+(draft.unit||'EA(개)')));
+    row.append(makeCell(draft.standard_stock_quantity==null?'':number(draft.standard_stock_quantity)+' '+(draft.unit||'EA(개)')));
     const manage=document.createElement('td'),label=document.createElement('label'),box=document.createElement('input');
     box.type='checkbox';box.checked=draft.checked!==false;box.dataset.productInfoDraft=draft.draftId;
     box.setAttribute('aria-label',draft.product_code+' 일괄 저장 선택');
@@ -2046,15 +2047,18 @@ function readProductInfoForm(){
   const selectedClassification=assetClassifications.find(row=>row.id===$('info_product_category').value);
   details.classification_id=selectedClassification?.id||null;details.product_category=selectedClassification?.name||'';
   details.product_code=details.product_code.toUpperCase();
-  details.standard_stock_quantity=Number(details.standard_stock_quantity);
-  const fail=message=>{$('product-info-status').textContent=message;return null;};
-  if(!details.classification_id)return fail('품목자산분류와 재고자산종류를 설정한 뒤 선택하세요.');
-  if(!selectedClassification.inventory_asset_type)
-    return fail('선택한 품목자산분류의 재고자산종류가 설정되지 않았습니다. 분류 설정에서 종류를 지정한 뒤 품목정보를 저장하세요.');
-  if(!details.product_code||!details.product_name||!details.unit)return fail('품번·품명·단위를 입력하세요.');
-  if(!Number.isSafeInteger(details.standard_stock_quantity)||details.standard_stock_quantity<1||details.standard_stock_quantity>1000000)
-    return fail('적정재고 수량은 1~1,000,000 사이의 정수로 입력하세요.');
+  details.standard_stock_quantity=details.standard_stock_quantity===''?null:Number(details.standard_stock_quantity);
   return details;
+}
+function productInfoDraftError(details){
+  if(!details.classification_id)return '품목자산분류와 재고자산종류를 설정한 뒤 선택하세요.';
+  const selectedClassification=assetClassifications.find(row=>row.id===details.classification_id);
+  if(!selectedClassification?.inventory_asset_type)
+    return '선택한 품목자산분류의 재고자산종류가 설정되지 않았습니다. 분류 설정에서 종류를 지정한 뒤 품목정보를 저장하세요.';
+  if(!details.product_code||!details.product_name||!details.unit)return '품번·품명·단위를 입력하세요.';
+  if(!Number.isSafeInteger(details.standard_stock_quantity)||details.standard_stock_quantity<1||details.standard_stock_quantity>1000000)
+    return '적정재고 수량은 1~1,000,000 사이의 정수로 입력하세요.';
+  return '';
 }
 function duplicateProductInfoMessage(field){
   if(field==='품명·규격')return '동일한 품명과 규격의 품목이 이미 있습니다. 중복 등록할 수 없습니다.';
@@ -2062,13 +2066,17 @@ function duplicateProductInfoMessage(field){
 }
 function addProductInfoDraft(){
   if(!currentUser||busy)return;
-  const details=readProductInfoForm();if(!details)return;
+  const details=readProductInfoForm();
   const duplicateField=duplicateProductInfoField(details,editingProductInfoId,productInfoDrafts);
   if(duplicateField){window.alert(duplicateProductInfoMessage(duplicateField));return;}
+  const missing=productInfoDraftError(details);
   productInfoDrafts.push({...details,draftId:'product-info-draft-'+(++productInfoDraftSequence),checked:true,...(editingProductInfoId?{productId:editingProductInfoId}:{})});
   resetProductInfoForm();renderProductInfoItems();
-  $('product-info-status').textContent='품목정보를 가등록했습니다. 저장할 행을 체크한 뒤 일괄 저장하세요.';
-}function deleteProductInfoDrafts(){
+  $('product-info-status').textContent=missing
+    ?'가등록했습니다. 미입력 항목이 있으니 일괄 저장 전에 보완하세요. ('+missing+')'
+    :'품목정보를 가등록했습니다. 저장할 행을 체크한 뒤 일괄 저장하세요.';
+}
+function deleteProductInfoDrafts(){
   if(busy)return;
   const selected=productInfoDrafts.filter(draft=>draft.checked!==false);
   if(!selected.length){$('product-info-status').textContent='삭제할 가등록 품목을 체크하세요.';return;}
@@ -2080,6 +2088,12 @@ async function saveProductInfoDrafts(){
   const selected=productInfoDrafts.filter(draft=>draft.checked!==false);
   if(!selected.length){
     $('product-info-status').textContent='일괄 저장할 품목을 체크하세요. 품목정보를 입력해 가등록하거나 Excel로 업로드하세요.';
+    return;
+  }
+  const incomplete=selected.map(draft=>[draft,productInfoDraftError(draft)]).find(([,message])=>message);
+  if(incomplete){
+    const message=`${incomplete[0].product_code||'품번 미입력'}: ${incomplete[1]}`;
+    $('product-info-status').textContent=message;window.alert(message);
     return;
   }
   const conflict=selected.map(draft=>[draft,duplicateProductInfoField(draft,'',productInfoDrafts)]).find(([,field])=>field);

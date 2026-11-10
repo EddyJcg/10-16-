@@ -37,7 +37,7 @@ test('classification and procurement UI permits incomplete classification select
   const workflow=readFileSync('supabase/classification-procurement-workflow.sql','utf8');
   assert.match(app,/option\.textContent=classification\.name\+\(classification\.inventory_asset_type\?/);
   assert.doesNotMatch(app,/option\.disabled=!classification\.inventory_asset_type/);
-  assert.match(app,/if\(!selectedClassification\.inventory_asset_type\)/);
+  assert.match(app,/if\(!selectedClassification\?\.inventory_asset_type\)/);
   assert.match(html,/id="purchase-entry-button"/);
   assert.match(html,/id="purchase-query-button"/);
   assert.match(html,/id="purchase-order-number" required maxlength="17" readonly/);

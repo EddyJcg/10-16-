@@ -187,10 +187,10 @@ test('opening a selected product workbook adds checked draft rows and batch save
   });
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   context.window.parseProductImportWorkbook=()=>({errors:[],rows:[
-    {product_code:'SKU-001',product_category:'원자재',specification:'A'},
-    {product_code:'SKU-002',product_category:'원자재',specification:'B'}
+    {classification_id:'cls-1',product_code:'SKU-001',product_name:'품명1',product_category:'원자재',specification:'A',unit:units[0],standard_stock_quantity:10},
+    {classification_id:'cls-1',product_code:'SKU-002',product_name:'품명2',product_category:'원자재',specification:'B',unit:units[0],standard_stock_quantity:10}
   ]});
-  vm.runInContext(`currentUser={id:'user'};authGeneration=3;assetClassifications=[];items=[];
+  vm.runInContext(`currentUser={id:'user'};authGeneration=3;assetClassifications=[{id:'cls-1',name:'원자재',inventory_asset_type:'원재료'}];items=[];
     client={rpc:async(name,args)=>(calls.push([name,args]),{data:{id:args.p_details.product_code,...args.p_details},error:null})};
     loadStock=async()=>calls.push(['loadStock']);
     renderProductInfoItems=()=>calls.push(['renderProductInfoItems']);`,context);

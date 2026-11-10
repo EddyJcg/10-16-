@@ -7,9 +7,9 @@ test('main popups are non-modal so sidebar menus stay clickable',()=>{
   assert.ok(html.indexOf('popup-floating.js')<html.indexOf('inventory-app.js'));
   assert.match(html,/href="\/popup-floating\.css\?v=/);
   const js=fs.readFileSync('popup-floating.js','utf8');
-  assert.match(js,/this\.show\(\)/);
+  assert.match(js,/\.show\(\)/);
   assert.match(js,/sales-register-confirm-dialog/);
-  assert.doesNotMatch(js,/\.sidebar-action|\.close\(\)/);
+  assert.doesNotMatch(js,/\.sidebar-action/);
 });
 
 test('showModal override opens main popups without modal and keeps them open on sidebar click',()=>{
@@ -56,6 +56,56 @@ test('floating popups open at the cascade origin and are not clamped to the view
   assert.equal(dialog.style.left,'24px');
   assert.equal(dialog.style.top,'24px');
   assert.doesNotMatch(js,/keepInViewport|watchSize/);
+});
+
+test('popups open in their own window and return to the page when that window closes',()=>{
+  const moved=[];
+  const listeners={};
+  const childDialogs=[];
+  const childDoc={head:{querySelectorAll:()=>[],append(){}},body:{append(el){moved.push(el);}},documentElement:{},title:'',createElement:()=>({textContent:''}),querySelectorAll:()=>childDialogs};
+  const child={document:childDoc,closed:false,addEventListener:(t,fn)=>{listeners[t]=fn;},focus(){},close(){this.closed=true;}};
+  const opened=[];
+  const winObj={screenX:0,screenY:0,addEventListener(){},open:(...args)=>{opened.push(args);return child;}};
+  const mainBody={append(el){moved.push(['main',el]);}};
+  const mainDoc={title:'',documentElement:{},head:{querySelectorAll:()=>[]},body:mainBody,addEventListener(){},querySelectorAll:()=>[]};
+  const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
+  new Function('HTMLDialogElement','document','window','innerWidth','innerHeight',fs.readFileSync('popup-floating.js','utf8'))(Ctor,mainDoc,winObj,1000,800);
+  const dialog={id:'x',open:false,style:{},classList:{add(){},remove(){},contains:()=>false},show(){this.open=true;},addEventListener(){}};
+  proto.showModal.call(dialog);
+  childDialogs.push(dialog);
+  assert.equal(opened.length,1);
+  assert.equal(opened[0][0],'about:blank');
+  assert.equal(dialog.open,true);
+  assert.equal(moved[0],dialog);
+  listeners.pagehide();
+  assert.equal(moved[moved.length-1][0],'main');
+});
+
+test('popups fall back to the page when the browser refuses to open a window',()=>{
+  const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
+  const dialog={id:'x',open:false,style:{},classList:{add(){},remove(){},contains:()=>false},show(){this.open=true;}};
+  new Function('HTMLDialogElement','document','window','innerWidth','innerHeight',fs.readFileSync('popup-floating.js','utf8'))(Ctor,{addEventListener(){},querySelectorAll:()=>[]},{open:()=>null,addEventListener(){}},1000,800);
+  proto.showModal.call(dialog);
+  assert.equal(dialog.open,true);
+  assert.equal(dialog.style.left,'24px');
+});
+
+test('popup windows get the page listeners and lookups that are registered after popup-floating',()=>{
+  const childListeners=[];
+  const childDoc={head:{querySelectorAll:()=>[],append(){}},body:{append(){}},documentElement:{},title:'',createElement:()=>({textContent:''}),addEventListener:(t,fn)=>childListeners.push([t,fn]),getElementById:id=>(id==='x'?'child-x':null),querySelector:()=>null,querySelectorAll:()=>[]};
+  const child={document:childDoc,closed:false,addEventListener(){},focus(){},close(){}};
+  const winObj={screenX:0,screenY:0,addEventListener(){},open:()=>child};
+  const mainDoc={title:'',documentElement:{},head:{querySelectorAll:()=>[]},body:{append(){}},addEventListener(){},removeEventListener(){},getElementById:()=>null,querySelector:()=>null,querySelectorAll:()=>[]};
+  const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
+  new Function('HTMLDialogElement','document','window','innerWidth','innerHeight',fs.readFileSync('popup-floating.js','utf8'))(Ctor,mainDoc,winObj,1000,800);
+  const appKeydown=()=>{};
+  mainDoc.addEventListener('keydown',appKeydown);
+  mainDoc.addEventListener('pagehide',()=>{});
+  const dialog={id:'x',open:false,style:{},classList:{add(){},remove(){},contains:()=>false},show(){this.open=true;},addEventListener(){}};
+  proto.showModal.call(dialog);
+  assert.deepEqual(childListeners.map(([t])=>t),['keydown']);
+  assert.equal(childListeners[0][1],appKeydown);
+  assert.equal(mainDoc.getElementById('x'),'child-x');
 });
 
 test('floating popups keep following the pointer beyond the viewport edges',()=>{

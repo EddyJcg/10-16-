@@ -44,25 +44,6 @@
       const rect=dialog.getBoundingClientRect();
       if(step+rect.width>a.width||step+rect.height>a.height){dialog.style.left=(a.left+24)+'px';dialog.style.top=(a.top+24)+'px';}
     }
-    keepInViewport(dialog);
-    watchSize(dialog);
-  }
-  // 팝업이 대시보드 영역 밖으로 나가지 않도록 위치를 보정합니다.
-  function keepInViewport(dialog){
-    if(typeof dialog.getBoundingClientRect!=='function'||typeof innerWidth!=='number')return;
-    if(dialog.classList.contains('dialog-expanded'))return;
-    const a=area();
-    const rect=dialog.getBoundingClientRect();
-    dialog.style.left=Math.max(a.left,Math.min(rect.left,a.left+a.width-rect.width))+'px';
-    dialog.style.top=Math.max(a.top,Math.min(rect.top,a.top+a.height-rect.height))+'px';
-  }
-  // 내용이 늦게 채워지거나 크기가 바뀌어도 네 면이 영역 안에 있도록 다시 보정합니다.
-  const watched=new WeakSet();
-  function watchSize(dialog){
-    if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>keepInViewport(dialog));
-    if(typeof ResizeObserver!=='function'||watched.has(dialog))return;
-    watched.add(dialog);
-    new ResizeObserver(()=>{if(dialog.open&&!drag)keepInViewport(dialog);}).observe(dialog);
   }
   const nativeShowModal=HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal=function(){
@@ -97,10 +78,8 @@
   },true);
   document.addEventListener('pointermove',event=>{
     if(!drag)return;
-    const a=area();
-    const rect=drag.dialog.getBoundingClientRect();
-    drag.dialog.style.left=Math.max(a.left,Math.min(event.clientX-drag.dx,a.left+a.width-rect.width))+'px';
-    drag.dialog.style.top=Math.max(a.top,Math.min(event.clientY-drag.dy,a.top+a.height-rect.height))+'px';
+    drag.dialog.style.left=(event.clientX-drag.dx)+'px';
+    drag.dialog.style.top=(event.clientY-drag.dy)+'px';
   },true);
   document.addEventListener('pointerup',()=>{drag=null;},true);
   // 팝업을 더블클릭하면 대시보드 영역 중앙으로 이동합니다.
@@ -114,7 +93,7 @@
     dialog.style.top=Math.max(a.top,a.top+(a.height-rect.height)/2)+'px';
     stack+=1;dialog.style.zIndex=String(stack);
   },true);
-  if(typeof addEventListener==='function')addEventListener('resize',()=>{publishArea();document.querySelectorAll('dialog.popup-floating[open]').forEach(keepInViewport);});
+  if(typeof addEventListener==='function')addEventListener('resize',publishArea);
   if(typeof MutationObserver==='function'&&typeof document.getElementById==='function'){
     const watchLayout=()=>{const layout=document.querySelector('.app-layout');if(layout)new MutationObserver(publishArea).observe(layout,{attributes:true,attributeFilter:['class','style']});};
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchLayout);else watchLayout();

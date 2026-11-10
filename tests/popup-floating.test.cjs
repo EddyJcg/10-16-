@@ -47,14 +47,31 @@ test('later popups cascade from top-left to bottom-right and stack above earlier
   assert.ok(Number(b.style.zIndex)>Number(a.style.zIndex));
 });
 
-test('floating popups are clamped inside the viewport',()=>{
+test('floating popups open at the cascade origin and are not clamped to the viewport',()=>{
   const js=fs.readFileSync('popup-floating.js','utf8');
   const dialog={id:'x',open:false,style:{},classList:{add(){},remove(){},contains:()=>false},show(){this.open=true;},getBoundingClientRect:()=>({left:900,top:700,width:400,height:300})};
   const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
   new Function('HTMLDialogElement','document','innerWidth','innerHeight',js)(Ctor,{addEventListener(){},querySelectorAll:()=>[]},1000,800);
   proto.showModal.call(dialog);
-  assert.equal(dialog.style.left,'600px');
-  assert.equal(dialog.style.top,'500px');
+  assert.equal(dialog.style.left,'24px');
+  assert.equal(dialog.style.top,'24px');
+  assert.doesNotMatch(js,/keepInViewport|watchSize/);
+});
+
+test('floating popups keep following the pointer beyond the viewport edges',()=>{
+  const handlers={};
+  const dialog={id:'x',open:true,style:{left:'100px',top:'100px'},getBoundingClientRect:()=>({left:100,top:100,right:500,bottom:400,width:400,height:300}),classList:{add(){},remove(){},contains:()=>false}};
+  const body={clientWidth:0,clientHeight:0,closest:s=>s.startsWith('dialog.popup-floating')?dialog:null};
+  const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
+  new Function('HTMLDialogElement','document','innerWidth','innerHeight',fs.readFileSync('popup-floating.js','utf8'))(Ctor,{addEventListener:(t,fn)=>{handlers[t]=fn;},querySelectorAll:()=>[]},1000,800);
+  handlers.pointerdown({button:0,clientX:150,clientY:120,target:body,preventDefault(){}});
+  handlers.pointermove({clientX:2000,clientY:1500});
+  assert.equal(dialog.style.left,'1950px');
+  assert.equal(dialog.style.top,'1480px');
+  handlers.pointermove({clientX:-900,clientY:-700});
+  assert.equal(dialog.style.left,'-950px');
+  assert.equal(dialog.style.top,'-720px');
+  handlers.pointerup();
 });
 
 test('floating popups can be dragged outside tables and recentre on double click',()=>{

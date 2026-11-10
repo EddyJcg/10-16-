@@ -191,16 +191,13 @@ function installDialogInteractions(){
     const move=event=>{
       if(event.pointerId!==activePointerId||!interaction)return;
       if(interaction.type==='drag'){
-        const dragArea=window.popupArea?window.popupArea():{left:0,top:0,width:window.innerWidth,height:window.innerHeight};
-        const left=Math.max(dragArea.left,Math.min(dragArea.left+dragArea.width-interaction.width,event.clientX-interaction.offsetX));
-        const top=Math.max(dragArea.top,Math.min(dragArea.top+dragArea.height-interaction.height,event.clientY-interaction.offsetY));
-        dialog.style.left=left+'px';dialog.style.top=top+'px';
+        dialog.style.left=(event.clientX-interaction.offsetX)+'px';dialog.style.top=(event.clientY-interaction.offsetY)+'px';
         return;
       }
       const dx=event.clientX-interaction.x,dy=event.clientY-interaction.y;
       const area=window.popupArea?window.popupArea():{left:0,top:0,width:window.innerWidth,height:window.innerHeight};
-      const maxWidth=Math.max(100,Math.min(area.width*.95,interaction.type==='left'?interaction.right-area.left:area.left+area.width-interaction.left));
-      const maxHeight=Math.max(100,Math.min(area.height*.95,interaction.type==='top'?interaction.bottom-area.top:area.top+area.height-interaction.top));
+      const maxWidth=Math.max(100,area.width*.95);
+      const maxHeight=Math.max(100,area.height*.95);
       const width=Math.max(Math.min(280,maxWidth),Math.min(maxWidth,interaction.width+(interaction.type==='left'?-dx:interaction.type==='right'||interaction.type==='bottom-right'?dx:0)));
       const height=Math.max(Math.min(180,maxHeight),Math.min(maxHeight,interaction.height+(interaction.type==='top'?-dy:interaction.type==='bottom'||interaction.type==='bottom-right'?dy:0)));
       if(interaction.type==='left')dialog.style.left=(interaction.right-width)+'px';
@@ -213,7 +210,7 @@ function installDialogInteractions(){
       event.preventDefault();
       activePointerId=event.pointerId;const rect=dialog.getBoundingClientRect();
       pinToRect(rect);
-      if(type==='drag')interaction={type,width:rect.width||0,height:rect.height||0,offsetX:event.clientX-rect.left,offsetY:event.clientY-rect.top};
+      if(type==='drag')interaction={type,offsetX:event.clientX-rect.left,offsetY:event.clientY-rect.top};
       else{
         dialog.style.setProperty('width',rect.width+'px','important');
         dialog.style.setProperty('height',rect.height+'px','important');

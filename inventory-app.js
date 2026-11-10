@@ -1752,7 +1752,7 @@ function duplicateProductInfoField(details,exceptId='',drafts=[]){
   const specification=normalize(details.specification);
   const editedIds=new Set([exceptId,...drafts.map(draft=>draft.productId)].filter(Boolean));
   const others=[...items.filter(item=>!editedIds.has(item.id)),...drafts.filter(draft=>draft!==details)];
-  if(others.some(item=>String(item.product_code||'').trim().toUpperCase()===code))return '품번';
+  if(code&&others.some(item=>String(item.product_code||'').trim().toUpperCase()===code))return '품번';
   if(specification&&others.some(item=>normalize(item.specification)===specification))return '규격';
   return '';
 }
@@ -1908,7 +1908,8 @@ async function editProductInfo(id){
 }
 function lockFilledProductInfoFields(item){
   const filled=key=>key==='standard_stock_quantity'?item[key]!==null&&item[key]!==undefined:String(item[key]??'').trim()!=='';
-  ['product_code','product_name','specification','material','color','standard_stock_quantity'].forEach(key=>$('info_'+key).readOnly=filled(key));
+  $('info_product_code').readOnly=true;
+  ['product_name','specification','material','color','standard_stock_quantity'].forEach(key=>$('info_'+key).readOnly=filled(key));
   $('info_product_category').disabled=!!item.classification_id;
   $('info_unit').disabled=!!item.unit;
 }async function importProductInfoFile(event){
@@ -2073,6 +2074,14 @@ function startNewProductInfo(){
   resetProductInfoForm();
   productInfoNewMode=true;
   $('product-info-status').textContent='신규로 입력한 뒤 품목정보 가등록을 누르세요. 품번·규격은 기존 등록 값과 중복될 수 없습니다.';
+}
+function warnDuplicateProductInfoInput(event){
+  if(!productInfoNewMode)return;
+  const field=event.target.id==='info_product_code'?'품번':'규격';
+  const value=String(event.target.value||'').trim();
+  if(!value)return;
+  const details=field==='품번'?{product_code:value,specification:''}:{product_code:'',specification:value};
+  if(duplicateProductInfoField(details,'',productInfoDrafts)===field)window.alert(duplicateProductInfoMessage(field));
 }
 function addProductInfoDraft(){
   if(!currentUser||busy)return;
@@ -2889,7 +2898,9 @@ async function startApp(){
     editProductInfo(button.dataset.productInfoId);
   });
   $('info_product_code').addEventListener('input',()=>populateProductInfo('info_product_code'));
+  $('info_product_code').addEventListener('input',warnDuplicateProductInfoInput);
   $('info_specification').addEventListener('input',()=>populateProductInfo('info_specification'));
+  $('info_specification').addEventListener('input',warnDuplicateProductInfoInput);
   document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>openMovement(button.dataset.mode)));
   installMovementHistoryButton();
   $('close-dialog').addEventListener('click',closeMovement);$('movement-dialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();});

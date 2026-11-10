@@ -444,6 +444,28 @@ test('product edits require confirmation, are blocked after ordering and stage t
   assert.equal('productId'in calls[0][1].p_details,false);
   assert.equal(vm.runInContext('items[0].product_name',context),'부품 수정');
   assert.equal(vm.runInContext('productInfoDrafts.length',context),0);
+});test('new product info warns as soon as a registered code or specification is typed',()=>{
+  const alerts=[];const elements=new Map();
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{id,value:'',readOnly:false,disabled:false,textContent:'',addEventListener(){}});
+    return elements.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:element},window:{alert:message=>alerts.push(message)}});
+  vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`items=[{id:'p1',product_code:'SKU-1',specification:'Spec-A',product_name:'부품'}];productInfoDrafts=[];productInfoNewMode=true;`,context);
+  const type=(id,value)=>{element(id).value=value;context.target=element(id);vm.runInContext('warnDuplicateProductInfoInput({target})',context);};
+  type('info_product_code','sku-1');
+  assert.equal(alerts.length,1);
+  assert.match(alerts[0],/이미 등록된 품번/);
+  type('info_specification',' spec-a ');
+  assert.equal(alerts.length,2);
+  assert.match(alerts[1],/이미 등록된 규격/);
+  type('info_product_code','SKU-2');
+  type('info_specification','');
+  assert.equal(alerts.length,2,'unique and blank values do not warn');
+  vm.runInContext('productInfoNewMode=false',context);
+  type('info_product_code','SKU-1');
+  assert.equal(alerts.length,2,'edit mode does not use the new-entry warning');
 });test('duplicate product codes and non-empty specifications are detected case-insensitively',()=>{
   const context=vm.createContext({});
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);

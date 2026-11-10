@@ -1881,15 +1881,10 @@ async function editProductInfo(id){
     window.alert('이미 가등록 목록에 있는 품목입니다. 품목정보 등록 창에서 일괄 저장 또는 일괄 삭제를 진행하세요.');
     return;
   }
+  let downstream='';
   try{
-    if(await productInfoUsedInPurchase(id)){
-      window.alert('발주 단계 이후 사용된 품목정보입니다. 발주 단계 이후의 정보를 삭제한 뒤에 수정을 진행해야 합니다.');
-      return;
-    }
-    if(await productInfoUsedInMovements(id)){
-      window.alert('입출고 단계 이후 사용된 품목정보입니다. 입출고 내역을 삭제한 뒤에 수정을 진행해야 합니다.');
-      return;
-    }
+    if(await productInfoUsedInPurchase(id))downstream='발주';
+    else if(await productInfoUsedInMovements(id))downstream='입출고';
   }catch(error){
     window.alert('발주 사용 여부를 확인하지 못했습니다. 수정을 진행하지 않습니다. '+errorText(error));
     return;
@@ -1901,11 +1896,21 @@ async function editProductInfo(id){
   [['product_category','classification_id'],['product_code','product_code'],['product_name','product_name'],
     ['specification','specification'],['material','material'],['color','color'],['unit','unit'],
     ['standard_stock_quantity','standard_stock_quantity']].forEach(([field,key])=>$('info_'+field).value=item[key]??'');
+  lockFilledProductInfoFields(item);
+  if(downstream)window.alert(`${downstream} 단계 이후 사용된 품목정보입니다.\n입력된 항목은 수정할 수 없고 비어 있는 항목만 입력할 수 있습니다.\n입력된 항목을 수정하려면 먼저 ${downstream} 등 이후 프로세스의 data를 삭제하세요.`);
   $('cancel-product-info-edit').hidden=false;
-  $('product-info-status').textContent='품목정보를 수정한 뒤 품목정보 가등록을 누르세요.';
+  $('product-info-status').textContent=downstream
+    ?'비어 있는 항목만 입력할 수 있습니다. 입력 후 품목정보 가등록을 누르세요.'
+    :'품목정보를 수정한 뒤 품목정보 가등록을 누르세요.';
   renderProductInfoItems();
   $('product-info-dialog').showModal();
   $('info_product_code').focus();
+}
+function lockFilledProductInfoFields(item){
+  const filled=key=>key==='standard_stock_quantity'?item[key]!==null&&item[key]!==undefined:String(item[key]??'').trim()!=='';
+  ['product_code','product_name','specification','material','color','standard_stock_quantity'].forEach(key=>$('info_'+key).readOnly=filled(key));
+  $('info_product_category').disabled=!!item.classification_id;
+  $('info_unit').disabled=!!item.unit;
 }async function importProductInfoFile(event){
   const file=event.target.files?.[0];
   event.target.value='';

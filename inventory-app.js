@@ -2937,6 +2937,7 @@ async function startApp(){
   PURCHASE_SEARCH_IDS.slice(2,7).forEach(id=>$(id).addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();searchPurchaseOrders();}}));
   $('clear-product-list-search').addEventListener('click',clearProductListSearch);
   $('receipt-list-button').addEventListener('click',()=>showMovementList('receipt'));
+  $('opening-list-button').addEventListener('click',()=>showMovementList('opening'));
   $('issue-list-button').addEventListener('click',()=>showMovementList('issue'));
   $('export-movement-list').addEventListener('click',exportMovementListExcel);
   $('close-movement-list').addEventListener('click',()=>$('movement-list-dialog').close());

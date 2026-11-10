@@ -21,7 +21,18 @@ begin
   perform 1 from public.stock_products where id=v_movement.product_id for update;
   select * into v_movement from public.stock_movements where id=p_movement_id for update;
   if not found then raise exception 'MOVEMENT_NOT_FOUND' using errcode='P0002'; end if;
-  if v_movement.kind<>'receipt' then raise exception 'NOT_A_RECEIPT' using errcode='22023'; end if;
+  if v_movement.kind not in ('opening','receipt') then raise exception 'NOT_A_RECEIPT' using errcode='22023'; end if;
+
+  if v_movement.kind='opening' then
+    if exists(select 1 from public.stock_lots l
+      where l.movement_id=p_movement_id and (l.remaining_quantity<l.quantity
+        or exists(select 1 from public.stock_allocations a where a.lot_id=l.id))) then
+      raise exception 'OPENING_USED_DOWNSTREAM' using errcode='22023';
+    end if;
+    delete from public.stock_lots where movement_id=p_movement_id;
+    delete from public.stock_movements where id=p_movement_id;
+    return jsonb_build_object('id',v_movement.id);
+  end if;
 
   select * into v_receipt from public.purchase_order_receipts where stock_movement_id=p_movement_id for update;
   if found then

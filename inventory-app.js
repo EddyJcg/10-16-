@@ -2243,7 +2243,7 @@ function renderMovementList() {
     const action=document.createElement('td'),edit=document.createElement('button');
     edit.type='button';edit.className='secondary';edit.textContent='수정';edit.dataset.movementId=movement.id;
     action.append(edit);
-    if(movement.kind==='receipt'){
+    if(movement.kind==='receipt'||movement.kind==='opening'){
       const remove=document.createElement('button');
       remove.type='button';remove.className='secondary';remove.textContent='삭제';remove.dataset.deleteReceiptId=movement.id;
       action.append(remove);
@@ -2253,13 +2253,14 @@ function renderMovementList() {
 }
 async function revertReceipt(id){
   const movement=movementListRows.find(row=>row.id===id);
-  if(!movement||movement.kind!=='receipt'||!currentUser||busy)return false;
+  if(!movement||!['receipt','opening'].includes(movement.kind)||!currentUser||busy)return false;
   const item=items.find(row=>row.id===movement.product_id);
+  const opening=movement.kind==='opening',label=opening?'기초재고':'입고';
   try{
     const reason=await movementUsedDownstream(movement);
     if(reason){alertBlocked(reason);return false;}
   }catch(error){window.alert('이후 단계 사용 여부를 확인하지 못했습니다. 삭제를 진행하지 않습니다. '+errorText(error));return false;}
-  if(!window.confirm(`입고 '${item?.product_code||''} ${item?.product_name||''}' ${number(movement.quantity)}${item?.unit||''} 내역을 삭제하고 미입고 상태로 되돌리시겠습니까?`))return false;
+  if(!window.confirm(`${label} '${item?.product_code||''} ${item?.product_name||''}' ${number(movement.quantity)}${item?.unit||''} 내역을 ${opening?'삭제하시겠습니까?':'삭제하고 미입고 상태로 되돌리시겠습니까?'}`))return false;
   const generation=authGeneration;busy=true;
   try{
     const {error}=await client.rpc('revert_stock_receipt',{p_movement_id:id});
@@ -2267,14 +2268,14 @@ async function revertReceipt(id){
     if(generation!==authGeneration)return true;
     movementListRows=(await readAll('stock_movements','sequence_id')).sort((a,b)=>Number(b.sequence_id)-Number(a.sequence_id));
     renderMovementList();
-    $('movement-list-status').textContent='입고 내역을 삭제하고 미입고 상태로 되돌렸습니다.';
+    $('movement-list-status').textContent=opening?'기초재고 내역을 삭제했습니다.':'입고 내역을 삭제하고 미입고 상태로 되돌렸습니다.';
     try{await Promise.all([loadStock(),loadPurchaseOrders()]);}
     catch{$('movement-list-status').textContent+=' 목록 새로고침은 다시 시도해 주세요.';}
     return true;
   }catch(error){
     if(generation!==authGeneration)return false;
-    const missing=/PGRST202|revert_stock_receipt/.test((error?.code||'')+(error?.message||''))&&!/INSUFFICIENT_STOCK/.test(error?.message||'');
-    window.alert(/INSUFFICIENT_STOCK/.test(error?.message||'')?'처리할 수 없습니다.\n이 입고(기초) 수량이 이미 출고에 사용되었습니다.\n먼저 이후 프로세스의 data를 삭제한 뒤 다시 시도하세요.':missing?'입고 삭제 기능이 DB에 적용되지 않았습니다. Supabase SQL Editor에서 supabase/revert-stock-receipt.sql을 실행한 뒤 다시 시도하세요.':'입고 내역을 삭제하지 못했습니다. '+errorText(error));
+    const missing=/PGRST202|42883/.test(error?.code||'')||opening&&/NOT_A_RECEIPT/.test(error?.message||'');
+    window.alert(/INSUFFICIENT_STOCK|OPENING_USED_DOWNSTREAM/.test(error?.message||'')?'처리할 수 없습니다.\n이 입고(기초) 수량이 이미 출고에 사용되었습니다.\n먼저 이후 프로세스의 data를 삭제한 뒤 다시 시도하세요.':missing?`${label} 삭제 기능이 DB에 적용되지 않았습니다. Supabase SQL Editor에서 최신 supabase/revert-stock-receipt.sql을 실행한 뒤 다시 시도하세요.`:`${label} 내역을 삭제하지 못했습니다. `+errorText(error));
   }finally{busy=false;}
 }
 async function showMovementList(kind='') {

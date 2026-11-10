@@ -491,3 +491,37 @@ body button.popup-table-menu-item[data-popup-menu-action="export"],
 body .popup-table-export-actions button.primary{
   background:#2b9fc1!important;border-color:#2b9fc1!important;color:#fff!important
 }
+
+/* 모바일에서는 데스크톱용 확대 글자 크기를 되돌려 화면 폭에 맞춥니다. */
+@media screen and (max-width:700px){
+  :root{font-size:16px}
+  p{font-size:14px}
+  .brand span{display:none}
+  .brand{font-size:20px}
+  .intro h1{font-size:22px}
+  .header-link,.message,.session,button.secondary,.secondary,
+  .toolbar .count,.form-message,.text-link,
+  .sidebar-heading span,.sidebar-hint,
+  .date,.muted,.note,.stat span,label,table,
+  .operation-card p,.dialog-header p,.fifo-hint,.allocation-line,
+  .print-scale-control p,.print-settings-hint,
+  .sales-order-totals span,.sales-status-table select,.sales-balance-table select,
+  .date-range-filter>span,.search-hint{font-size:13px}
+  .menu-folder summary{font-size:15px}
+  .sidebar-action,.sales-order-totals strong{font-size:14px}
+  .stat strong,.stats .stat strong{font-size:22px}
+  .stat-action .stat-description,.sales-backlog-stat .stat-description{font-size:13px}
+  .close{font-size:22px}
+  #sidebar-toggle{font-size:14px;padding:8px 10px;border-width:1px;border-radius:8px}
+  #apply-search,#apply-sales-balance-search,#apply-sales-status-search{font-size:14px}
+  #workspace #sales-balance-summary,
+  #workspace .date-range-filter>span,
+  #workspace .search-conditions label,
+  #workspace .search-hint,
+  #workspace table th{font-size:13px}
+  .sidebar{width:min(300px,86vw)}
+  .stats{gap:10px}
+  .stat{padding:12px}
+  .intro,.toolbar,.session,.dialog-header,.dialog-footer{flex-wrap:wrap}
+  .sidebar .sidebar-action,.sidebar .menu-folder summary{white-space:normal;overflow-wrap:anywhere}
+}

@@ -71,8 +71,16 @@
     const dialog=event.target.closest('dialog.popup-floating[open]');
     if(!dialog||event.target.closest(interactive)||onScrollbarOrResizeGrip(event,dialog))return;
     stack+=1;dialog.style.zIndex=String(stack);
-    if(dialog.classList.contains('dialog-expanded'))return;
-    const rect=dialog.getBoundingClientRect();
+    let rect=dialog.getBoundingClientRect();
+    // 최대 크기 상태에서 드래그하면 원래 크기로 복원한 뒤, 커서가 같은 상대 위치에 남도록 창을 옮겨 이어서 드래그합니다.
+    if(dialog.classList.contains('dialog-expanded')){
+      const ratioX=(event.clientX-rect.left)/rect.width,ratioY=(event.clientY-rect.top)/rect.height;
+      dialog.querySelector?.('button.dialog-expand-button')?.click();
+      const restored=dialog.getBoundingClientRect();
+      dialog.style.left=(event.clientX-restored.width*ratioX)+'px';
+      dialog.style.top=(event.clientY-restored.height*ratioY)+'px';
+      rect=dialog.getBoundingClientRect();
+    }
     drag={dialog,pointerId:event.pointerId,dx:event.clientX-rect.left,dy:event.clientY-rect.top};
     // 포인터 캡처를 걸어야 브라우저 콘텐츠 영역 밖(위쪽 메뉴 쪽)으로 나가도 이동이 이어집니다.
     try{event.target.setPointerCapture?.(event.pointerId);}catch{}

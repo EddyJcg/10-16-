@@ -76,6 +76,22 @@ test('floating popups keep following the pointer beyond the viewport edges',()=>
   handlers.pointerup({pointerId:7});
 });
 
+test('maximized popups restore their size and keep moving when dragged',()=>{
+  const handlers={};
+  let expanded=true,rect={left:12,top:12,width:1000,height:700};
+  const button={click(){expanded=false;rect={left:300,top:200,width:400,height:300};}};
+  const dialog={id:'x',open:true,style:{left:'',top:''},querySelector:()=>button,getBoundingClientRect:()=>({...rect,right:rect.left+rect.width,bottom:rect.top+rect.height}),classList:{add(){},remove(){},contains:c=>c==='dialog-expanded'&&expanded}};
+  const body={clientWidth:0,clientHeight:0,closest:s=>s.startsWith('dialog.popup-floating')?dialog:null};
+  const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
+  new Function('HTMLDialogElement','document','innerWidth','innerHeight',fs.readFileSync('popup-floating.js','utf8'))(Ctor,{addEventListener:(t,fn)=>{handlers[t]=fn;},querySelectorAll:()=>[]},1000,800);
+  handlers.pointerdown({button:0,pointerId:3,clientX:500,clientY:100,target:{...body,setPointerCapture(){}},preventDefault(){}});
+  assert.equal(expanded,false);
+  handlers.pointermove({pointerId:3,clientX:600,clientY:150});
+  assert.equal(dialog.style.left,'400px');
+  assert.equal(dialog.style.top,'250px');
+  handlers.pointerup({pointerId:3});
+});
+
 test('floating popups can be dragged outside tables and recentre on double click',()=>{
   const handlers={};
   const dialog={id:'x',open:true,style:{left:'100px',top:'100px'},getBoundingClientRect:()=>({left:100,top:100,right:500,bottom:400,width:400,height:300}),classList:{add(){},remove(){},contains:()=>false}};

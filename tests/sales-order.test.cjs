@@ -127,7 +127,7 @@ test('sales order dialog separates free-text header details from repeatable orde
 
 test('draft management checkboxes are preselected and saving requires a selection',()=>{
   class Element{
-    constructor(name=''){this.name=name;this.children=[];this.dataset={};this.attributes={};this.disabled=false;this.checked=false;}
+    constructor(name=''){this.name=name;this.children=[];this.dataset={};this.attributes={};this.disabled=false;this.checked=false;this.classList={toggle(){}};}
     append(...children){this.children.push(...children);}
     replaceChildren(...children){this.children=children;}
     setAttribute(name,value){this.attributes[name]=value;}
@@ -378,7 +378,7 @@ test('sales registration search filters the loaded orders by order number or ven
 
 test('sales registration hides removed columns and disables unshipped orders',()=>{
   class Element{
-    constructor(){this.children=[];this.dataset={};this.attributes={};this.textContent='';this.value='';}
+    constructor(){this.children=[];this.dataset={};this.attributes={};this.textContent='';this.value='';this.classList={toggle(){}};}
     append(...children){this.children.push(...children);}
     replaceChildren(...children){this.children=children;}
     setAttribute(name,value){this.attributes[name]=value;}
@@ -544,7 +544,7 @@ test('dashboard backlog card shows live outstanding order count and exact total'
     return elements.get(id);
   };
   const context=vm.createContext({
-    document:{getElementById:element,createElement:tag=>({tag,children:[],dataset:{},append(...nodes){this.children.push(...nodes);},setAttribute(){}})},
+    document:{getElementById:element,createElement:tag=>({tag,children:[],dataset:{},classList:{toggle(){}},append(...nodes){this.children.push(...nodes);},setAttribute(){}})},
     number:value=>Number(value||0).toLocaleString('ko-KR',{maximumFractionDigits:2}),
     money:value=>Number(value||0).toLocaleString('ko-KR',{maximumFractionDigits:2}),
     filterSalesOrders,

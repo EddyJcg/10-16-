@@ -3,6 +3,39 @@ const $ = id => document.getElementById(id);
 function stockLedgerManaged(item) {
   return item.quantity_management_disabled!==true&&item.value_management_disabled!==true;
 }
+const stockRowProducts=new WeakMap();
+function stockRowProduct(reference){
+  if(!reference)return null;
+  if(reference.product_id)return items.find(item=>item.id===reference.product_id)||null;
+  if(reference.id){
+    const item=items.find(item=>item.id===reference.id);
+    if(item)return item;
+  }
+  if(reference.product_code)return items.find(item=>item.product_code===reference.product_code)||null;
+  const trim=value=>String(value||'').trim();
+  if(!trim(reference.product_name)||!trim(reference.unit))return null;
+  const matches=items.filter(item=>trim(item.product_name)===trim(reference.product_name)
+    &&trim(item.specification)===trim(reference.specification)&&item.unit===reference.unit);
+  return matches.length===1?matches[0]:null;
+}
+function colorStockRow(row,reference){
+  const item=stockRowProduct(reference);
+  const valid=item&&stockLedgerManaged(item)&&item.stock_quantity!=null&&item.standard_stock_quantity!=null
+    &&Number.isFinite(Number(item.stock_quantity))&&Number.isFinite(Number(item.standard_stock_quantity))
+    &&Number(item.standard_stock_quantity)>=0;
+  const low=valid&&Number(item.stock_quantity)<=Number(item.standard_stock_quantity);
+  row.classList.toggle('stock-row-low',Boolean(low));
+  row.classList.toggle('stock-row-normal',Boolean(valid&&!low));
+}
+function bindStockRow(row,reference){
+  stockRowProducts.set(row,reference);
+  colorStockRow(row,reference);
+}
+function refreshStockRowColors(){
+  document.querySelectorAll('table tbody tr').forEach(row=>{
+    if(stockRowProducts.has(row))colorStockRow(row,stockRowProducts.get(row));
+  });
+}
 let minimizedDialogs=new Map(),dialogInteractionsInstalled=false;
 function removeMinimizedDialog(dialog){
   const restoreButton=minimizedDialogs.get(dialog);
@@ -462,6 +495,7 @@ function renderSalesOrders(){
   if(!salesOrders.length){emptyRow(body,17,'저장된 수주가 없습니다.');return;}
   salesOrders.forEach(order=>{
     const row=document.createElement('tr');
+    bindStockRow(row,order);
     [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',order.product_name,order.specification,order.unit,
       number(order.quantity),money(order.unit_price),money(order.amount),String(order.due_date).slice(0,10),
       order.delivery_method,order.address,order.notes].forEach((value,index)=>row.append(makeCell(value,index===0||index===9||index===10||index===11)));
@@ -476,6 +510,7 @@ function renderSalesDraftLines(){
   if(!salesDraftLines.length){emptyRow(body,8,'수주 품목을 추가하세요.');updateSalesOrderSaveButton();return;}
   salesDraftLines.forEach((line,index)=>{
     const row=document.createElement('tr');
+    bindStockRow(row,line);
     [line.product_name,line.specification,line.unit,number(line.quantity),money(line.unit_price),
       money(Number(line.quantity)*Number(line.unit_price)),line.due_date].forEach((value,col)=>row.append(makeCell(value,col===3||col===4||col===5)));
     const action=document.createElement('td'),checkbox=document.createElement('input'),button=document.createElement('button');
@@ -535,6 +570,7 @@ function renderSalesBalance(){
   if(!visibleOrders.length){emptyRow(body,20,outstanding.length?'검색 조건에 해당하는 수주잔고가 없습니다.':'현재 완료되지 않은 수주가 없습니다.');return;}
   visibleOrders.forEach(order=>{
     const row=document.createElement('tr');
+    bindStockRow(row,order);
     [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',String(order.shipped_date||'').slice(0,10)].forEach((value,index)=>row.append(makeCell(value,index===0)));
     const completeCell=document.createElement('td');completeCell.append(salesOrderCompleteCheckbox(order));row.append(completeCell);
     const statusCell=document.createElement('td');statusCell.append(salesOrderStatusSelect(order));row.append(statusCell);
@@ -577,6 +613,7 @@ function renderSalesStatus(view='status'){
   if(!visibleOrders.length){emptyRow(body,20,'검색 조건에 해당하는 수주가 없습니다.');return;}
   visibleOrders.forEach(order=>{
     const row=document.createElement('tr');
+    bindStockRow(row,order);
     [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',String(order.shipped_date||'').slice(0,10)].forEach((value,index)=>row.append(makeCell(value,index===0)));
     const completeCell=document.createElement('td');completeCell.append(salesOrderCompleteCheckbox(order));row.append(completeCell);
     const statusCell=document.createElement('td');statusCell.append(salesOrderStatusSelect(order));row.append(statusCell);
@@ -598,6 +635,7 @@ function renderSalesRegister(){
   if(!visibleOrders.length){emptyRow(body,17,'검색 결과가 없습니다.');return;}
   visibleOrders.forEach(order=>{
     const row=document.createElement('tr');
+    bindStockRow(row,order);
     row.append(makeCell(number(order.sequence_id),true));
     const action=document.createElement('td'),button=document.createElement('button');
     const shipped=Number(order.shipped_quantity||0),quantity=Number(order.quantity||0);
@@ -719,6 +757,7 @@ function renderPurchaseDraftLines(){
   if(!purchaseDraftLines.length){emptyRow(body,8,'가발주 품목을 추가하세요.');return;}
   purchaseDraftLines.forEach((line,index)=>{
     const item=items.find(row=>row.id===line.product_id),row=document.createElement('tr');
+    bindStockRow(row,line);
     [item?.product_code||'',item?.product_name||'',item?.specification||'',number(line.quantity),money(line.unit_cost),line.expected_date||'','가발주']
       .forEach((value,column)=>row.append(makeCell(value,column===3||column===4)));
     const action=document.createElement('td'),button=document.createElement('button');button.type='button';button.className='secondary';
@@ -778,6 +817,7 @@ function renderPurchaseOrders(){
   lines.forEach(line=>{
     const order=ordersById.get(line.purchase_order_id),item=productsById.get(line.product_id),remaining=Number(line.quantity)-Number(line.received_quantity);
     const row=document.createElement('tr');
+    bindStockRow(row,line);
     [number(order?.sequence_id),String(order?.order_date||'').slice(0,10),order?.order_number||'',order?.supplier||'',
       item?.product_code||'',item?.product_name||'',item?.specification||'',number(line.quantity),number(line.received_quantity),
       number(remaining),money(line.unit_cost),String(line.expected_date||'').slice(0,10),order?.status||'']
@@ -1405,7 +1445,7 @@ function loadStock() {
         readAgedStock()
       ]);
       if (generation!==authGeneration || !currentUser) return;
-      items = summary;agedStock=aging;updateSupplierOptions();render();
+      items = summary;agedStock=aging;updateSupplierOptions();render();refreshStockRowColors();
       if ($('movement-dialog').open && mode==='issue') loadSelectedLots();
     } while (reloadQueued);
   })().finally(()=>{loadPromise=null;});
@@ -1770,6 +1810,7 @@ function renderProductInfoItems() {
   if(!productInfoDrafts.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=10;cell.className='empty';cell.textContent='가등록된 품목정보가 없습니다. 품목정보를 입력하고 가등록하거나 Excel을 업로드하세요.';row.append(cell);body.append(row);}
   productInfoDrafts.forEach(draft=>{
     const row=document.createElement('tr'),classification=assetClassifications.find(entry=>entry.id===draft.classification_id||entry.name===draft.product_category);
+    bindStockRow(row,draft);
     row.append(makeCell(draft.product_category||''),makeCell(classification?.inventory_asset_type||'미지정'));
     ['product_code','product_name','specification','material','color','unit'].forEach(key=>row.append(makeCell(draft[key]||'')));
     row.append(makeCell(draft.standard_stock_quantity==null?'':number(draft.standard_stock_quantity)+' '+(draft.unit||'EA(개)')));
@@ -1808,6 +1849,7 @@ function renderProductInfoStatus() {
   if(!filtered.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=10;cell.className='empty';cell.textContent=items.length?'검색 결과가 없습니다.':'등록된 품목정보가 없습니다.';row.append(cell);body.append(row);return;}
   filtered.forEach(item=>{
     const row=document.createElement('tr');
+    bindStockRow(row,item);
     ['product_category','product_code','product_name','specification','material','color','unit'].forEach(key=>row.append(makeCell(item[key]||'')));
     row.append(makeCell(number(item.standard_stock_quantity)+' '+(item.unit||'EA(개)')));
     const action=document.createElement('td'),button=document.createElement('button');
@@ -2204,7 +2246,7 @@ function renderProductList() {
   const shown=filterInventoryItems(ledgerItems,{query:productListQuery,supplier:productListSupplier,dateProductIds:productListDateIds});
   const fields=productListFields(),body=$('product-list-items');body.replaceChildren();
   if(!shown.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=fields.length+1;cell.className='empty';cell.textContent=ledgerItems.length?'검색 조건에 맞는 품목이 없습니다.':'재고관리를 하는 품목이 없습니다.';row.append(cell);body.append(row);return;}
-  shown.forEach((item,index)=>{const row=document.createElement('tr'),serial=document.createElement('td');serial.className='numeric';serial.textContent=number(index+1);row.append(serial);fields.forEach(field=>{const cell=document.createElement('td');if(field.numeric)cell.className='numeric';cell.textContent=field.numeric?number(item[field.key]):item[field.key]||'';row.append(cell);});body.append(row);});
+  shown.forEach((item,index)=>{const row=document.createElement('tr'),serial=document.createElement('td');bindStockRow(row,item);serial.className='numeric';serial.textContent=number(index+1);row.append(serial);fields.forEach(field=>{const cell=document.createElement('td');if(field.numeric)cell.className='numeric';cell.textContent=field.numeric?number(item[field.key]):item[field.key]||'';row.append(cell);});body.append(row);});
 }
 function updateProductListSuppliers() {
   const select=$('product-list-supplier'),selected=select.value;select.replaceChildren();
@@ -2256,6 +2298,7 @@ function renderMovementList() {
   }
   shown.forEach(movement=>{
     const item=itemsById.get(movement.product_id),row=document.createElement('tr');
+    bindStockRow(row,movement);
     const kindCell=document.createElement('td'),badge=document.createElement('span');badge.className='badge '+movement.kind;badge.textContent=MODE_LABELS[movement.kind]?.[1]||movement.kind;kindCell.append(badge);
     row.append(
       makeCell(movement.sequence_id==null?'':number(movement.sequence_id),true),
@@ -2453,7 +2496,13 @@ function printInventoryList(target) {
   const targetDialogs={'product-list':'product-list-dialog','current-stock':'current-stock-dialog','stock-risk':'stock-risk-dialog','long-stock':'long-stock-dialog','movement-list':'movement-list-dialog','sales-status':'sales-status-dialog','sales-status-query':'sales-status-query-dialog','purchase-order':'purchase-order-dialog'};
   if(target in targetDialogs&&!$(targetDialogs[target]).open)return;
   activePrintTarget=target;
-  if(target==='purchase-order')$('purchase-order-print').innerHTML=PurchaseOrderPrint.buildPurchaseOrderPrint({...purchaseOrderPrintData(),orientation:purchasePrintOrientation()});
+  if(target==='purchase-order'){
+    const data=purchaseOrderPrintData(),print=$('purchase-order-print');
+    print.innerHTML=PurchaseOrderPrint.buildPurchaseOrderPrint({...data,orientation:purchasePrintOrientation()});
+    print.querySelectorAll('.po-lines tbody tr').forEach((row,index)=>{
+      if(data.lines[index])bindStockRow(row,data.lines[index]);
+    });
+  }
   applyProductListPrintSettings();
   if($('print-settings-dialog').open)$('print-settings-dialog').close();
   document.body.dataset.printTarget=target;
@@ -2658,7 +2707,7 @@ async function showLots(item) {
     const lots=await readAll('stock_lots','id',item.id);
     if (generation!==authGeneration || !$('detail-dialog').open) return;
     const unit=item.unit||'EA(개)';
-    renderDetailTable(['기초·입고일자',`입고수량 (${unit})`,`잔량 (${unit})`,'단가','잔여금액'],lots.sort((a,b)=>a.received_date.localeCompare(b.received_date)||Number(a.id)-Number(b.id)).map(lot=>[lot.received_date,number(lot.quantity),number(lot.remaining_quantity),money(lot.unit_cost),money(lot.remaining_quantity*lot.unit_cost)]));
+    renderDetailTable(['기초·입고일자',`입고수량 (${unit})`,`잔량 (${unit})`,'단가','잔여금액'],lots.sort((a,b)=>a.received_date.localeCompare(b.received_date)||Number(a.id)-Number(b.id)).map(lot=>[lot.received_date,number(lot.quantity),number(lot.remaining_quantity),money(lot.unit_cost),money(lot.remaining_quantity*lot.unit_cost)]),item);
   } catch(error) {$('detail-content').textContent=errorText(error);}
 }
 async function showAllocations(movement) {
@@ -2669,7 +2718,7 @@ async function showAllocations(movement) {
     if(error) throw error;
     if(generation!==authGeneration || !$('detail-dialog').open) return;
     const unit=items.find(item=>item.id===movement.product_id)?.unit||'EA(개)';
-    renderDetailTable(['기초·입고일자',`차감수량 (${unit})`,'단가','금액'],data.map(row=>[row.stock_lots?.received_date || '',number(row.quantity),money(row.unit_cost),money(row.amount)]));
+    renderDetailTable(['기초·입고일자',`차감수량 (${unit})`,'단가','금액'],data.map(row=>[row.stock_lots?.received_date || '',number(row.quantity),money(row.unit_cost),money(row.amount)]),movement);
   } catch(error) {$('detail-content').textContent=errorText(error);}
 }
 async function downloadDataWorkbook(buttonId,sheetName,filePrefix,headers,rows,numericColumns,emptyMessage) {

@@ -23,6 +23,7 @@ test('opening and receipt rows render delete immediately after edit, but issue r
     filteredMovementListRows:()=>['opening','receipt','issue'].map(kind=>({id:kind,kind,quantity:1})),
     makeCell:element,number:String,money:String,MODE_LABELS:{}
   });
+  context.bindStockRow=()=>{};
   vm.runInContext(app.slice(app.indexOf('function renderMovementList()'),app.indexOf('async function revertReceipt')),context);
   context.renderMovementList();
   for(const [index,kind] of ['opening','receipt','issue'].entries()){

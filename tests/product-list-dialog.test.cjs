@@ -313,7 +313,7 @@ test('product information status searches each condition independently and allow
   };
   const body={children:[],append(child){this.children.push(child);},replaceChildren(...children){this.children=children;}};
   const context=vm.createContext({
-    document:{getElementById:element,createElement:()=>({children:[],dataset:{},append(...children){this.children.push(...children);},setAttribute(){}})},
+    document:{getElementById:element,createElement:()=>({children:[],dataset:{},classList:{toggle(){}},append(...children){this.children.push(...children);},setAttribute(){}})},
     makeCell:value=>({textContent:String(value)}),number:value=>String(value)
   });
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);

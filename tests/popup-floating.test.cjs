@@ -57,7 +57,7 @@ test('floating popups are clamped inside the viewport',()=>{
   assert.equal(dialog.style.top,'500px');
 });
 
-test('floating popups can be dragged from anywhere and recentre on double click',()=>{
+test('floating popups can be dragged outside tables and recentre on double click',()=>{
   const handlers={};
   const dialog={id:'x',open:true,style:{left:'100px',top:'100px'},getBoundingClientRect:()=>({left:100,top:100,right:500,bottom:400,width:400,height:300}),classList:{add(){},remove(){},contains:()=>false}};
   const body={clientWidth:0,clientHeight:0,closest:s=>s.startsWith('dialog.popup-floating')?dialog:null};
@@ -77,6 +77,42 @@ test('floating popups can be dragged from anywhere and recentre on double click'
   handlers.dblclick({target:body,clientX:300,clientY:300});
   assert.equal(dialog.style.left,'300px');
   assert.equal(dialog.style.top,'250px');
+});
+
+test('table text and nested values allow selection without dragging or recentring the popup',()=>{
+  const handlers={};
+  const dialog={open:true,style:{left:'100px',top:'100px'},classList:{contains:()=>false},
+    getBoundingClientRect:()=>({left:100,top:100,right:500,bottom:400,width:400,height:300})};
+  const Ctor=function(){};Ctor.prototype={showModal(){}};
+  new Function('HTMLDialogElement','document',fs.readFileSync('popup-floating.js','utf8'))(
+    Ctor,{addEventListener:(type,fn)=>{handlers[type]=fn;},querySelectorAll:()=>[]}
+  );
+  for(const tag of ['table','th','td','span']){
+    const table={};
+    const target={closest:selector=>selector.startsWith('dialog.popup-floating')?dialog:
+      selector.split(',').includes('table')?table:null};
+    let prevented=false;
+    handlers.pointerdown({button:0,target,clientX:150,clientY:120,preventDefault(){prevented=true;}});
+    handlers.pointermove({clientX:350,clientY:320});
+    handlers.pointerup();
+    handlers.dblclick({target,clientX:150,clientY:120});
+    assert.equal(prevented,false,`${tag} retains native text selection`);
+    assert.equal(dialog.style.left,'100px');
+    assert.equal(dialog.style.top,'100px');
+  }
+});
+
+test('both inventory and admin tables explicitly allow text selection without inline editing',()=>{
+  assert.match(fs.readFileSync('popup-floating.css','utf8'),/dialog\.popup-floating table\{cursor:text\}/);
+  for(const file of ['inventory.css','admin.css']){
+    assert.match(fs.readFileSync(file,'utf8'),/table td,table th\{-webkit-user-select:text;user-select:text\}/);
+  }
+  for(const file of ['inventory.html','admin.html']){
+    assert.doesNotMatch(fs.readFileSync(file,'utf8'),/contenteditable\s*=\s*["']?(?:true|plaintext-only)|\.contentEditable\s*=/i);
+  }
+  for(const file of ['popup-floating.js','popup-table-grid.js']){
+    assert.doesNotMatch(fs.readFileSync(file,'utf8'),/\.contentEditable\s*=|setAttribute\(['"]contenteditable/);
+  }
 });
 
 test('floating popups cancel the centring transform so left/top positioning works',()=>{

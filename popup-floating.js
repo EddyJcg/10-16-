@@ -75,8 +75,8 @@
   };
   document.addEventListener('animationend',event=>{if(event.target.classList)event.target.classList.remove('popup-flash');},true);
   document.addEventListener('close',event=>{if(event.target.classList)event.target.classList.remove('popup-flash');},true);
-  // 팝업 안 아무 곳이나 누른 채 끌면 팝업이 따라 움직입니다.
-  const interactive='button,input,select,textarea,a,label,summary,[contenteditable=true]';
+  // 표 안에서는 창 이동 대신 브라우저의 텍스트 선택을 허용합니다.
+  const interactive='table,button,input,select,textarea,a,label,summary,[contenteditable=true]';
   function onScrollbarOrResizeGrip(event,dialog){
     const el=event.target;
     if(el.clientWidth&&el.offsetWidth>el.clientWidth&&event.offsetX>=el.clientWidth)return true;

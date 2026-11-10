@@ -402,6 +402,7 @@ dialog .dialog-body textarea{font-size:14.4px}
 .dialog-header{cursor:grab;touch-action:none}
 .dialog-header:active{cursor:grabbing}
 .dialog-header button,.dialog-header a,.dialog-header input,.dialog-header select{cursor:auto}
+table td,table th{-webkit-user-select:text;user-select:text}
 th[draggable="true"]{cursor:grab;user-select:none}
 th[draggable="true"]:active{cursor:grabbing}
 .dialog-resize-handle{

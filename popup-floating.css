@@ -4,6 +4,7 @@ dialog.popup-floating[open]:not([style*="left:"]){position:fixed;inset:0;margin:
 dialog.popup-flash{animation:popup-flash .6s ease-in-out 2}
 dialog.popup-floating{max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
 dialog.popup-floating{cursor:move}
+dialog.popup-floating table{cursor:text}
 dialog.popup-floating :is(button,input,select,textarea,a,label,summary){cursor:auto}
 dialog.popup-floating :is(button,a,summary,label){cursor:pointer}
 dialog.popup-floating[open]{transform:none}

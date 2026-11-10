@@ -38,6 +38,17 @@
 #receipt-folder>summary::before,#issue-folder>summary::before{content:'';display:inline-block;flex:0 0 26px;width:26px;height:26px;background:currentColor;-webkit-mask:url('/movement-cart.svg') center/contain no-repeat;mask:url('/movement-cart.svg') center/contain no-repeat}
 #opening-folder>summary::before,#stock-folder>summary::before{content:'';display:inline-block;flex:0 0 26px;width:26px;height:26px;background:currentColor;-webkit-mask:url('/admin-briefcase.svg') center/contain no-repeat;mask:url('/admin-briefcase.svg') center/contain no-repeat}
 .menu-folder summary::after{content:'›';margin-left:auto;font-size:19px;color:#80978a;transition:transform .15s}
+#basic-info-folder>summary::before{color:#1E88E5}
+#product-info-folder>summary::before{color:#8E24AA}
+#vendor-info-entry-folder>summary::before{color:#00897B}
+#sales-folder>summary::before{color:#F9A825}
+#purchase-folder>summary::before{color:#5E35B1}
+#inventory-folder>summary::before{color:#43A047}
+#receipt-folder>summary::before{color:#FB8C00}
+#issue-folder>summary::before{color:#E91E63}
+#opening-folder>summary::before{color:#6D4C41}
+#stock-folder>summary::before{color:#3949AB}
+#admin-folder>summary::before{color:#E53935}
 .menu-folder[open]>summary{background:#edf4ef;color:#24634b}
 .menu-folder[open]>summary::after{transform:rotate(90deg)}
 .menu-folder summary:hover{background:#f0f6f1}

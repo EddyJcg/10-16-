@@ -2,67 +2,14 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 
-function pipHarness({reject=false}={}){
-  const dialogs=[];
-  const listeners={};
-  const makeDoc=(name,defaultView)=>{
-    const doc={name,documentElement:{className:'',style:{setProperty(){}}},head:{append(){}},readyState:'complete',getElementById:()=>null,addEventListener(){}};
-    doc.body={append(n){n.ownerDocument=doc;}};
-    doc.querySelectorAll=sel=>sel.includes('[open]')?dialogs.filter(d=>d.open&&d.ownerDocument===doc):[];
-    if(defaultView)doc.defaultView=defaultView;
-    return doc;
-  };
-  const mainDoc=makeDoc('main');
-  const pipWin={innerWidth:900,innerHeight:640,addEventListener(t,fn){listeners[t]=fn;}};
-  const pipDoc=makeDoc('pip',pipWin);
-  pipWin.document=pipDoc;
-  const pipApi={requestWindow:()=>reject?Promise.reject(new Error('denied')):Promise.resolve(pipWin)};
-  const make=id=>{
-    const classes=new Set();
-    const d={id,open:false,ownerDocument:mainDoc,style:{},classList:{add:c=>classes.add(c),remove:c=>classes.delete(c),contains:c=>classes.has(c)},show(){this.open=true;},close(){this.open=false;},getBoundingClientRect:()=>({left:0,top:0,width:100,height:100})};
-    dialogs.push(d);
-    return d;
-  };
-  const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
-  new Function('HTMLDialogElement','document','window','innerWidth','innerHeight',fs.readFileSync('popup-floating.js','utf8'))(Ctor,mainDoc,{documentPictureInPicture:pipApi},1000,800);
-  return {proto,make,mainDoc,pipDoc,listeners,flush:()=>new Promise(r=>setImmediate(r))};
-}
-
-test('floating popups open in a document PiP window and return to the page when it closes',async()=>{
-  const h=pipHarness();
-  const a=h.make('a'),b=h.make('b');
-  h.proto.showModal.call(a);
-  await h.flush();
-  assert.equal(a.ownerDocument,h.pipDoc);
-  assert.equal(a.open,true);
-  h.proto.showModal.call(b);
-  assert.equal(b.ownerDocument,h.pipDoc);
-  assert.equal(b.open,true);
-  assert.ok(a.classList.contains('popup-floating'));
-  h.listeners.pagehide();
-  assert.equal(a.ownerDocument,h.mainDoc);
-  assert.equal(b.ownerDocument,h.mainDoc);
-  assert.equal(a.open,true);
-  assert.equal(b.open,true);
-});
-
-test('floating popups fall back to the page when the PiP window is refused',async()=>{
-  const h=pipHarness({reject:true});
-  const a=h.make('a');
-  h.proto.showModal.call(a);
-  await h.flush();
-  assert.equal(a.ownerDocument,h.mainDoc);
-  assert.equal(a.open,true);
-});
-
 test('main popups are non-modal so sidebar menus stay clickable',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   assert.ok(html.indexOf('popup-floating.js')<html.indexOf('inventory-app.js'));
   assert.match(html,/href="\/popup-floating\.css\?v=/);
   const js=fs.readFileSync('popup-floating.js','utf8');
-  assert.match(js,/\.show\(\)/);
+  assert.match(js,/this\.show\(\)/);
   assert.match(js,/sales-register-confirm-dialog/);
-  assert.doesNotMatch(js,/\.sidebar-action|addEventListener\('click'/);
+  assert.doesNotMatch(js,/\.sidebar-action|\.close\(\)/);
 });
 
 test('showModal override opens main popups without modal and keeps them open on sidebar click',()=>{

@@ -31,6 +31,15 @@ test('표 제목줄과 행 높이가 2/3로 줄어든다', () => {
   assert.match(css, /\.vendor-list-dialog th[^{]*\{padding-top:1px!important;padding-bottom:1px!important;height:29px!important/);
 });
 
+test('모든 화면의 표 제목줄은 불투명한 배경으로 데이터 위에 고정된다', () => {
+  const shared=read('dialog-resize.css'),grid=read('popup-table-grid.css');
+  assert.match(shared,/dialog thead th,#app-layout main table th\{\s*position:sticky;top:0;z-index:3;\s*background-color:#eceef1!important/);
+  assert.doesNotMatch(shared,/background-color:rgba\(69,78,84,\.1\)/);
+  assert.match(grid,/dialog table thead th\{position:sticky;top:0;z-index:3\}/);
+  assert.doesNotMatch(grid,/dialog table thead th\{position:relative\}/);
+  assert.match(grid,/dialog table thead th\{background:#eceef1!important/);
+});
+
 test('일련번호 열과 5개 빈 행 규칙이 있다', () => {
   const js = read('popup-table-grid.js');
   assert.match(js, /data-grid-serial/);

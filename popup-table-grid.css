@@ -6,7 +6,7 @@ dialog table tbody tr[data-grid-blank] td{height:36px;background:#f1f2f4;color:#
 dialog table tbody tr[data-grid-blank] td.grid-blank-serial{background:#eceef1}
 dialog table tbody tr.grid-empty-hidden{display:none}
 @media print{dialog table tbody tr[data-grid-blank]{display:none}}
-dialog table thead th{position:relative}
+dialog table thead th{position:sticky;top:0;z-index:3}
 table thead th[data-grid-serial] img[data-popup-serial-icon]{display:block;width:23.958px;height:23.958px;object-fit:contain;margin:0 auto;filter:brightness(0) saturate(100%) invert(35%) sepia(99%) saturate(4104%) hue-rotate(202deg) brightness(101%) contrast(101%)}
 dialog table .grid-col-handle{position:absolute;top:0;right:-4px;width:9px;height:100%;cursor:col-resize;z-index:3;touch-action:none}
 dialog table .grid-col-handle:hover,dialog table .grid-col-handle.is-active{background:rgba(65,73,78,.25)}

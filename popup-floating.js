@@ -73,15 +73,19 @@
     stack+=1;dialog.style.zIndex=String(stack);
     if(dialog.classList.contains('dialog-expanded'))return;
     const rect=dialog.getBoundingClientRect();
-    drag={dialog,dx:event.clientX-rect.left,dy:event.clientY-rect.top};
+    drag={dialog,pointerId:event.pointerId,dx:event.clientX-rect.left,dy:event.clientY-rect.top};
+    // 포인터 캡처를 걸어야 브라우저 콘텐츠 영역 밖(위쪽 메뉴 쪽)으로 나가도 이동이 이어집니다.
+    try{event.target.setPointerCapture?.(event.pointerId);}catch{}
     event.preventDefault();
   },true);
   document.addEventListener('pointermove',event=>{
-    if(!drag)return;
+    if(!drag||event.pointerId!==drag.pointerId)return;
     drag.dialog.style.left=(event.clientX-drag.dx)+'px';
     drag.dialog.style.top=(event.clientY-drag.dy)+'px';
   },true);
-  document.addEventListener('pointerup',()=>{drag=null;},true);
+  const endDrag=event=>{if(drag&&event.pointerId===drag.pointerId)drag=null;};
+  document.addEventListener('pointerup',endDrag,true);
+  document.addEventListener('pointercancel',endDrag,true);
   // 팝업을 더블클릭하면 대시보드 영역 중앙으로 이동합니다.
   document.addEventListener('dblclick',event=>{
     if(!event.target.closest)return;

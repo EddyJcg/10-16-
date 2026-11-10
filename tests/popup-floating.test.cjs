@@ -64,14 +64,16 @@ test('floating popups keep following the pointer beyond the viewport edges',()=>
   const body={clientWidth:0,clientHeight:0,closest:s=>s.startsWith('dialog.popup-floating')?dialog:null};
   const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
   new Function('HTMLDialogElement','document','innerWidth','innerHeight',fs.readFileSync('popup-floating.js','utf8'))(Ctor,{addEventListener:(t,fn)=>{handlers[t]=fn;},querySelectorAll:()=>[]},1000,800);
-  handlers.pointerdown({button:0,clientX:150,clientY:120,target:body,preventDefault(){}});
-  handlers.pointermove({clientX:2000,clientY:1500});
+  const captured=[];
+  handlers.pointerdown({button:0,pointerId:7,clientX:150,clientY:120,target:{...body,setPointerCapture:id=>captured.push(id)},preventDefault(){}});
+  assert.deepEqual(captured,[7]);
+  handlers.pointermove({pointerId:7,clientX:2000,clientY:1500});
   assert.equal(dialog.style.left,'1950px');
   assert.equal(dialog.style.top,'1480px');
-  handlers.pointermove({clientX:-900,clientY:-700});
+  handlers.pointermove({pointerId:7,clientX:-900,clientY:-700});
   assert.equal(dialog.style.left,'-950px');
   assert.equal(dialog.style.top,'-720px');
-  handlers.pointerup();
+  handlers.pointerup({pointerId:7});
 });
 
 test('floating popups can be dragged outside tables and recentre on double click',()=>{
@@ -88,7 +90,7 @@ test('floating popups can be dragged outside tables and recentre on double click
   handlers.pointermove({clientX:350,clientY:320});
   assert.equal(dialog.style.left,'300px');
   assert.equal(dialog.style.top,'300px');
-  handlers.pointerup();
+  handlers.pointerup({});
   handlers.pointermove({clientX:0,clientY:0});
   assert.equal(dialog.style.left,'300px');
   handlers.dblclick({target:body,clientX:300,clientY:300});

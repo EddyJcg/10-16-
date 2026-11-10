@@ -1728,7 +1728,7 @@ async function showAssetClassifications() {
 }
 function renderProductInfoItems() {
   const body=$('product-info-items');body.replaceChildren();
-  $('product-info-codes').replaceChildren();$('product-info-specifications').replaceChildren();
+  $('product-info-specifications').replaceChildren();
   if(!productInfoDrafts.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=10;cell.className='empty';cell.textContent='가등록된 품목정보가 없습니다. 품목정보를 입력하고 가등록하거나 Excel을 업로드하세요.';row.append(cell);body.append(row);}
   productInfoDrafts.forEach(draft=>{
     const row=document.createElement('tr'),classification=assetClassifications.find(entry=>entry.id===draft.classification_id||entry.name===draft.product_category);
@@ -1742,7 +1742,6 @@ function renderProductInfoItems() {
     label.append(box,' 저장 선택');manage.append(label);row.append(manage);body.append(row);
   });
   items.forEach(item=>{
-    const codeOption=document.createElement('option');codeOption.value=item.product_code;codeOption.label=item.product_name;$('product-info-codes').append(codeOption);
     if(item.specification){const specOption=document.createElement('option');specOption.value=item.specification;specOption.label=item.product_code+' · '+item.product_name;$('product-info-specifications').append(specOption);}
   });
 }

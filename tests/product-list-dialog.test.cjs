@@ -466,6 +466,12 @@ test('product edits require confirmation, are blocked after ordering and stage t
   vm.runInContext('productInfoNewMode=false',context);
   type('info_product_code','SKU-1');
   assert.equal(alerts.length,2,'edit mode does not use the new-entry warning');
+});test('product code input has no suggestion list that exposes registered product names',()=>{
+  const html=readFileSync('inventory.html','utf8');
+  assert.match(html,/<input id="info_product_code"[^>]*>/);
+  assert.doesNotMatch(html,/<input id="info_product_code"[^>]*list=/);
+  assert.doesNotMatch(html,/id="product-info-codes"/);
+  assert.doesNotMatch(readFileSync('inventory-app.js','utf8'),/product-info-codes/);
 });test('duplicate product codes and non-empty specifications are detected case-insensitively',()=>{
   const context=vm.createContext({});
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);

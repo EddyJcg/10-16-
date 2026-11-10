@@ -45,119 +45,14 @@
       if(step+rect.width>a.width||step+rect.height>a.height){dialog.style.left=(a.left+24)+'px';dialog.style.top=(a.top+24)+'px';}
     }
   }
-  // 팝업마다 별도 창(window.open)에 띄워 브라우저 탭·주소창 위쪽까지 옮길 수 있게 합니다.
-  // 창을 열 수 없으면(팝업 차단 등) 기존처럼 메인 화면에 띄웁니다.
-  const popupWindows=new Map();
-  // 팝업 창을 닫을 때의 창 크기를 팝업별로 기억해 다음에 열 때 그대로 씁니다.
-  const lastSizes=new WeakMap();
-  const closeLinked=new WeakSet();
-  const mirrored=[];
-  // 페이지 종료 계열 이벤트는 자식 창이 닫힐 때 메인 앱 정리 로직을 실행시키므로 복제하지 않습니다.
-  const noMirror=new Set(['pagehide','unload','beforeunload','beforeprint']);
-  const childWindows=()=>[...popupWindows.values()].filter(w=>!w.closed);
-  const scopeTarget=(scope,win)=>scope==='document'?win.document:win;
-  function attachEntry(entry,win){scopeTarget(entry.scope,win).addEventListener(entry.type,entry.fn,entry.opts);}
-  function mirrorListeners(scope,target){
-    const add=target.addEventListener,remove=target.removeEventListener;
-    if(typeof add!=='function')return;
-    target.addEventListener=function(type,fn,opts){
-      add.call(target,type,fn,opts);
-      if(noMirror.has(type))return;
-      const entry={scope,type,fn,opts};
-      mirrored.push(entry);
-      childWindows().forEach(w=>attachEntry(entry,w));
-    };
-    if(typeof remove!=='function')return;
-    target.removeEventListener=function(type,fn,opts){
-      remove.call(target,type,fn,opts);
-      for(let i=mirrored.length-1;i>=0;i--){
-        const entry=mirored[i];
-        if(entry.scope!==scope||entry.type!==type||entry.fn!==fn)continue;
-        mirored.splice(i,1);
-        childWindows().forEach(w=>scopeTarget(scope,w).removeEventListener(type,fn,opts));
-      }
-    };
-  }
-  // 팝업 안 요소는 자식 창 문서로 옮겨지므로 메인 문서의 조회가 자식 창까지 찾도록 합니다.
-  function extendLookups(){
-    const getById=document.getElementById,query=document.querySelector,queryAll=document.querySelectorAll;
-    if(typeof getById==='function')document.getElementById=function(id){let el=getById.call(document,id);for(const w of childWindows()){if(el)break;el=w.document.getElementById(id);}return el;};
-    if(typeof query==='function')document.querySelector=function(sel){let el=query.call(document,sel);for(const w of childWindows()){if(el)break;el=w.document.querySelector(sel);}return el;};
-    if(typeof queryAll==='function')document.querySelectorAll=function(sel){const all=[...queryAll.call(document,sel)];childWindows().forEach(w=>all.push(...w.document.querySelectorAll(sel)));return all;};
-  }
-  // 창 바깥 크기 기준입니다. 기억한 크기가 있으면 그 값을, 없으면 팝업의 CSS 크기를 씁니다.
-  function popupSize(dialog){
-    if(lastSizes.has(dialog))return lastSizes.get(dialog);
-    const css=typeof getComputedStyle==='function'?getComputedStyle(dialog):null;
-    const width=parseFloat(css&&css.width),height=parseFloat(css&&css.height);
-    return {width:(width>0?width:900)+16,height:(height>0?height:640)+40};
-  }
-  function rememberSize(dialog,win){
-    if(win.outerWidth>0&&win.outerHeight>0)lastSizes.set(dialog,{width:win.outerWidth,height:win.outerHeight});
-  }
-  function openChildWindow(dialog){
-    if(typeof window==='undefined'||typeof window.open!=='function')return null;
-    const size=popupSize(dialog),offset=popupWindows.size%10;
-    const left=Math.round((window.screenX||0)+40+offset*36),top=Math.round((window.screenY||0)+80+offset*36);
-    return window.open('about:blank','_blank',`popup=yes,width=${Math.round(size.width)},height=${Math.round(size.height)},left=${left},top=${top},resizable=yes,scrollbars=yes`);
-  }
-  function prepareChild(win,dialog){
-    const doc=win.document;
-    const heading=dialog.querySelector?dialog.querySelector('h1,h2,h3'):null;
-    doc.title=(heading&&heading.textContent.trim())||document.title;
-    doc.documentElement.lang=document.documentElement.lang||'ko';
-    for(const node of document.head.querySelectorAll('link[rel="stylesheet"],style')){
-      const copy=node.cloneNode(true);
-      if(copy.tagName==='LINK')copy.href=node.href;
-      doc.head.append(copy);
-    }
-    const neutral=doc.createElement('style');
-    neutral.textContent='html,body{margin:0;height:100%;overflow:hidden}dialog.popup-floating{position:fixed!important;inset:0!important;margin:0!important;width:100vw!important;height:100vh!important;max-width:100vw!important;max-height:100vh!important}';
-    doc.head.append(neutral);
-    for(const entry of mirrored)attachEntry(entry,win);
-  }
-  function returnDialogs(win){
-    for(const [dialog,w] of [...popupWindows])if(w===win)popupWindows.delete(dialog);
-    for(const el of [...win.document.querySelectorAll('dialog')]){
-      const wasOpen=el.open;
-      document.body.append(el);
-      if(wasOpen&&!el.open)el.show();
-      if(el.classList.contains('popup-floating'))cascade(el);
-    }
-  }
-  function linkClose(dialog){
-    if(closeLinked.has(dialog))return;
-    closeLinked.add(dialog);
-    dialog.addEventListener('close',()=>{const w=popupWindows.get(dialog);if(w&&!w.closed)w.close();});
-  }
-  function openFloating(dialog){
-    const win=openChildWindow(dialog);
-    if(!win){dialog.show();cascade(dialog);return;}
-    linkClose(dialog);
-    prepareChild(win,dialog);
-    popupWindows.set(dialog,win);
-    win.addEventListener('resize',()=>rememberSize(dialog,win));
-    win.addEventListener('pagehide',()=>{rememberSize(dialog,win);returnDialogs(win);});
-    win.document.body.append(dialog);
-    dialog.show();
-    win.focus();
-  }
-  // 지금 포커스가 있는 팝업 창의 문서를 돌려줍니다. 확인창 같은 모달도 그 창 안에 뜨도록 합니다.
-  function focusedChildDocument(){
-    const win=childWindows().find(w=>{try{return w.document.hasFocus();}catch{return false;}});
-    return win?win.document:null;
-  }
   const nativeShowModal=HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal=function(){
-    if(modalIds.has(this.id)||this.classList.contains('search-calendar')){
-      const target=focusedChildDocument()||document;
-      if(this.ownerDocument&&this.ownerDocument!==target)target.body.append(this);
-      return nativeShowModal.call(this);
-    }
+    if(modalIds.has(this.id)||this.classList.contains('search-calendar'))return nativeShowModal.call(this);
     if(this.open){this.classList.remove('popup-flash');void this.offsetWidth;this.classList.add('popup-flash');return;}
     this.classList.remove('popup-flash');
     this.classList.add('popup-floating');
-    openFloating(this);
+    this.show();
+    cascade(this);
   };
   document.addEventListener('animationend',event=>{if(event.target.classList)event.target.classList.remove('popup-flash');},true);
   document.addEventListener('close',event=>{if(event.target.classList)event.target.classList.remove('popup-flash');},true);
@@ -207,8 +102,4 @@
     const watchLayout=()=>{const layout=document.querySelector('.app-layout');if(layout)new MutationObserver(publishArea).observe(layout,{attributes:true,attributeFilter:['class','style']});};
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchLayout);else watchLayout();
   }
-  // 이 파일 뒤에 로드되는 앱 스크립트의 리스너와 조회는 팝업 창에서도 동작하도록 복제·대체합니다.
-  mirrorListeners('document',document);
-  if(typeof window!=='undefined')mirrorListeners('window',window);
-  extendLookups();
 })();

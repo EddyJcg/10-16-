@@ -81,6 +81,24 @@ test('popups open in their own window and return to the page when that window cl
   assert.equal(moved[moved.length-1][0],'main');
 });
 
+test('reopened popups use the window size they had when they were last closed',()=>{
+  const listeners={};
+  const childDoc={head:{querySelectorAll:()=>[],append(){}},body:{append(){}},documentElement:{},title:'',createElement:()=>({textContent:''}),querySelectorAll:()=>[]};
+  const child={document:childDoc,closed:false,outerWidth:1234,outerHeight:777,addEventListener:(t,fn)=>{listeners[t]=fn;},focus(){},close(){}};
+  const opened=[];
+  const winObj={screenX:0,screenY:0,addEventListener(){},open:(...args)=>{opened.push(args[2]);return child;}};
+  const mainDoc={title:'',documentElement:{},head:{querySelectorAll:()=>[]},body:{append(){}},addEventListener(){},querySelectorAll:()=>[]};
+  const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
+  new Function('HTMLDialogElement','document','window','innerWidth','innerHeight',fs.readFileSync('popup-floating.js','utf8'))(Ctor,mainDoc,winObj,1000,800);
+  const dialog={id:'x',open:false,style:{},classList:{add(){},remove(){},contains:()=>false},show(){this.open=true;},addEventListener(){}};
+  proto.showModal.call(dialog);
+  assert.match(opened[0],/width=916,height=680/);
+  listeners.pagehide();
+  dialog.open=false;
+  proto.showModal.call(dialog);
+  assert.match(opened[1],/width=1234,height=777/);
+});
+
 test('popups fall back to the page when the browser refuses to open a window',()=>{
   const proto={showModal(){}};const Ctor=function(){};Ctor.prototype=proto;
   const dialog={id:'x',open:false,style:{},classList:{add(){},remove(){},contains:()=>false},show(){this.open=true;}};

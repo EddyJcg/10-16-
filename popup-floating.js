@@ -48,6 +48,8 @@
   // 팝업마다 별도 창(window.open)에 띄워 브라우저 탭·주소창 위쪽까지 옮길 수 있게 합니다.
   // 창을 열 수 없으면(팝업 차단 등) 기존처럼 메인 화면에 띄웁니다.
   const popupWindows=new Map();
+  // 팝업 창을 닫을 때의 창 크기를 팝업별로 기억해 다음에 열 때 그대로 씁니다.
+  const lastSizes=new WeakMap();
   const closeLinked=new WeakSet();
   const mirrored=[];
   // 페이지 종료 계열 이벤트는 자식 창이 닫힐 때 메인 앱 정리 로직을 실행시키므로 복제하지 않습니다.
@@ -83,16 +85,21 @@
     if(typeof query==='function')document.querySelector=function(sel){let el=query.call(document,sel);for(const w of childWindows()){if(el)break;el=w.document.querySelector(sel);}return el;};
     if(typeof queryAll==='function')document.querySelectorAll=function(sel){const all=[...queryAll.call(document,sel)];childWindows().forEach(w=>all.push(...w.document.querySelectorAll(sel)));return all;};
   }
+  // 창 바깥 크기 기준입니다. 기억한 크기가 있으면 그 값을, 없으면 팝업의 CSS 크기를 씁니다.
   function popupSize(dialog){
+    if(lastSizes.has(dialog))return lastSizes.get(dialog);
     const css=typeof getComputedStyle==='function'?getComputedStyle(dialog):null;
     const width=parseFloat(css&&css.width),height=parseFloat(css&&css.height);
-    return {width:width>0?width:900,height:height>0?height:640};
+    return {width:(width>0?width:900)+16,height:(height>0?height:640)+40};
+  }
+  function rememberSize(dialog,win){
+    if(win.outerWidth>0&&win.outerHeight>0)lastSizes.set(dialog,{width:win.outerWidth,height:win.outerHeight});
   }
   function openChildWindow(dialog){
     if(typeof window==='undefined'||typeof window.open!=='function')return null;
     const size=popupSize(dialog),offset=popupWindows.size%10;
     const left=Math.round((window.screenX||0)+40+offset*36),top=Math.round((window.screenY||0)+80+offset*36);
-    return window.open('about:blank','_blank',`popup=yes,width=${Math.round(size.width+16)},height=${Math.round(size.height+40)},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+    return window.open('about:blank','_blank',`popup=yes,width=${Math.round(size.width)},height=${Math.round(size.height)},left=${left},top=${top},resizable=yes,scrollbars=yes`);
   }
   function prepareChild(win,dialog){
     const doc=win.document;
@@ -129,7 +136,8 @@
     linkClose(dialog);
     prepareChild(win,dialog);
     popupWindows.set(dialog,win);
-    win.addEventListener('pagehide',()=>returnDialogs(win));
+    win.addEventListener('resize',()=>rememberSize(dialog,win));
+    win.addEventListener('pagehide',()=>{rememberSize(dialog,win);returnDialogs(win);});
     win.document.body.append(dialog);
     dialog.show();
     win.focus();

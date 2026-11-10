@@ -474,7 +474,7 @@ test('product edits require confirmation, are blocked after ordering and stage t
   assert.doesNotMatch(readFileSync('inventory-app.js','utf8'),/product-info-codes/);
 });test('opening stock status folder lists registered opening stock items through the movement list',()=>{
   const html=readFileSync('inventory.html','utf8');
-  assert.match(html,/<details id="opening-folder"[\s\S]*<details id="opening-status-folder"[^>]*><summary>기초재고 현황<\/summary>[\s\S]*id="opening-list-button"[^>]*>기초재고 품목 전체<\/button>/);
+  assert.match(html,/<details id="opening-folder"[\s\S]*<details id="opening-status-folder"[^>]*><summary>기초재고 현황<\/summary>[\s\S]*id="opening-list-button"[^>]*>기초재고 내역<\/button>/);
   assert.match(readFileSync('inventory-app.js','utf8'),/\$\('opening-list-button'\)\.addEventListener\('click',\(\)=>showMovementList\('opening'\)\)/);
 });test('duplicate product codes and non-empty specifications are detected case-insensitively',()=>{
   const context=vm.createContext({});

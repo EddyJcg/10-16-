@@ -1,0 +1,6 @@
+.input-suggest-panel{position:absolute;z-index:2147483000;box-sizing:border-box;margin:0;padding:4px;list-style:none;max-height:260px;overflow-y:auto;background:#fff;color:#1f2937;border:1px solid #c9d2dd;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.18);font-family:inherit;font-size:15px;line-height:1.4}
+.input-suggest-panel[hidden]{display:none}
+.input-suggest-item{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 10px;border-radius:6px;cursor:pointer}
+.input-suggest-item:hover,.input-suggest-item.is-active{background:#e8f1ff}
+.input-suggest-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.input-suggest-label{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:12px}

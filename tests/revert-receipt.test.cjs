@@ -10,7 +10,7 @@ test('receipt list adds a delete button right of edit that reverts the receipt',
   assert.match(app,/data-delete-receipt-id/);
 });
 
-test('opening and receipt rows render delete immediately after edit, but issue rows do not',()=>{
+test('opening, receipt and issue rows render delete immediately after edit',()=>{
   const vm=require('node:vm');
   const app=readFileSync('inventory-app.js','utf8');
   const element=()=>({
@@ -29,11 +29,10 @@ test('opening and receipt rows render delete immediately after edit, but issue r
   for(const [index,kind] of ['opening','receipt','issue'].entries()){
     const buttons=body.children[index].children.at(-1).children;
     assert.equal(buttons[0].textContent,'수정');
-    assert.equal(buttons.length,kind==='issue'?1:2);
-    if(kind!=='issue'){
-      assert.equal(buttons[1].textContent,'삭제');
-      assert.equal(buttons[1].dataset.deleteReceiptId,kind);
-    }
+    assert.equal(buttons.length,2);
+    assert.equal(buttons[1].textContent,'삭제');
+    if(kind==='issue')assert.equal(buttons[1].dataset.deleteIssueId,kind);
+    else assert.equal(buttons[1].dataset.deleteReceiptId,kind);
   }
 });
 

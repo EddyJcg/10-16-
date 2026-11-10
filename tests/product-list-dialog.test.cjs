@@ -191,7 +191,7 @@ test('stock risk card opens a printable list and its threshold uses standard sto
   assert.match(script,/PRODUCT_INFO_ALREADY_ASSIGNED/);
   assert.match(script,/info_standard_stock_quantity'\)\.readOnly/);
   assert.match(renderer,/stockRiskItems\(items\)/);
-  assert.match(model,/stock\*5<standard/);
+  assert.match(model,/stock<=standard/);
   assert.match(style,/body\[data-print-target="stock-risk"\] #stock-risk-dialog/);
 });
 

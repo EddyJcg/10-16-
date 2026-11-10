@@ -18,9 +18,9 @@ function isStockLedgerManaged(row) {
 }
 function stockRiskItems(rows) {
   return rows.filter(row=>{
-    if(row.shortage_control_enabled===false||!isStockLedgerManaged(row))return false;
-    const standard=Number(row.standard_stock_quantity),stock=Number(row.stock_quantity)||0;
-    return Number.isSafeInteger(standard)&&standard>0&&stock*5<standard;
+    if(!isStockLedgerManaged(row)||row.standard_stock_quantity==null||row.stock_quantity==null)return false;
+    const standard=Number(row.standard_stock_quantity),stock=Number(row.stock_quantity);
+    return Number.isFinite(standard)&&standard>0&&Number.isFinite(stock)&&stock<=standard;
   }).slice().sort((a,b)=>Number(a.stock_quantity)/Number(a.standard_stock_quantity)-Number(b.stock_quantity)/Number(b.standard_stock_quantity));
 }
 function filterInventoryItems(rows,{query='',availability='all',dateProductIds=null,supplier=''}={}) {

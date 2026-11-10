@@ -23,7 +23,6 @@ test('all stock thresholds use current total stock including equality and zero, 
     {id:'below',stock_quantity:9,standard_stock_quantity:10},
     {id:'equal',stock_quantity:'10',standard_stock_quantity:'10'},
     {id:'above',stock_quantity:11,standard_stock_quantity:10},
-    {id:'legacy',stock_quantity:0,standard_stock_quantity:0},
     {id:'negative',stock_quantity:-1,standard_stock_quantity:10}
   ];
   const before=JSON.stringify(products),s=setup(products);
@@ -86,6 +85,7 @@ test('refresh recolors already-open rows both ways and removes colors when a pro
 test('invalid or non-managed stock is not misrepresented and all descendants share the row color',()=>{
   const products=[
     {id:'a',stock_quantity:1,standard_stock_quantity:null},
+    {id:'legacy',stock_quantity:0,standard_stock_quantity:0},
     {id:'b',stock_quantity:null,standard_stock_quantity:10},
     {id:'c',stock_quantity:'bad',standard_stock_quantity:10},
     {id:'d',stock_quantity:1,standard_stock_quantity:-1},
@@ -119,4 +119,53 @@ test('purchase order print rows use the same live colors and leave padded rows u
   assert.ok(rows[0].classes.has('stock-row-low'));
   assert.ok(rows[1].classes.has('stock-row-normal'));
   assert.deepEqual([...rows[2].classes],['existing-row']);
+});
+
+test('dashboard count, risk detail rows and red rows all include the same two low-stock products',()=>{
+  const products=[
+    {id:'low',product_code:'LOW',stock_quantity:10,standard_stock_quantity:100,shortage_control_enabled:true},
+    {id:'equal',product_code:'EQUAL',stock_quantity:100,standard_stock_quantity:100,shortage_control_enabled:false},
+    {id:'normal',product_code:'NORMAL',stock_quantity:101,standard_stock_quantity:100},
+    {id:'unmanaged',product_code:'UNMANAGED',stock_quantity:0,standard_stock_quantity:100,quantity_management_disabled:true},
+    {id:'unset',product_code:'UNSET',stock_quantity:0,standard_stock_quantity:0}
+  ];
+  const s=setup(products),fields=new Map();
+  const element=()=>({children:[],textContent:'',classList:{toggle(){}},
+    append(...nodes){this.children.push(...nodes);},replaceChildren(){this.children=[];}});
+  s.context.document.getElementById=id=>{
+    if(!fields.has(id))fields.set(id,element());
+    return fields.get(id);
+  };
+  s.context.document.createElement=element;
+  s.run(readFileSync('inventory-model.js','utf8'));
+  s.run(readFileSync('inventory-render.js','utf8'));
+  s.run('renderStockRisk()');
+  assert.equal(fields.get('total-risk-items').textContent,'2');
+  assert.equal(fields.get('stock-risk-count').textContent,'2개');
+  assert.deepEqual(fields.get('stock-risk-items').children.map(row=>row.children[1].textContent),['LOW','EQUAL']);
+  const colored=products.map(product=>{
+    const row=s.row();s.context.row=row;s.context.product=product;s.run('bindStockRow(row,product)');
+    return row.classes.has('stock-row-low');
+  });
+  assert.deepEqual(colored,[true,true,false,false,false]);
+  s.run('items[1].stock_quantity=101;renderStockRisk()');
+  assert.equal(fields.get('total-risk-items').textContent,'1');
+  assert.equal(fields.get('stock-risk-items').children.length,1);
+});
+
+test('risk counts include equality, zero and 20–100 percent, but exclude invalid and unset stock',()=>{
+  const {stockRiskItems}=require('../inventory-model.js');
+  const values=[0,19,20,50,100,101];
+  assert.deepEqual(stockRiskItems(values.map(stock=>({stock_quantity:stock,standard_stock_quantity:100})))
+    .map(item=>item.stock_quantity),[0,19,20,50,100]);
+  for(const item of [
+    {stock_quantity:null,standard_stock_quantity:100},
+    {stock_quantity:'bad',standard_stock_quantity:100},
+    {stock_quantity:0,standard_stock_quantity:null},
+    {stock_quantity:0,standard_stock_quantity:0},
+    {stock_quantity:0,standard_stock_quantity:-1}
+  ])assert.equal(stockRiskItems([item]).length,0);
+  const html=readFileSync('inventory.html','utf8');
+  assert.doesNotMatch(html,/적정재고의 20% 미만/);
+  assert.match(html,/현재 재고가 적정재고 이하/);
 });

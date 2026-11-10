@@ -22,7 +22,7 @@ function colorStockRow(row,reference){
   const item=stockRowProduct(reference);
   const valid=item&&stockLedgerManaged(item)&&item.stock_quantity!=null&&item.standard_stock_quantity!=null
     &&Number.isFinite(Number(item.stock_quantity))&&Number.isFinite(Number(item.standard_stock_quantity))
-    &&Number(item.standard_stock_quantity)>=0;
+    &&Number(item.standard_stock_quantity)>0;
   const low=valid&&Number(item.stock_quantity)<=Number(item.standard_stock_quantity);
   row.classList.toggle('stock-row-low',Boolean(low));
   row.classList.toggle('stock-row-normal',Boolean(valid&&!low));

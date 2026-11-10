@@ -465,15 +465,16 @@ test('current stock includes every positive balance and excludes exhausted produ
   assert.deepEqual(currentStockRows(rows).map(row=>row.id),[1,3]);
   assert.equal(rows.length,5);
 });
-test('stock risk includes only products below twenty percent of their standard quantity',()=>{
+test('stock risk includes products at or below their standard quantity',()=>{
   const rows=[
     {product_code:'LOW',standard_stock_quantity:100,stock_quantity:19},
     {product_code:'AT-THRESHOLD',standard_stock_quantity:100,stock_quantity:20},
     {product_code:'ZERO',standard_stock_quantity:100,stock_quantity:0},
     {product_code:'UNSET',standard_stock_quantity:0,stock_quantity:0},
-    {product_code:'OK',standard_stock_quantity:100,stock_quantity:21}
+    {product_code:'EQUAL',standard_stock_quantity:100,stock_quantity:100},
+    {product_code:'OK',standard_stock_quantity:100,stock_quantity:101}
   ];
-  assert.deepEqual(stockRiskItems(rows).map(item=>item.product_code),['ZERO','LOW']);
+  assert.deepEqual(stockRiskItems(rows).map(item=>item.product_code),['ZERO','LOW','AT-THRESHOLD','EQUAL']);
 });
 test('aged stock includes positive lot balances received at least six calendar months ago',()=>{
   const rows=[

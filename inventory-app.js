@@ -360,6 +360,7 @@ const columnWidthDefaults={
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0,productLotsReady = false;
 let selectedProductInfoCode = '',productInfoDrafts=[],productInfoDraftSequence=0;
 let editingProductInfoId='',editingAssetClassificationId='',editingSalesOrderId='',editingMovementId='';
+let productInfoNewMode=false;
 let ignoreMissingReceiptDetailsOnce=false;
 function notify(text,error = false) { $('message').textContent = text; $('message').classList.toggle('error',error); }
 function errorText(error) {
@@ -1553,7 +1554,7 @@ function productForLookup(source,value=$(source).value) {
   return null;
 }
 function populateProductInfo(source) {
-  if(editingProductInfoId)return;
+  if(editingProductInfoId||productInfoNewMode)return;
   const item=productForLookup(source);
   selectedProductInfoCode=item?.product_code||'';
   ['info_product_name','info_material','info_color','info_specification'].forEach(id=>$(id).readOnly=false);
@@ -1753,7 +1754,6 @@ function duplicateProductInfoField(details,exceptId='',drafts=[]){
   const others=[...items.filter(item=>!editedIds.has(item.id)),...drafts.filter(draft=>draft!==details)];
   if(others.some(item=>String(item.product_code||'').trim().toUpperCase()===code))return '품번';
   if(specification&&others.some(item=>normalize(item.specification)===specification))return '규격';
-  if(others.some(item=>normalize(item.product_name)===normalize(details.product_name)&&normalize(item.specification)===specification))return '품명·규격';
   return '';
 }
 function filteredProductInfoStatusItems() {
@@ -1896,7 +1896,7 @@ async function editProductInfo(id){
   }
   $('product-info-status-dialog').close();
   resetProductInfoForm();
-  editingProductInfoId=item.id;selectedProductInfoCode='';
+  editingProductInfoId=item.id;selectedProductInfoCode='';productInfoNewMode=false;
   updateProductClassificationOptions();
   [['product_category','classification_id'],['product_code','product_code'],['product_name','product_name'],
     ['specification','specification'],['material','material'],['color','color'],['unit','unit'],
@@ -2061,8 +2061,13 @@ function productInfoDraftError(details){
   return '';
 }
 function duplicateProductInfoMessage(field){
-  if(field==='품명·규격')return '동일한 품명과 규격의 품목이 이미 있습니다. 중복 등록할 수 없습니다.';
   return field==='품번'?'이미 등록된 품번입니다. 다른 품번을 입력하세요.':'이미 등록된 규격입니다. 다른 규격을 입력하세요.';
+}
+function startNewProductInfo(){
+  if(busy)return;
+  resetProductInfoForm();
+  productInfoNewMode=true;
+  $('product-info-status').textContent='신규로 입력한 뒤 품목정보 가등록을 누르세요. 품번·규격은 기존 등록 값과 중복될 수 없습니다.';
 }
 function addProductInfoDraft(){
   if(!currentUser||busy)return;
@@ -2861,6 +2866,7 @@ async function startApp(){
   $('delete-product-info-drafts').addEventListener('click',deleteProductInfoDrafts);
   $('import-product-info-button').addEventListener('click',openProductInfoFilePicker);
   $('add-product-info-draft').addEventListener('click',addProductInfoDraft);
+  $('new-product-info').addEventListener('click',startNewProductInfo);
   $('product-info-import-file').addEventListener('change',importProductInfoFile);
   $('close-product-info-status').addEventListener('click',()=>$('product-info-status-dialog').close());
   $('export-product-info-status').addEventListener('click',exportProductInfoStatusExcel);

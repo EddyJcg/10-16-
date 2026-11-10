@@ -444,7 +444,7 @@ test('product edits require confirmation, are blocked after ordering and stage t
   assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'SKU-2',specification:' spec-a '})`,context),'규격');
   assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'SKU-2',specification:''})`,context),'');
   vm.runInContext(`items.push({id:'two',product_code:'SKU-9',product_name:'가방',specification:''})`,context);
-  assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'SKU-3',product_name:' 가방 ',specification:''})`,context),'품명·규격');
+  assert.equal(vm.runInContext(`duplicateProductInfoField({product_code:'SKU-3',product_name:' 가방 ',specification:''})`,context),'');
   assert.match(readFileSync('inventory.html','utf8'),/product-info-draft-actions"><button type="button" id="add-product-info-draft" class="secondary">품목정보 가등록/);
 });
 test('duplicate product codes and specifications show blocking warnings before registration',async()=>{

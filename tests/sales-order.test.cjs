@@ -356,6 +356,7 @@ test('sales status view omits the completion checkbox column',()=>{
   assert.match(search,/id="search-sales-status-orders"[^>]*>검색<\/button>/);
   assert.match(table,/<th>수주번호<\/th><th>수주형태<\/th><th>거래처<\/th><th>연락처<\/th><th>출고일자<\/th><th>매출 상태<\/th>/);
   assert.doesNotMatch(table,/<th>완료 체크<\/th>/);
+  assert.doesNotMatch(table,/<select/);
   for(const label of ['일련번호','수주일자','수주번호','매출 상태','수주형태','거래처','연락처','출고일자','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
     assert.ok(table.includes(`<th>${label}</th>`),label);
   for(const id of ['sales-status-start-date','sales-status-end-date','sales-status-type-filter','sales-status-filter','sales-status-total','sales-status-completed-total','sales-status-outstanding-total'])
@@ -363,7 +364,9 @@ test('sales status view omits the completion checkbox column',()=>{
   assert.match(table,/<th>관리<\/th>/);
   const app=fs.readFileSync('inventory-app.js','utf8');
   assert.match(app,/if\(view==='query'\)\{\s*const completeCell=document\.createElement\('td'\);completeCell\.append\(salesOrderCompleteCheckbox\(order\)\);row\.append\(completeCell\);\s*\}/);
+  assert.match(app,/const statusCell=document\.createElement\('td'\);statusCell\.textContent=salesOrderStatus\(order\);row\.append\(statusCell\);/);
   assert.match(app,/\$\('sales-status-items'\)\.addEventListener\('click'/);
+  assert.doesNotMatch(app,/\$\('sales-status-items'\)\.addEventListener\('change'/);
   assert.match(app,/function editSalesOrderFromStatus\(id\)/);
 });
 

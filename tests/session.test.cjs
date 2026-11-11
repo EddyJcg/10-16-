@@ -102,7 +102,7 @@ test('sales status menu opens its list and binds searches and status updates',as
   assert.equal(typeof app.element('apply-sales-status-search').handlers.click,'function');
   assert.equal(typeof app.element('search-sales-status-orders').handlers.click,'function');
   assert.equal(typeof app.element('clear-sales-status-search').handlers.click,'function');
-  assert.equal(typeof app.element('sales-status-items').handlers.change,'function');
+  assert.equal(app.element('sales-status-items').handlers.change,undefined);
 });
 
 test('sales register menu uses a dedicated search dialog and binds confirmation actions',async()=>{

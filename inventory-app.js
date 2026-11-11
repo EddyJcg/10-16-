@@ -621,7 +621,7 @@ function renderSalesStatus(view='status'){
     if(view==='query'){
       const completeCell=document.createElement('td');completeCell.append(salesOrderCompleteCheckbox(order));row.append(completeCell);
     }
-    const statusCell=document.createElement('td');statusCell.append(salesOrderStatusSelect(order));row.append(statusCell);
+    const statusCell=document.createElement('td');statusCell.textContent=salesOrderStatus(order);row.append(statusCell);
     [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
       money(order.amount),String(order.due_date).slice(0,10),order.delivery_method,order.address,order.notes]
       .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
@@ -3179,7 +3179,6 @@ async function startApp(){
   $('clear-sales-status-search').addEventListener('click',()=>applySalesStatusSearch(true));
   $('apply-sales-query-search').addEventListener('click',()=>applySalesStatusSearch(false,'query'));
   $('clear-sales-query-search').addEventListener('click',()=>applySalesStatusSearch(true,'query'));
-  $('sales-status-items').addEventListener('change',changeSalesOrderStatus);
   $('sales-status-items').addEventListener('click',event=>{
     const button=event.target.closest('[data-sales-order-id]');
     if(button)editSalesOrderFromStatus(button.dataset.salesOrderId);

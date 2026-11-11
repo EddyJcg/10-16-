@@ -151,12 +151,12 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('save-sales-order-draft'\)\.addEventListener\('click',addSalesOrderLine\)/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('add-sales-line'\)\.addEventListener\('click',addSalesOrderLine\)/);
   assert.doesNotMatch(fs.readFileSync('inventory-app.js','utf8'),/add-sales-line-footer/);
-  assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('sales-order-draft-items'\)\.addEventListener\('change',changeSalesDraftSelection\)/);
+  assert.doesNotMatch(fs.readFileSync('inventory-app.js','utf8'),/changeSalesDraftSelection/);
   assert.match(style,/@media\(max-width:850px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(style,/@media\(max-width:520px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:1fr\}/);
 });
 
-test('draft management checkboxes are preselected and saving requires a selection',()=>{
+test('draft table has no selection checkbox and saving requires at least one line',()=>{
   class Element{
     constructor(name=''){this.name=name;this.children=[];this.dataset={};this.attributes={};this.disabled=false;this.checked=false;this.value='';this.classList={toggle(){}};}
     append(...children){this.children.push(...children);}
@@ -174,21 +174,17 @@ test('draft management checkboxes are preselected and saving requires a selectio
   });
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`salesDraftLines=[
-    {draftId:'draft-a',product_name:'품목 A',unit:'EA',quantity:1,unit_price:10,due_date:'2026-12-01',selected:true},
-    {draftId:'draft-b',product_name:'품목 B',unit:'EA',quantity:2,unit_price:20,due_date:'2026-12-01',selected:false}
+    {draftId:'draft-a',product_name:'품목 A',unit:'EA',quantity:1,unit_price:10,due_date:'2026-12-01'},
+    {draftId:'draft-b',product_name:'품목 B',unit:'EA',quantity:2,unit_price:20,due_date:'2026-12-01'}
   ];renderSalesDraftLines()`,context);
-  const first=body.children[0].children[15].children[0],second=body.children[1].children[15].children[0];
-  assert.equal(first.type,'checkbox');
-  assert.equal(first.checked,true);
-  assert.equal(second.checked,false);
   const actions=body.children[0].children[15].children;
-  assert.deepEqual(actions.slice(1).map(button=>button.textContent),['수정','삭제']);
-  assert.equal(actions[1].dataset.editSalesDraft,'draft-a');
-  assert.equal(actions[2].dataset.deleteSalesDraft,'draft-a');
+  assert.deepEqual(actions.map(button=>button.textContent),['수정','삭제']);
+  assert.equal(actions[0].dataset.editSalesDraft,'draft-a');
+  assert.equal(actions[1].dataset.deleteSalesDraft,'draft-a');
+  assert.equal(body.children[0].children[15].children.some(child=>child.type==='checkbox'),false);
   assert.equal(saveButton.disabled,false);
-  first.checked=false;
-  vm.runInContext('changeSalesDraftSelection',context)({target:{closest:()=>first}});
-  assert.equal(vm.runInContext('salesDraftLines[0].selected',context),false);
+  vm.runInContext('salesDraftLines=[]',context);
+  vm.runInContext('updateSalesOrderSaveButton()',context);
   assert.equal(saveButton.disabled,true);
 });
 
@@ -686,7 +682,7 @@ test('sales order dialog is connected to the authenticated database save flow',(
   assert.match(script,/client\.rpc\('update_sales_order_group'/);
   assert.match(script,/function addSalesOrderLine\(\)/);
   assert.match(script,/p_vendor_name:\$\('sales_vendor_name'\)\.value\.trim\(\)/);
-  assert.match(script,/p_lines:\[\.\.\.existingGroupLines,\.\.\.selectedDraftLines\.map/);
+  assert.match(script,/p_lines:\[\.\.\.existingGroupLines,\.\.\.salesDraftLines\.map/);
   assert.match(script,/client\.rpc\('set_sales_order_status'/);
   assert.match(script,/sales-order-form'\)\.addEventListener\('submit',saveSalesOrder\)/);
   assert.match(script,/\$\('cancel-sales-order'\)\.addEventListener\('click',cancelSalesOrder\)/);

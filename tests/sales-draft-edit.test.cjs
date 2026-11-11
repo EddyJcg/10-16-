@@ -95,7 +95,7 @@ test('같은 수주에 여러 품목을 추가해도 수주번호와 공통 정�
 test('가수주 수정 중에는 저장을 차단하고 수정 완료 후 기존 행을 갱신한다',async()=>{
   const {context,element}=setup();
   vm.runInContext(`currentUser={id:'u'};addSalesOrderLine();salesDraftLines[0].line_id='saved-id';
-    salesDraftLines[0].selected=false;editSalesDraft(salesDraftLines[0].draftId)`,context);
+    editSalesDraft(salesDraftLines[0].draftId)`,context);
   assert.equal(element('sales_product_code').value,'A');
   assert.equal(element('sales_product_name').value,'품목');
   assert.equal(element('sales_amount').value,'0원');
@@ -108,7 +108,6 @@ test('가수주 수정 중에는 저장을 차단하고 수정 완료 후 기존
   assert.equal(vm.runInContext('salesDraftLines[0].product_name',context),'수정 품목');
   assert.equal(vm.runInContext('salesDraftLines[0].quantity',context),3);
   assert.equal(vm.runInContext('salesDraftLines[0].line_id',context),'saved-id');
-  assert.equal(vm.runInContext('salesDraftLines[0].selected',context),false);
   assert.equal(vm.runInContext('editingSalesDraftId',context),'');
 });
 

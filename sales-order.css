@@ -38,6 +38,7 @@
 .sales-order-dialog .sales-draft-validation-status:not(:empty){margin:8px 0;color:#a21c1c;font-weight:600}
 .sales-order-dialog .sales-order-save-actions #save-sales-order,
 .sales-order-dialog .sales-order-draft-register{width:160px}
+.sales-order-dialog .sales-order-save-actions button{white-space:nowrap;flex-shrink:0}
 .sales-order-draft-table input[type="checkbox"]{
   width:20px;height:20px;margin:0 6px 0 0;padding:0;vertical-align:middle;accent-color:#348fe2;cursor:pointer
 }

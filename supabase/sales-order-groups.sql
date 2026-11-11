@@ -1,4 +1,4 @@
--- Run after supabase/fifo.sql, supabase/edit-records.sql, and supabase/sales-order-vendor.sql.
+-- supabase/fifo.sql, supabase/edit-records.sql, supabase/sales-order-vendor.sql 실행 후에 실행하세요.
 begin;
 
 alter table public.sales_orders

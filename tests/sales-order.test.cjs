@@ -501,6 +501,40 @@ test('sales registration with shipment inputs posts a capped stock issue before 
   assert.equal(fromCalls.length,1);
 });
 
+test('partial sales registration posts the issue and keeps the order in progress',async()=>{
+  const elements=new Map(),rpcCalls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
+    return elements.get(id);
+  };
+  const testClient={
+    rpc:async(name,args)=>{rpcCalls.push([name,args]);return {data:null,error:null};},
+    from:()=>({select:()=>({eq:(column,value)=>({single:async()=>({data:{id:value,order_number:'SO-10',product_name:'품목10',product_code:'P10',unit:'EA',quantity:5,shipped_quantity:2,shipped_date:'2026-11-06',sales_progress_status:'진행'},error:null})})})})
+  };
+  const context=vm.createContext({
+    document:{getElementById:element},testClient,salesOrderStatus,number:value=>String(value),
+    crypto:{randomUUID:()=>'request-2'},validDate:value=>/^\d{4}-\d{2}-\d{2}$/.test(value)
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  context.renderSalesOrders=()=>{};
+  context.renderSalesStatus=()=>{};
+  context.renderSalesRegister=()=>{};
+  context.renderSalesBalance=()=>{};
+  context.updateIssueSalesOrders=()=>{};
+  context.loadStock=async()=>{};
+  element('sales-register-ship-date').value='2026-11-06';
+  element('sales-register-ship-quantity').value='2';
+  vm.runInContext(`currentUser={id:'user'};client=testClient;
+    salesOrders=[{id:'order-10',order_number:'SO-10',product_name:'품목10',product_code:'P10',unit:'EA',quantity:5,shipped_quantity:2,shipped_date:'2026-11-05',sales_progress_status:'진행'}];
+    salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
+  await vm.runInContext('completeSalesRegistration()',context);
+  const issue=rpcCalls.find(([name])=>name==='post_stock_movement');
+  assert.equal(issue[1].p_quantity,2,'the issue quantity is the entered quantity within the remaining quantity');
+  assert.equal(issue[1].p_date,'2026-11-06','the issue date is the shipment date');
+  assert.equal(rpcCalls.some(([name])=>name==='set_sales_order_status'),false,'a partial shipment is not marked as completed');
+  assert.match(element('sales-register-message').textContent,/부분 출고 1건은 진행 상태로 유지/);
+});
+
 test('sales order stop bulk action stops only in-progress orders that are not fully shipped',async()=>{
   const elements=new Map(),calls=[];
   const element=id=>{

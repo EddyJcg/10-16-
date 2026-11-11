@@ -643,8 +643,7 @@ function renderSalesRegister(){
   body.replaceChildren();completedBody.replaceChildren();
   const matchedOrders=salesRegisterSearched?filterSalesOrders(salesOrders,{query:salesRegisterQuery}):[];
   const visibleOrders=matchedOrders.filter(order=>salesOrderStatus(order)!=='완료');
-  const completedOrders=filterSalesOrders(salesOrders,{query:salesRegisterSearched?salesRegisterQuery:''})
-    .filter(order=>salesOrderStatus(order)==='완료');
+  const completedOrders=salesOrders.filter(order=>salesOrderStatus(order)==='완료');
   salesRegisterVisibleOrders=visibleOrders;
   const shipment=salesRegisterShipmentInput();
   $('bulk-sales-register').disabled=salesStatusUpdating||!visibleOrders.some(order=>salesRegistrationCandidate(order,shipment));

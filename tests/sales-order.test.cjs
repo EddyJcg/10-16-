@@ -367,6 +367,9 @@ test('sales registration table has no 관리 column and lists completed orders b
   const cells=body.children[0].children.map(cell=>cell.textContent);
   assert.ok(!cells.includes('010'));
   assert.ok(!cells.includes('비고'));
+  vm.runInContext("salesRegisterQuery='NO-MATCH';renderSalesRegister()",context);
+  assert.equal(completedBody.children.length,1,'the completed list is cumulative and ignores the search query');
+  assert.ok(body.children.every(child=>child.columns),'only the empty-state row is shown in the registration table');
 });
 
 test('bulk sales registration completes only eligible pending orders and keeps the register dialog open',async()=>{

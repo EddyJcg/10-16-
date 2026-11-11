@@ -122,7 +122,15 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(html,/<link rel="stylesheet" href="\/sales-order\.css/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);
   assert.match(style,/@media\(min-width:851px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
-  assert.match(style,/@media\(min-width:1280px\)\{[\s\S]*?\.sales-order-dialog \.sales-order-line-grid\{grid-template-columns:repeat\(9,minmax\(0,1fr\)\)\}/);
+  assert.match(style,/\.sales-order-dialog \.form-grid>\.field:not\(\.sales-order-address-field\)>input:not\(\[type="hidden"\]\),/);
+  assert.match(style,/\.sales-order-dialog \.form-grid>\.field:not\(\.sales-order-address-field\)>select\{width:70%\}/);
+  assert.match(style,/@media\(min-width:851px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\);gap:6px\}/);
+  assert.match(style,/\.sales-order-dialog \.form-grid \.field\{margin-bottom:6px\}/);
+  assert.match(style,/\.sales-order-address-actions\{display:flex;gap:6px\}/);
+  assert.match(style,/@media\(min-width:851px\) and \(max-width:1279px\)\{[\s\S]*?\.sales-order-dialog \.sales-order-line-grid\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/);
+  assert.doesNotMatch(style,/\.sales-order-due-date-field\{grid-column:span 2\}/);
+  assert.match(style,/\.sales-order-dialog \.sales-order-address-field\{grid-column:span 2\}/);
+
   assert.match(style,/\.sales-order-dialog \.sales-order-draft-register\{flex:0 0 160px;width:160px;min-width:150px\}/);
   assert.match(style,/\.sales-order-dialog \.sales-order-line-add\{[^}]*background:#ffe0b2;border-color:#efb76f;color:#633500/);
   for(const attr of ['data-edit-sales-draft','data-delete-sales-draft','data-sales-order-id','data-delete-sales-order-id'])

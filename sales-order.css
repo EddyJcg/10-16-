@@ -1,6 +1,7 @@
 @media(min-width:851px){
   .sales-order-dialog{width:min(1500px,80vw)!important}
-  .sales-order-dialog .form-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:0 12px}
+  .sales-order-dialog .form-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+  .sales-order-dialog .form-grid .field{margin-bottom:6px}
   .sales-order-dialog h3{margin:18px 0 10px}
   .sales-order-dialog .sales-order-save-actions{display:flex;justify-content:flex-end;gap:10px}
   .sales-order-dialog .sales-order-save-actions button{min-width:150px}
@@ -29,9 +30,8 @@
   .sales-status-order-search .field{max-width:none}
   .sales-register-confirm-dialog .dialog-footer button{flex:1}
 }
-.sales-order-dialog #sales_order_date,.sales-order-dialog #sales_order_number,.sales-order-dialog #sales_vendor_contact,
-.sales-order-dialog #sales_delivery_method,.sales-order-dialog #sales_product_code,.sales-order-dialog #sales_quantity,
-.sales-order-dialog #sales_unit_price{width:70%}
+.sales-order-dialog .form-grid>.field:not(.sales-order-address-field)>input:not([type="hidden"]),
+.sales-order-dialog .form-grid>.field:not(.sales-order-address-field)>select{width:70%}
 .sales-order-dialog .sales-order-line-add{flex:0 0 120px;width:120px;background:#ffe0b2;border-color:#efb76f;color:#633500}
 .sales-order-dialog .sales-order-line-add:hover{background:#ffcf8a}
 .sales-order-dialog .sales-order-draft-register{flex:0 0 160px;width:160px;min-width:150px}
@@ -64,7 +64,6 @@
 }
 @media(min-width:851px) and (max-width:1279px){
   .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .sales-order-dialog .sales-order-due-date-field{grid-column:span 2}
   .sales-order-dialog .sales-order-address-field{grid-column:span 2}
 }
 @media(max-width:850px){

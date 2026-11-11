@@ -123,7 +123,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);
   assert.match(style,/@media\(min-width:851px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
   assert.match(style,/\.sales-order-dialog \.form-grid>\.field:not\(\.sales-order-address-field\)>input:not\(\[type="hidden"\]\),/);
-  assert.match(style,/\.sales-order-dialog \.form-grid>\.field:not\(\.sales-order-address-field\)>select\{width:70%\}/);
+  assert.match(style,/\.sales-order-dialog \.form-grid>\.field:not\(\.sales-order-address-field\)>select\{width:91%\}/);
   assert.match(style,/@media\(min-width:851px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\);gap:6px\}/);
   assert.match(style,/\.sales-order-dialog \.form-grid \.field\{margin-bottom:6px\}/);
   assert.match(style,/\.sales-order-address-actions\{display:flex;gap:6px\}/);

@@ -1276,6 +1276,18 @@ function openSalesAddressSearch(){
     $('sales-address-dialog').showModal();
   }).catch(error=>{$('sales-draft-validation-status').textContent=error.message;});
 }
+async function fillSalesPostalCodeFromAddress(){
+  const address=$('sales_address').value.trim();
+  if(!address||$('sales_postal_code').value.trim())return;
+  try{
+    const {data,error}=await client.functions.invoke('address-postal-code',{body:{query:address}});
+    if(error)throw error;
+    const postal=String(data?.postal_code||'');
+    if(postal&&$('sales_address').value.trim()===address&&!$('sales_postal_code').value.trim())$('sales_postal_code').value=postal;
+  }catch(error){
+    $('sales-draft-validation-status').textContent='우편번호를 자동으로 찾지 못했습니다. 주소 입력창을 클릭해 주소를 다시 선택하세요.';
+  }
+}
 function addSalesOrderLine(){
   const quantity=Number($('sales_quantity').value),unitPrice=Number($('sales_unit_price').value);
   const dueDate=$('sales_due_date').value;
@@ -1327,6 +1339,7 @@ function editSalesDraft(draftId){
   $('sales-product-code-message').textContent='';updateSalesAmount();
   $('sales-order-status').textContent='가수주를 수정한 뒤 가수주 등록을 눌러 반영하세요. 수주 상단 정보는 같은 수주의 모든 품목에 적용됩니다.';
   $('sales_product_code').focus();
+  fillSalesPostalCodeFromAddress();
 }
 function deleteSalesDraft(draftId){
   if(salesOrderSaving)return;

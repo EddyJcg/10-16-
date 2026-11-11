@@ -91,6 +91,9 @@ test('address search asks for detail address after selecting a road address and 
   assert.match(app,/order\.delivery_method,salesAddressDisplay\(order\),order\.notes\]/);
   assert.match(app,/salesAddressDisplay\(line\),line\.due_date/);
   assert.match(app,/\$\('sales_postal_code'\)\.value=salesAddressPending\.postal_code;/);
+  assert.match(app,/client\.functions\.invoke\('address-postal-code',\{body:\{query:address\}\}\)/);
+  assert.match(app,/function editSalesDraft[\s\S]*?fillSalesPostalCodeFromAddress\(\);\s*\}/);
+  assert.match(app,/const postal=String\(data\?\.postal_code\|\|''\);/);
   assert.match(app,/\$\('sales-address-back'\)\.addEventListener\('click',\(\)=>\{showSalesAddressSearchStep\(\);renderSalesAddressSearch\(\);\}\);/);
   assert.match(app,/\$\('sales-address-confirm'\)\.addEventListener\('click',confirmSalesAddress\);/);
   assert.match(app,/\$\('sales-address-detail-input'\)\.addEventListener\('keydown',event=>\{if\(event\.key==='Enter'\)\{event\.preventDefault\(\);confirmSalesAddress\(\);\}\}\);/);

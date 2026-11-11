@@ -613,12 +613,14 @@ function renderSalesStatus(view='status'){
   $(`${prefix}-total`).textContent='총수주액 '+money(totals.total)+'원';
   $(`${prefix}-completed-total`).textContent=money(totals.completed)+'원';
   $(`${prefix}-outstanding-total`).textContent=money(totals.outstanding)+'원';
-  if(!visibleOrders.length){emptyRow(body,20,'검색 조건에 해당하는 수주가 없습니다.');return;}
+  if(!visibleOrders.length){emptyRow(body,view==='query'?20:19,'검색 조건에 해당하는 수주가 없습니다.');return;}
   visibleOrders.forEach(order=>{
     const row=document.createElement('tr');
     bindStockRow(row,order);
     [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',String(order.shipped_date||'').slice(0,10)].forEach((value,index)=>row.append(makeCell(value,index===0)));
-    const completeCell=document.createElement('td');completeCell.append(salesOrderCompleteCheckbox(order));row.append(completeCell);
+    if(view==='query'){
+      const completeCell=document.createElement('td');completeCell.append(salesOrderCompleteCheckbox(order));row.append(completeCell);
+    }
     const statusCell=document.createElement('td');statusCell.append(salesOrderStatusSelect(order));row.append(statusCell);
     [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
       money(order.amount),String(order.due_date).slice(0,10),order.delivery_method,order.address,order.notes]

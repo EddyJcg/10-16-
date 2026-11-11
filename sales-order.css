@@ -48,6 +48,9 @@
 .sales-order-dialog .sales-order-table button[data-delete-sales-order-id]{
   width:64px;transform:scaleX(.78);transform-origin:left center;margin-right:-14px
 }
+.sales-order-dialog .sales-order-draft-table th[data-column-required],
+.sales-order-dialog .sales-order-draft-table tbody tr td:last-child{text-align:center}
+.sales-order-dialog .sales-order-draft-table td:last-child button{transform-origin:center;margin:0 2px}
 .sales-order-draft-table th[data-grid-min-width]{min-width:200px}
 .sales-order-table th[data-grid-min-width]{min-width:150px}
 .sales-order-dialog .sales-order-draft-table th[data-column-required],

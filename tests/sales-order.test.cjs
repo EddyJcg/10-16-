@@ -150,6 +150,10 @@ test('draft management checkboxes are preselected and saving requires a selectio
   assert.equal(first.type,'checkbox');
   assert.equal(first.checked,true);
   assert.equal(second.checked,false);
+  const actions=body.children[0].children[8].children;
+  assert.deepEqual(actions.slice(1).map(button=>button.textContent),['수주등록','수정','삭제']);
+  assert.equal(actions[2].dataset.editSalesDraft,'draft-a');
+  assert.equal(actions[3].dataset.deleteSalesDraft,'draft-a');
   assert.equal(saveButton.disabled,false);
   first.checked=false;
   vm.runInContext('changeSalesDraftSelection',context)({target:{closest:()=>first}});

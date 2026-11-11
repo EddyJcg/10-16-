@@ -7,7 +7,7 @@ const {parseSalesOrderImportWorkbook}=require('../inventory-import.js');
 
 test('품번 입력은 배송방법 다음에 위치하고 품목별 가수주와 수정에 유지된다',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
-  assert.match(html,/id="sales_delivery_method"[^>]*><\/div>\s*<div class="field"><label for="sales_product_code">품번<\/label><input id="sales_product_code" maxlength="80"/);
+  assert.match(html,/id="sales_delivery_method"[^>]*><\/div>\s*<div class="field"><label for="sales_product_code">품번<\/label><input id="sales_product_code" required maxlength="80"/);
   const elements=new Map();
   const element=id=>{
     if(!elements.has(id))elements.set(id,{value:'',textContent:'',focus(){}});
@@ -17,7 +17,8 @@ test('품번 입력은 배송방법 다음에 위치하고 품목별 가수주�
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   context.renderSalesDraftLines=()=>{};
   for(const [id,value] of Object.entries({
-    sales_product_code:' SKU-1 ',sales_product_name:'품목',sales_unit:'EA(개)',
+    sales_order_date:'2026-11-01',sales_order_number:'SO-1',sales_order_type:'온라인 수주',sales_vendor_name:'거래처',
+    sales_product_code:' SKU-1 ',sales_product_name:'품목',sales_specification:'규격',sales_unit:'EA(개)',
     sales_quantity:'2',sales_unit_price:'30',sales_due_date:'2026-12-01'
   }))element(id).value=value;
   vm.runInContext('addSalesOrderLine()',context);

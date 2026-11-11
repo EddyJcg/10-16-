@@ -160,7 +160,7 @@ test('product import opens the native XLSX picker directly without an intermedia
   const script=fs.readFileSync('inventory-app.js','utf8');
   assert.match(script,/function openProductInfoFilePicker\(\)/);
   assert.match(script,/\$\('close-product-info'\)\.addEventListener\('click',closeProductInfo\);\s*\$\('delete-product-info-drafts'\)\.addEventListener\('click',deleteProductInfoDrafts\)/);
-  assert.match(html,/src="inventory-import\.js"><\/script>/);
+  assert.match(html,/src="inventory-import\.js(?:\?[^"]*)?"><\/script>/);
 });
 
 test('receipt dialog provides an XLSX picker and a missing-product details window',()=>{

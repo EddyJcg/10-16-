@@ -104,10 +104,10 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(form,/id="sales_amount" readonly/);
   assert.match(form,/class="field sales-order-due-date-field"><label for="sales_due_date">납기일자<\/label><div class="sales-order-due-date-actions"><input id="sales_due_date" type="date" required min="1900-01-01"><button id="save-sales-order-draft" type="button" class="primary sales-order-draft-register">가수주 등록<\/button><\/div><\/div>/);
   assert.match(fs.readFileSync('inventory.css','utf8'),/button\[id\^="save-"\][\s\S]*?background:#348fe2!important/);
-  assert.match(form,/id="add-sales-line-footer"[^>]*>수주품목 추가<\/button>/);
+  assert.doesNotMatch(form,/id="add-sales-line-footer"|수주품목 추가/);
   assert.match(form,/id="import-sales-order-button"[^>]*>Excel 업로드<\/button>/);
   assert.match(form,/id="sales-order-import-file" type="file" accept="[^"]*\.xlsx/);
-  assert.match(html,/<div class="dialog-footer sales-order-save-actions"><button id="import-sales-order-button"[^>]*>Excel 업로드<\/button><button id="add-sales-line-footer"[^>]*>수주품목 추가<\/button>[\s\S]*?<button id="save-sales-order" class="primary">수주 일괄저장<\/button>/);
+  assert.match(html,/<div class="dialog-footer sales-order-save-actions"><button id="import-sales-order-button"[^>]*>Excel 업로드<\/button><button id="cancel-sales-order"[^>]*>취소<\/button><button id="save-sales-order" class="primary">수주 일괄저장<\/button>/);
   assert.match(form,/id="sales-order-draft-items"/);
   assert.match(html,/<th>거래처<\/th><th>연락처<\/th>/);
   assert.match(html,/id="sales-order-items"/);
@@ -119,7 +119,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(style,/@media\(min-width:1600px\)\{[\s\S]*?\.sales-order-dialog \.sales-order-line-grid\{grid-template-columns:repeat\(6,minmax\(0,1fr\)\) minmax\(320px,2fr\)/);
   assert.match(style,/\.sales-order-dialog \.sales-order-draft-register\{flex:0 0 160px;width:160px;min-width:150px\}/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('save-sales-order-draft'\)\.addEventListener\('click',addSalesOrderLine\)/);
-  assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('add-sales-line-footer'\)\.addEventListener\('click',startNewSalesOrder\)/);
+  assert.doesNotMatch(fs.readFileSync('inventory-app.js','utf8'),/add-sales-line-footer/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('sales-order-draft-items'\)\.addEventListener\('change',changeSalesDraftSelection\)/);
   assert.match(style,/@media\(max-width:850px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(style,/@media\(max-width:520px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:1fr\}/);
@@ -161,7 +161,7 @@ test('draft management checkboxes are preselected and saving requires a selectio
   assert.equal(saveButton.disabled,true);
 });
 
-test('starting another sales order resets its draft while preserving saved orders',()=>{
+test('resetting the sales order form clears the draft while preserving saved orders',()=>{
   const elements=new Map();
   const element=id=>{
     if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false,reset(){}});
@@ -174,12 +174,11 @@ test('starting another sales order resets its draft while preserving saved order
     salesOrders=[{id:'saved-1'}];salesDraftGroupId='group-1';
     salesDraftLines=[{draftId:'draft-1'}];
     $('sales_order_number').value='SO-1'`,context);
-  vm.runInContext('startNewSalesOrder()',context);
+  vm.runInContext('resetSalesOrderForm()',context);
   assert.equal(vm.runInContext('salesDraftLines.length',context),0);
   assert.equal(vm.runInContext('salesDraftGroupId',context),'');
   assert.equal(vm.runInContext('salesOrders.length',context),1);
   assert.equal(element('sales_order_date').value,'2026-11-03');
-  assert.match(element('sales-order-status').textContent,/저장된 수주 이력은 유지됩니다/);
 });
 
 test('individual sales order registration removes its draft and blocks repeated saves',async()=>{

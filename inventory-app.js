@@ -1242,11 +1242,6 @@ function resetSalesOrderForm(){
   salesDraftLines=[];renderSalesDraftLines();
   $('sales-order-title').textContent='수주 입력';$('save-sales-order').textContent='수주 일괄저장';
 }
-function startNewSalesOrder(){
-  if(salesOrderSaving)return;
-  resetSalesOrderForm();
-  $('sales-order-status').textContent='새 수주 입력을 시작합니다. 저장된 수주 이력은 유지됩니다.';
-}
 function cancelSalesOrder(){
   if(salesOrderSaving)return;
   resetSalesOrderForm();$('sales-order-dialog').close();
@@ -3048,7 +3043,6 @@ async function startApp(){
   $('import-sales-order-button').addEventListener('click',openSalesOrderFilePicker);
   $('sales-order-import-file').addEventListener('change',importSalesOrderFile);
   $('save-sales-order-draft').addEventListener('click',addSalesOrderLine);
-  $('add-sales-line-footer').addEventListener('click',startNewSalesOrder);
   $('sales-order-draft-items').addEventListener('change',changeSalesDraftSelection);
   $('sales-order-draft-items').addEventListener('click',event=>{
     const register=event.target.closest('[data-register-sales-line]');

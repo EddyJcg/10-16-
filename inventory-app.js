@@ -1256,7 +1256,8 @@ function showSalesAddressDetailStep(data){
 function confirmSalesAddress(){
   if(!salesAddressPending)return;
   const detail=$('sales-address-detail-input').value.trim();
-  $('sales_address').value=[salesAddressPending.address,detail].filter(Boolean).join(' ');
+  const postalPrefix=salesAddressPending.postal_code?`${salesAddressPending.postal_code}\u00a0\u00a0`:'';
+  $('sales_address').value=postalPrefix+[salesAddressPending.address,detail].filter(Boolean).join(' ');
   $('sales_postal_code').value=salesAddressPending.postal_code;
   salesAddressPending=null;
   $('sales-address-dialog').close();

@@ -12,7 +12,7 @@ test('sales entry provides an editable order date before the order number',()=>{
 
 test('sales order draft table uses the same heading style as saved orders',()=>{
   const dialog=fs.readFileSync('inventory.html','utf8').match(/<dialog id="sales-order-dialog"[\s\S]*?<\/dialog>/)[0];
-  assert.match(dialog,/<h3>가수주 현황<\/h3>\s*<div class="table-wrap sales-order-draft-table">/);
+  assert.match(dialog,/<div class="sales-order-draft-header"><h3>가수주 현황<\/h3><div class="sales-order-draft-actions"><button id="add-sales-line" type="button" class="secondary sales-order-line-add">품목추가<\/button><button id="save-sales-order-draft" type="button" class="primary sales-order-draft-register">가수주 등록<\/button><\/div><\/div>\s*<div class="table-wrap sales-order-draft-table">/);
   assert.match(dialog,/<h3>저장된 수주<\/h3>/);
 });
 
@@ -107,7 +107,8 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.doesNotMatch(form,/id="sales_vendor_id"/);
   assert.doesNotMatch(form,/id="sales_vendor_contact" readonly/);
   assert.match(form,/id="sales_amount" readonly/);
-  assert.match(form,/class="field sales-order-due-date-field"><label for="sales_due_date">납기일자<\/label><div class="sales-order-due-date-actions"><input id="sales_due_date" type="date" required min="1900-01-01"><button id="add-sales-line" type="button" class="secondary sales-order-line-add">품목추가<\/button><button id="save-sales-order-draft" type="button" class="primary sales-order-draft-register">가수주 등록<\/button><\/div><\/div>/);
+  assert.match(form,/class="field sales-order-due-date-field"><label for="sales_due_date">납기일자<\/label><input id="sales_due_date" type="date" required min="1900-01-01"><\/div>/);
+  assert.ok(form.indexOf('id="sales_amount"')<form.indexOf('id="sales_due_date"')&&form.indexOf('id="sales_due_date"')<form.indexOf('id="sales_address"'));
   assert.match(fs.readFileSync('inventory.css','utf8'),/button\[id\^="save-"\][\s\S]*?background:#348fe2!important/);
   assert.doesNotMatch(form,/id="add-sales-line-footer"|수주품목 추가/);
   assert.match(form,/id="import-sales-order-button"[^>]*>Excel 업로드<\/button>/);
@@ -121,7 +122,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(html,/<link rel="stylesheet" href="\/sales-order\.css/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);
   assert.match(style,/@media\(min-width:851px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
-  assert.match(style,/@media\(min-width:1600px\)\{[\s\S]*?\.sales-order-dialog \.sales-order-line-grid\{grid-template-columns:repeat\(6,minmax\(0,1fr\)\) minmax\(430px,2fr\)/);
+  assert.match(style,/@media\(min-width:1280px\)\{[\s\S]*?\.sales-order-dialog \.sales-order-line-grid\{grid-template-columns:repeat\(9,minmax\(0,1fr\)\)\}/);
   assert.match(style,/\.sales-order-dialog \.sales-order-draft-register\{flex:0 0 160px;width:160px;min-width:150px\}/);
   assert.match(style,/\.sales-order-dialog \.sales-order-line-add\{[^}]*background:#ffe0b2;border-color:#efb76f;color:#633500/);
   for(const attr of ['data-edit-sales-draft','data-delete-sales-draft','data-sales-order-id','data-delete-sales-order-id'])

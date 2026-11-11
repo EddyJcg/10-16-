@@ -29,8 +29,6 @@
   .sales-status-order-search .field{max-width:none}
   .sales-register-confirm-dialog .dialog-footer button{flex:1}
 }
-.sales-order-dialog .sales-order-due-date-actions{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
-.sales-order-dialog .sales-order-due-date-actions input{flex:1 1 130px;min-width:0}
 .sales-order-dialog #sales_order_date,.sales-order-dialog #sales_order_number,.sales-order-dialog #sales_vendor_contact,
 .sales-order-dialog #sales_delivery_method,.sales-order-dialog #sales_product_code,.sales-order-dialog #sales_quantity,
 .sales-order-dialog #sales_unit_price{width:70%}
@@ -60,26 +58,27 @@
 }
 .sales-order-dialog .sales-order-draft-table tbody tr[data-grid-blank] td:last-child,
 .sales-order-dialog .sales-order-table tbody tr[data-grid-blank] td:last-child{background:#f1f2f4}
-@media(min-width:1600px){
-  .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(6,minmax(0,1fr)) minmax(430px,2fr)}
+@media(min-width:1280px){
+  .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(9,minmax(0,1fr))}
+  .sales-order-dialog .sales-order-address-field{grid-column:span 3}
 }
-@media(min-width:851px) and (max-width:1599px){
+@media(min-width:851px) and (max-width:1279px){
   .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
   .sales-order-dialog .sales-order-due-date-field{grid-column:span 2}
+  .sales-order-dialog .sales-order-address-field{grid-column:span 2}
 }
 @media(max-width:850px){
   .sales-order-dialog .sales-order-due-date-field{grid-column:1/-1}
   .sales-order-dialog .sales-order-address-field{grid-column:1/-1}
 }
-.sales-order-dialog .sales-order-address-field{grid-column:span 2}
 .sales-order-dialog .sales-order-address-actions{display:flex;gap:6px}
 .sales-order-dialog .sales-order-address-actions input:first-child{flex:1 1 auto;min-width:0;cursor:pointer}
 .sales-order-dialog .sales-order-address-actions input:last-child{flex:0 0 96px}
+.sales-order-dialog .sales-order-draft-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sales-order-dialog .sales-order-draft-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
 .sales-address-dialog{width:min(560px,94vw);max-height:86vh}
 .sales-address-dialog .sales-address-search{height:480px;border:1px solid #d7dbe0;border-radius:6px;overflow:hidden}
 @media(max-width:520px){
-  .sales-order-dialog .sales-order-due-date-actions{flex-direction:column}
-  .sales-order-dialog .sales-order-due-date-actions input{flex:0 0 auto}
   .sales-order-dialog .sales-order-line-add{flex:0 0 auto;width:100%}
   .sales-order-dialog .sales-order-draft-register{flex:0 0 auto;width:100%}
 }

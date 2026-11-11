@@ -2,7 +2,7 @@
 <html lang="ko">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isummerly 매출/재고관리</title><link rel="icon" type="image/png" href="/isummerly-logo.png">
 <link rel="stylesheet" href="/inventory.css?v=20261110-mobile-layout">
-<link rel="stylesheet" href="/sales-order.css?v=20261111-input-width">
+<link rel="stylesheet" href="/sales-order.css?v=20261111-button-layout">
 <link rel="stylesheet" href="/purchase-folder-icon.css?v=20261104-sidebar-black-unboxed">
 <link rel="stylesheet" href="/purchase-order.css?v=20261102-purchase-entry-label-size">
 <link rel="stylesheet" href="/vendor-info-icon.css?v=20261102-vendor-info-product-icon">
@@ -297,12 +297,12 @@
             <div class="field"><label for="sales_quantity">수량</label><input id="sales_quantity" type="number" required min="1" max="1000000" step="1"></div>
             <div class="field"><label for="sales_unit_price">단가</label><input id="sales_unit_price" type="number" required min="0" max="1000000000" step="0.01"></div>
             <div class="field"><label for="sales_amount">수주금액</label><input id="sales_amount" readonly aria-label="자동 계산 수주금액"></div>
+            <div class="field sales-order-due-date-field"><label for="sales_due_date">납기일자</label><input id="sales_due_date" type="date" required min="1900-01-01"></div>
             <div class="field sales-order-address-field"><label for="sales_address">주소</label><div class="sales-order-address-actions"><input id="sales_address" required readonly maxlength="300" placeholder="클릭하여 도로명 주소 검색" autocomplete="off"><input id="sales_postal_code" readonly maxlength="10" placeholder="우편번호" aria-label="우편번호" autocomplete="off"></div></div>
-            <div class="field sales-order-due-date-field"><label for="sales_due_date">납기일자</label><div class="sales-order-due-date-actions"><input id="sales_due_date" type="date" required min="1900-01-01"><button id="add-sales-line" type="button" class="secondary sales-order-line-add">품목추가</button><button id="save-sales-order-draft" type="button" class="primary sales-order-draft-register">가수주 등록</button></div></div>
           </div>
           <p id="sales-draft-validation-status" class="sales-draft-validation-status" role="status" aria-live="polite"></p>
           <input id="sales-order-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
-          <h3>가수주 현황</h3>
+          <div class="sales-order-draft-header"><h3>가수주 현황</h3><div class="sales-order-draft-actions"><button id="add-sales-line" type="button" class="secondary sales-order-line-add">품목추가</button><button id="save-sales-order-draft" type="button" class="primary sales-order-draft-register">가수주 등록</button></div></div>
           <div class="table-wrap sales-order-draft-table"><table aria-label="작성 중인 수주 품목"><thead><tr><th>수주일자</th><th>수주번호</th><th>수주형태</th><th>거래처(성명)</th><th>연락처</th><th>배송방법</th><th>품번</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>주소</th><th>납기일자</th><th data-grid-min-width="200" data-column-required>관리</th></tr></thead><tbody id="sales-order-draft-items"></tbody></table></div>
           <p id="sales-order-status" class="product-list-status" role="status" aria-live="polite"></p>
           <h3>저장된 수주</h3>

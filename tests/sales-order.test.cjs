@@ -372,7 +372,7 @@ test('sales registration table has no 관리 column and lists completed orders b
 test('bulk sales registration completes only eligible pending orders and keeps the register dialog open',async()=>{
   const elements=new Map(),calls=[];
   const element=id=>{
-    if(!elements.has(id))elements.set(id,{open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
+    if(!elements.has(id))elements.set(id,{value:'',open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
     return elements.get(id);
   };
   const testClient={rpc:async(name,args)=>{
@@ -420,7 +420,7 @@ test('sales registration add button clears conditions and restores the search in
 test('bulk sales registration processes only unregistered eligible search results once',async()=>{
   const elements=new Map(),calls=[];
   const element=id=>{
-    if(!elements.has(id))elements.set(id,{open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
+    if(!elements.has(id))elements.set(id,{value:'',open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
     return elements.get(id);
   };
   const testClient={rpc:async(name,args)=>{
@@ -453,6 +453,52 @@ test('bulk sales registration processes only unregistered eligible search result
   assert.equal(vm.runInContext("salesOrders.filter(order=>order.sales_progress_status==='완료').length",context),3);
   await vm.runInContext('completeSalesRegistration()',context);
   assert.equal(calls.length,2,'a repeated bulk action does not call the database again');
+});
+
+test('sales registration with shipment inputs posts a capped stock issue before registering',async()=>{
+  const elements=new Map(),rpcCalls=[],fromCalls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
+    return elements.get(id);
+  };
+  const testClient={
+    rpc:async(name,args)=>{
+      rpcCalls.push([name,args]);
+      if(name==='post_stock_movement')return {data:null,error:null};
+      return {data:{...args.p_order_id?{id:args.p_order_id}:{}, order_number:'SO-9',product_name:'품목9',quantity:2,shipped_quantity:2,shipped_date:'2026-11-05',sales_progress_status:'완료',sales_status:'매출완료'},error:null};
+    },
+    from:table=>({select:()=>({eq:(column,value)=>({single:async()=>{
+      fromCalls.push([table,column,value]);
+      return {data:{id:value,order_number:'SO-9',product_name:'품목9',product_code:'P9',unit:'EA',quantity:2,shipped_quantity:2,shipped_date:'2026-11-05',sales_progress_status:'진행'},error:null};
+    }})})})
+  };
+  const context=vm.createContext({
+    document:{getElementById:element},testClient,salesOrderStatus,number:value=>String(value),
+    crypto:{randomUUID:()=>'request-1'},validDate:value=>/^\d{4}-\d{2}-\d{2}$/.test(value)
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  context.renderSalesOrders=()=>{};
+  context.renderSalesStatus=()=>{};
+  context.renderSalesRegister=()=>{};
+  context.renderSalesBalance=()=>{};
+  context.updateIssueSalesOrders=()=>{};
+  context.loadStock=async()=>{};
+  element('sales-register-ship-date').value='2026-11-05';
+  element('sales-register-ship-quantity').value='5';
+  vm.runInContext(`currentUser={id:'user'};client=testClient;
+    salesOrders=[{id:'order-9',order_number:'SO-9',product_name:'품목9',product_code:'P9',unit:'EA',quantity:2,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];
+    salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
+  await vm.runInContext('completeSalesRegistration()',context);
+  const issue=rpcCalls.find(([name])=>name==='post_stock_movement');
+  assert.ok(issue,'a stock issue is posted');
+  assert.equal(issue[1].p_kind,'issue');
+  assert.equal(issue[1].p_date,'2026-11-05');
+  assert.equal(issue[1].p_quantity,2,'the issue quantity is capped at the order quantity');
+  assert.equal(issue[1].p_details.product_code,'P9');
+  assert.equal(issue[1].p_details.sales_order_id,'order-9');
+  assert.equal(rpcCalls.at(-1)[0],'set_sales_order_status');
+  assert.equal(rpcCalls.at(-1)[1].p_sales_status,'완료');
+  assert.equal(fromCalls.length,1);
 });
 
 test('sales order stop bulk action stops only in-progress orders that are not fully shipped',async()=>{

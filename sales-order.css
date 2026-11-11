@@ -45,7 +45,7 @@
 .sales-order-dialog .sales-order-draft-table button[data-delete-sales-draft],
 .sales-order-dialog .sales-order-table button[data-sales-order-id],
 .sales-order-dialog .sales-order-table button[data-delete-sales-order-id]{
-  width:64px;transform:scaleX(.65);transform-origin:left center;margin-right:-22px
+  width:64px;transform:scaleX(.78);transform-origin:left center;margin-right:-14px
 }
 .sales-order-draft-table th[data-grid-min-width]{min-width:200px}
 .sales-order-dialog .sales-order-draft-table button[data-register-sales-line]{transform:scaleX(.7);transform-origin:left center}

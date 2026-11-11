@@ -25,6 +25,35 @@ test('열 경계 드래그 크기 조절과 넘친 내용 숨김 규칙이 있�
   assert.match(css, /grid-resized td\{overflow:hidden/);
 });
 
+test('닫힌 창에서 저장된 열 너비를 복원할 때 새 열도 표시할 공간을 확보한다', () => {
+  const headers=['일련번호','품번','품명'].map((label,index)=>({
+    textContent:label,dataset:{},style:{},
+    hasAttribute:name=>name==='data-grid-serial'&&index===0,
+    getBoundingClientRect:()=>({width:0})
+  }));
+  const dialog={id:'sales-order-dialog',querySelectorAll:()=>[table]};
+  const table={
+    tHead:{rows:[{cells:headers}]},style:{},classList:{add(){}},
+    closest:()=>dialog,querySelectorAll:()=>[]
+  };
+  const context=vm.createContext({
+    document:{querySelectorAll:()=>[]},
+    MutationObserver:class{observe(){} disconnect(){}},
+    localStorage:{getItem:()=>JSON.stringify({
+      'sales-order-dialog|0|일련번호':40,'sales-order-dialog|0|품명':120
+    })},
+    window:{addEventListener(){}}
+  });
+  const script=read('popup-table-grid.js').replace('  syncAll();','  window.testRestoreWidths=restoreWidths;\n  syncAll();');
+  vm.runInContext(script,context);
+  context.window.testRestoreWidths(table);
+  assert.equal(headers[0].style.width,'40px');
+  assert.equal(headers[1].style.width,'80px');
+  assert.equal(headers[2].style.width,'120px');
+  assert.equal(table.style.width,'240px');
+  assert.equal(table.style.tableLayout,'fixed');
+});
+
 test('표 제목줄과 행 높이가 2/3로 줄어든다', () => {
   const css = read('popup-table-grid.css');
   assert.match(css, /dialog table th,dialog table td\{padding-top:4\.5px!important;padding-bottom:4\.5px!important/);

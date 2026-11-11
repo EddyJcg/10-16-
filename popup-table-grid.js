@@ -49,6 +49,7 @@
   }
 
   const MIN_WIDTH=30;
+  const NEW_COLUMN_WIDTH=80;
   const STORAGE_KEY='popup-table-column-widths';
   const savedWidths=new Map();
   try{Object.entries(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')).forEach(([k,v])=>{if(v>0)savedWidths.set(k,v);});}catch(e){}
@@ -88,7 +89,12 @@
       const width=savedWidths.get(widthKey(table,th));
       if(width&&!th.style.width){setColumnWidth(table,index,width);restored=true;}
     });
-    if(restored){table.classList.add('grid-resized');table.style.tableLayout='fixed';fitTableWidth(table);}
+    if(restored){
+      [...head.cells].forEach((th,index)=>{
+        if(!th.style.width)setColumnWidth(table,index,th.getBoundingClientRect().width||NEW_COLUMN_WIDTH);
+      });
+      table.classList.add('grid-resized');table.style.tableLayout='fixed';fitTableWidth(table);
+    }
   }
   function syncHandles(table,head){
     if(table.querySelector('.column-resizer')){

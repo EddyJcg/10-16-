@@ -424,13 +424,16 @@ test('bulk sales registration registers only the orders checked in the register 
   vm.runInContext(`currentUser={id:'user'};client=testClient;
     salesOrders=[
       {id:'checked',order_number:'SO-1',product_name:'품목1',quantity:1,shipped_quantity:1,shipped_date:'2026-11-01',sales_progress_status:'진행'},
-      {id:'unchecked',order_number:'SO-2',product_name:'품목2',quantity:1,shipped_quantity:1,shipped_date:'2026-11-02',sales_progress_status:'진행'}];
+      {id:'unchecked',order_number:'SO-2',product_name:'품목2',quantity:1,shipped_quantity:1,shipped_date:'2026-11-02',sales_progress_status:'진행'},
+      {id:'unshipped',order_number:'SO-3',product_name:'품목3',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];
     renderSalesOrders=()=>{};renderSalesStatus=()=>{};renderSalesRegister=()=>{};renderSalesBalance=()=>{};updateIssueSalesOrders=()=>{};
     salesRegisterVisibleOrders=salesOrders;salesRegisterCheckedIds=new Set();openBulkSalesRegisterConfirmation()`,context);
   assert.equal(element('sales-register-message').textContent,'매출등록할 수주를 체크하세요.');
   vm.runInContext("salesRegisterCheckedIds=new Set(['checked']);openBulkSalesRegisterConfirmation()",context);
   assert.equal(element('sales-register-confirm-message').textContent,'1건의 매출등록을 진행하시겠습니까?');
   await vm.runInContext('completeSalesRegistration()',context);
+  vm.runInContext("salesRegisterCheckedIds=new Set(['unshipped']);openBulkSalesRegisterConfirmation()",context);
+  assert.match(element('sales-register-message').textContent,/출고일자가 있는 전량 출고 품목만/);
   assert.deepEqual(calls,['checked']);
 });
 

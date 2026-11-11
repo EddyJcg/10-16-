@@ -422,7 +422,7 @@ function errorText(error) {
     SALES_ORDER_LINE_NOT_FOUND:'수정할 수주 품목을 찾을 수 없습니다. 수주 목록을 새로고침하세요.',
     DUPLICATE_SALES_ORDER_LINE:'같은 수주 품목이 중복으로 전달되었습니다. 창을 새로고침하세요.',
     SALES_ORDER_STOPPED:'중단된 수주는 출고할 수 없습니다. 매출 상태를 진행으로 바꾸세요.',
-    INVALID_SALES_STATUS:'매출 상태는 진행·완료·중단 중에서 선택하세요.',
+    INVALID_SALES_STATUS:'매출 상태 DB 함수가 이전 버전입니다. Supabase SQL Editor에서 supabase/sales-status-workflow.sql을 실행하세요.',
     INVALID_SALES_ORDER_LINK:'출고에 연결할 수주번호를 확인하세요.',
     SALES_ORDER_NOT_FOUND:'연결할 수주를 찾을 수 없습니다. 수주 목록을 새로 확인하세요.',
     SALES_ORDER_PRODUCT_MISMATCH:'선택한 수주의 품명·규격·단위가 출고 품목과 다릅니다.',
@@ -1095,7 +1095,7 @@ function openBulkSalesRegisterConfirmation(){
   }
   salesRegisterTargetOrderIds=checkedOrders.filter(order=>salesRegistrationCandidate(order,salesRegisterShipmentFor(order))).map(order=>order.id);
   if(!salesRegisterTargetOrderIds.length){
-    $('sales-register-message').textContent='체크된 수주 중 매출 등록 가능한 품목이 없습니다.';
+    $('sales-register-message').textContent='체크된 수주 중 매출 등록 가능한 품목이 없습니다. 출고일자가 있는 전량 출고 품목만 매출완료 처리할 수 있습니다.';
     return;
   }
   const shipping=checkedOrders.some(order=>salesRegisterShipmentFor(order));

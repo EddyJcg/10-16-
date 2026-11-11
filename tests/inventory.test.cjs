@@ -607,6 +607,7 @@ test('date input accepts historical real dates and rejects impossible dates',()=
 });
 test('missing migration and stock errors have actionable messages',()=>{
   const ctx=vm.createContext({});vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),ctx);
+  assert.match(vm.runInContext('errorText({message:"INVALID_SALES_STATUS"})',ctx),/sales-status-workflow\.sql/);
   assert.match(vm.runInContext('errorText({code:"PGRST205"})',ctx),/fifo.sql/);
   assert.match(vm.runInContext('errorText({message:"INSUFFICIENT_STOCK"})',ctx),/재고가 부족/);
   assert.match(vm.runInContext('errorText({message:"BACKDATE_CONFLICT"})',ctx),/날짜 순서/);

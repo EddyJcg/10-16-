@@ -84,7 +84,10 @@ test('address search asks for detail address after selecting a road address and 
   const app=fs.readFileSync('inventory-app.js','utf8');
   assert.match(app,/oncomplete\(data\)\{showSalesAddressDetailStep\(data\);\}/);
   assert.match(app,/\$\('sales-address-search'\)\.hidden=true;\s*\$\('sales-address-detail-step'\)\.hidden=false;/);
-  assert.match(app,/const detail=\$\('sales-address-detail-input'\)\.value\.trim\(\);\s*const postalPrefix=salesAddressPending\.postal_code\?`\$\{salesAddressPending\.postal_code\}\\u00a0\\u00a0`:'';\s*\$\('sales_address'\)\.value=postalPrefix\+\[salesAddressPending\.address,detail\]\.filter\(Boolean\)\.join\(' '\);/);
+  assert.match(app,/const detail=\$\('sales-address-detail-input'\)\.value\.trim\(\);\s*\$\('sales_address'\)\.value=\[salesAddressPending\.address,detail\]\.filter\(Boolean\)\.join\(' '\);/);
+  assert.match(app,/function salesAddressDisplay\(item\)\{[\s\S]*?return postal\?`\$\{postal\}\\u00a0\\u00a0\$\{address\}`:address;/);
+  assert.match(app,/salesAddressDisplay\(order\),order\.notes/);
+  assert.match(app,/salesAddressDisplay\(line\),line\.due_date/);
   assert.match(app,/\$\('sales_postal_code'\)\.value=salesAddressPending\.postal_code;/);
   assert.match(app,/\$\('sales-address-back'\)\.addEventListener\('click',\(\)=>\{showSalesAddressSearchStep\(\);renderSalesAddressSearch\(\);\}\);/);
   assert.match(app,/\$\('sales-address-confirm'\)\.addEventListener\('click',confirmSalesAddress\);/);

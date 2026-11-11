@@ -495,13 +495,18 @@ function renderSalesOrders(){
     bindStockRow(row,order);
     [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',order.product_code||'',order.product_name,order.specification,order.unit,
       number(order.quantity),money(order.unit_price),money(order.amount),String(order.due_date).slice(0,10),
-      order.delivery_method,order.address,order.notes].forEach((value,index)=>row.append(makeCell(value,index===0||index===10||index===11||index===12)));
+      order.delivery_method,salesAddressDisplay(order),order.notes].forEach((value,index)=>row.append(makeCell(value,index===0||index===10||index===11||index===12)));
     const action=document.createElement('td'),button=document.createElement('button'),remove=document.createElement('button');
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
     remove.type='button';remove.className='secondary';remove.textContent='삭제';remove.dataset.deleteSalesOrderId=order.id;
     action.append(button,remove);row.append(action);
     body.append(row);
   });
+}
+function salesAddressDisplay(item){
+  const postal=String(item.postal_code||'').trim(),address=String(item.address||'');
+  // 표 셀은 일반 공백을 한 칸으로 줄이므로 줄바꿈 없는 공백 두 칸을 사용합니다.
+  return postal?`${postal}\u00a0\u00a0${address}`:address;
 }
 function renderSalesDraftLines(){
   const body=$('sales-order-draft-items');body.replaceChildren();
@@ -512,7 +517,7 @@ function renderSalesDraftLines(){
     const row=document.createElement('tr');
     bindStockRow(row,line);
     [...orderHeader,line.product_code||'',line.product_name,line.specification,line.unit,number(line.quantity),money(line.unit_price),
-      money(Number(line.quantity)*Number(line.unit_price)),line.address||'',line.due_date].forEach((value,col)=>row.append(makeCell(value,col===10||col===11||col===12)));
+      money(Number(line.quantity)*Number(line.unit_price)),salesAddressDisplay(line),line.due_date].forEach((value,col)=>row.append(makeCell(value,col===10||col===11||col===12)));
     const action=document.createElement('td');
     const edit=document.createElement('button'),remove=document.createElement('button');
     edit.type='button';edit.className='secondary';edit.textContent='수정';edit.dataset.editSalesDraft=String(line.draftId);edit.disabled=salesOrderSaving;
@@ -1256,8 +1261,7 @@ function showSalesAddressDetailStep(data){
 function confirmSalesAddress(){
   if(!salesAddressPending)return;
   const detail=$('sales-address-detail-input').value.trim();
-  const postalPrefix=salesAddressPending.postal_code?`${salesAddressPending.postal_code}\u00a0\u00a0`:'';
-  $('sales_address').value=postalPrefix+[salesAddressPending.address,detail].filter(Boolean).join(' ');
+  $('sales_address').value=[salesAddressPending.address,detail].filter(Boolean).join(' ');
   $('sales_postal_code').value=salesAddressPending.postal_code;
   salesAddressPending=null;
   $('sales-address-dialog').close();

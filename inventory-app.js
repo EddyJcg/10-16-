@@ -489,13 +489,13 @@ async function showStockRisk() {
 }
 function renderSalesOrders(){
   const body=$('sales-order-items');body.replaceChildren();
-  if(!salesOrders.length){emptyRow(body,17,'저장된 수주가 없습니다.');return;}
+  if(!salesOrders.length){emptyRow(body,18,'저장된 수주가 없습니다.');return;}
   salesOrders.forEach(order=>{
     const row=document.createElement('tr');
     bindStockRow(row,order);
-    [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',order.product_name,order.specification,order.unit,
+    [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',order.product_code||'',order.product_name,order.specification,order.unit,
       number(order.quantity),money(order.unit_price),money(order.amount),String(order.due_date).slice(0,10),
-      order.delivery_method,order.address,order.notes].forEach((value,index)=>row.append(makeCell(value,index===0||index===9||index===10||index===11)));
+      order.delivery_method,order.address,order.notes].forEach((value,index)=>row.append(makeCell(value,index===0||index===10||index===11||index===12)));
     const action=document.createElement('td'),button=document.createElement('button');
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
     action.append(button);row.append(action);
@@ -504,12 +504,12 @@ function renderSalesOrders(){
 }
 function renderSalesDraftLines(){
   const body=$('sales-order-draft-items');body.replaceChildren();
-  if(!salesDraftLines.length){emptyRow(body,8,'수주 품목을 추가하세요.');updateSalesOrderSaveButton();return;}
+  if(!salesDraftLines.length){emptyRow(body,9,'수주 품목을 추가하세요.');updateSalesOrderSaveButton();return;}
   salesDraftLines.forEach((line,index)=>{
     const row=document.createElement('tr');
     bindStockRow(row,line);
-    [line.product_name,line.specification,line.unit,number(line.quantity),money(line.unit_price),
-      money(Number(line.quantity)*Number(line.unit_price)),line.due_date].forEach((value,col)=>row.append(makeCell(value,col===3||col===4||col===5)));
+    [line.product_code||'',line.product_name,line.specification,line.unit,number(line.quantity),money(line.unit_price),
+      money(Number(line.quantity)*Number(line.unit_price)),line.due_date].forEach((value,col)=>row.append(makeCell(value,col===4||col===5||col===6)));
     const action=document.createElement('td'),checkbox=document.createElement('input'),button=document.createElement('button');
     checkbox.type='checkbox';checkbox.checked=line.selected!==false;
     checkbox.dataset.salesDraftSelect=String(line.draftId);
@@ -1132,10 +1132,10 @@ function addSalesOrderLine(){
   }
   salesDraftLines.push({
     draftId:'sales-draft-'+(++salesDraftSequence),
-    product_name:$('sales_product_name').value.trim(),specification:$('sales_specification').value.trim(),
+    product_code:$('sales_product_code').value.trim(),product_name:$('sales_product_name').value.trim(),specification:$('sales_specification').value.trim(),
     unit:$('sales_unit').value,quantity,unit_price:unitPrice,due_date:dueDate,selected:true
   });
-  ['sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_amount','sales_due_date']
+  ['sales_product_code','sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_amount','sales_due_date']
     .forEach(id=>$(id).value='');
   renderSalesDraftLines();$('sales-order-status').textContent='';
 }
@@ -1154,9 +1154,19 @@ function salesOrderLinePayload(line){
 }
 function salesOrderRecordPayload(order){
   return {
-    line_id:order.id,product_name:order.product_name,specification:order.specification||'',unit:order.unit,
+    line_id:order.id,product_code:order.product_code||'',product_name:order.product_name,specification:order.specification||'',unit:order.unit,
     quantity:Number(order.quantity),unit_price:Number(order.unit_price),due_date:String(order.due_date).slice(0,10)
   };
+}
+async function ensureSalesOrderProductCodeReady(lines){
+  if(!lines.some(line=>line.product_code))return;
+  const {data,error}=await client.rpc('sales_order_product_code_ready');
+  if(error){
+    if(error.code==='PGRST202'||error.code==='42883')
+      throw new Error('품번 저장을 위해 최신 supabase/sales-order-groups.sql을 실행하세요.');
+    throw error;
+  }
+  if(data!==true)throw new Error('품번 저장 권한을 확인하세요.');
 }
 function resetSalesOrderForm(){
   editingSalesOrderId='';salesDraftGroupId='';$('sales-order-form').reset();$('sales_order_date').value=todayDate();
@@ -1183,7 +1193,7 @@ function editSalesOrder(id){
     ['sales_vendor_name','vendor_name'],['sales_vendor_contact','vendor_contact'],['sales_delivery_method','delivery_method']]
     .forEach(([field,key])=>$(field).value=order[key]??'');
   salesDraftLines=group.map(line=>({
-    line_id:line.id,draftId:'sales-draft-'+(++salesDraftSequence),product_name:line.product_name,specification:line.specification||'',unit:line.unit,
+    line_id:line.id,draftId:'sales-draft-'+(++salesDraftSequence),product_code:line.product_code||'',product_name:line.product_name,specification:line.specification||'',unit:line.unit,
     quantity:Number(line.quantity),unit_price:Number(line.unit_price),due_date:String(line.due_date).slice(0,10),selected:true
   }));
   renderSalesDraftLines();
@@ -1230,6 +1240,7 @@ async function saveSalesOrder(event){
       p_vendor_contact:$('sales_vendor_contact').value.trim(),p_delivery_method:$('sales_delivery_method').value.trim(),
       p_lines:[...existingGroupLines,...selectedDraftLines.map(salesOrderLinePayload)]
     };
+    await ensureSalesOrderProductCodeReady(rpcArgs.p_lines);
     const {data,error}=updatingGroupId
       ? await client.rpc('update_sales_order_group',{p_group_id:updatingGroupId,...rpcArgs})
       : await client.rpc('register_sales_order_group',rpcArgs);
@@ -1276,6 +1287,7 @@ async function registerSalesOrderLine(draftId){
     const groupId=editingSalesOrderId||salesDraftGroupId;
     const currentGroup=groupId?salesOrders.filter(order=>(order.order_group_id||order.id)===groupId):[];
     const lines=[...currentGroup.map(salesOrderRecordPayload),salesOrderLinePayload(line)];
+    await ensureSalesOrderProductCodeReady(lines);
     const rpcResult=groupId
       ? await client.rpc('update_sales_order_group',{p_group_id:groupId,
         p_order_date:orderDate,p_order_number:$('sales_order_number').value.trim(),

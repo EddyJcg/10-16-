@@ -2,8 +2,16 @@
 begin;
 
 alter table public.sales_orders
-  add column if not exists order_group_id uuid not null default gen_random_uuid();
+  add column if not exists order_group_id uuid not null default gen_random_uuid(),
+  add column if not exists product_code text not null default '';
 create index if not exists sales_orders_order_group_id on public.sales_orders(order_group_id);
+
+create or replace function public.sales_order_product_code_ready()
+returns boolean language sql security definer set search_path = '' as $$
+  select public.inventory_access_allowed();
+$$;
+revoke all on function public.sales_order_product_code_ready() from public,anon;
+grant execute on function public.sales_order_product_code_ready() to authenticated;
 
 create or replace function public.register_sales_order_group(
   p_order_date date,p_order_number text,p_order_type text,p_vendor_name text,
@@ -38,7 +46,8 @@ begin
     v_name:=trim(coalesce(v_line->>'product_name',''));
     v_specification:=coalesce(v_line->>'specification','');
     v_unit:=v_line->>'unit';
-    if char_length(v_name) not between 1 and 120 or char_length(v_specification)>200
+    if char_length(trim(coalesce(v_line->>'product_code','')))>80
+      or char_length(v_name) not between 1 and 120 or char_length(v_specification)>200
       or v_unit is null or v_unit not in ('EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식')
       or coalesce(v_line->>'quantity','') !~ '^[0-9]{1,7}$'
       or coalesce(v_line->>'unit_price','') !~ '^[0-9]{1,10}(\.[0-9]{1,2})?$'
@@ -54,11 +63,11 @@ begin
     end if;
     insert into public.sales_orders(
       order_group_id,order_date,order_number,order_type,vendor_id,vendor_name,vendor_contact,
-      product_name,specification,unit,quantity,unit_price,amount,due_date,delivery_method,
+      product_code,product_name,specification,unit,quantity,unit_price,amount,due_date,delivery_method,
       address,notes,created_by
     ) values(
       v_group_id,p_order_date,trim(p_order_number),p_order_type,null,trim(p_vendor_name),
-      nullif(trim(coalesce(p_vendor_contact,'')),''),v_name,v_specification,v_unit,v_quantity,
+      nullif(trim(coalesce(p_vendor_contact,'')),''),trim(coalesce(v_line->>'product_code','')),v_name,v_specification,v_unit,v_quantity,
       v_unit_price,v_quantity*v_unit_price,v_due_date,coalesce(p_delivery_method,''),'','',auth.uid()
     ) returning * into v_order;
     v_orders:=v_orders||jsonb_build_array(to_jsonb(v_order));
@@ -105,7 +114,8 @@ begin
     v_name:=trim(coalesce(v_line->>'product_name',''));
     v_specification:=coalesce(v_line->>'specification','');
     v_unit:=v_line->>'unit';
-    if char_length(v_name) not between 1 and 120 or char_length(v_specification)>200
+    if char_length(trim(coalesce(v_line->>'product_code','')))>80
+      or char_length(v_name) not between 1 and 120 or char_length(v_specification)>200
       or v_unit is null or v_unit not in ('EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식')
       or coalesce(v_line->>'quantity','') !~ '^[0-9]{1,7}$'
       or coalesce(v_line->>'unit_price','') !~ '^[0-9]{1,10}(\.[0-9]{1,2})?$'
@@ -133,6 +143,7 @@ begin
       update public.sales_orders set
         order_date=p_order_date,order_number=trim(p_order_number),order_type=p_order_type,
         vendor_id=null,vendor_name=trim(p_vendor_name),vendor_contact=nullif(trim(coalesce(p_vendor_contact,'')),''),
+        product_code=case when v_line ? 'product_code' then trim(coalesce(v_line->>'product_code','')) else v_current.product_code end,
         product_name=v_name,specification=v_specification,unit=v_unit,quantity=v_quantity,
         unit_price=v_unit_price,amount=v_quantity*v_unit_price,due_date=v_due_date,
         delivery_method=coalesce(p_delivery_method,'')
@@ -140,11 +151,11 @@ begin
     else
       insert into public.sales_orders(
         order_group_id,order_date,order_number,order_type,vendor_id,vendor_name,vendor_contact,
-        product_name,specification,unit,quantity,unit_price,amount,due_date,delivery_method,
+        product_code,product_name,specification,unit,quantity,unit_price,amount,due_date,delivery_method,
         address,notes,created_by
       ) values(
         p_group_id,p_order_date,trim(p_order_number),p_order_type,null,trim(p_vendor_name),
-        nullif(trim(coalesce(p_vendor_contact,'')),''),v_name,v_specification,v_unit,v_quantity,
+        nullif(trim(coalesce(p_vendor_contact,'')),''),trim(coalesce(v_line->>'product_code','')),v_name,v_specification,v_unit,v_quantity,
         v_unit_price,v_quantity*v_unit_price,v_due_date,coalesce(p_delivery_method,''),'','',auth.uid()
       ) returning * into v_order;
     end if;

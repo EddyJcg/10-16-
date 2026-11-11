@@ -72,8 +72,11 @@ function parseSalesOrderImportWorkbook(workbook,units){
     const values=Object.fromEntries(SALES_ORDER_IMPORT_FIELDS.map(field=>[
       field.key,importCellText(row.getCell(headerIndexes.get(normalizeProductImportHeader(field.label))))
     ]));
+    const codeColumn=headerIndexes.get(normalizeProductImportHeader('품번'));
+    if(codeColumn)values.product_code=importCellText(row.getCell(codeColumn));
     if(Object.values(values).every(value=>!value))return;
     const rowErrors=[];
+    if(values.product_code?.length>80)rowErrors.push('품번은 80자 이하여야 함');
     if(!values.product_name)rowErrors.push('품명 누락');
     if(values.product_name.length>120)rowErrors.push('품명은 120자 이하여야 함');
     if(values.specification.length>200)rowErrors.push('규격은 200자 이하여야 함');

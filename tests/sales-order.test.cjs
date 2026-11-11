@@ -146,7 +146,7 @@ test('draft management checkboxes are preselected and saving requires a selectio
     {draftId:'draft-a',product_name:'품목 A',unit:'EA',quantity:1,unit_price:10,due_date:'2026-12-01',selected:true},
     {draftId:'draft-b',product_name:'품목 B',unit:'EA',quantity:2,unit_price:20,due_date:'2026-12-01',selected:false}
   ];renderSalesDraftLines()`,context);
-  const first=body.children[0].children[7].children[0],second=body.children[1].children[7].children[0];
+  const first=body.children[0].children[8].children[0],second=body.children[1].children[8].children[0];
   assert.equal(first.type,'checkbox');
   assert.equal(first.checked,true);
   assert.equal(second.checked,false);

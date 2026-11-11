@@ -301,6 +301,7 @@ test('sales registration has its own search dialog, matching order columns and c
   assert.match(registerDialog,/<tbody id="sales-register-completed-items"><\/tbody>/);
   assert.doesNotMatch(registerHeader,/<th>(?:연락처|완료 체크|기타사항)<\/th>/);
   assert.match(registerDialog,/id="sales-register-query" type="search"/);
+  assert.doesNotMatch(registerDialog,/id="sales-register-ship-(?:date|quantity)"/);
   assert.match(registerDialog,/id="search-sales-register"[^>]*>검색<\/button>/);
   assert.match(registerDialog,/<button id="stop-sales-order"[^>]*>수주중단<\/button><button id="add-sales-register"[^>]*>매출 등록 추가<\/button><button id="bulk-sales-register"[^>]*>일괄 매출등록<\/button>/);
   assert.match(registerDialog,/<button id="add-sales-register"[^>]*>매출 등록 추가<\/button><button id="bulk-sales-register"[^>]*>일괄 매출등록<\/button>/);
@@ -431,10 +432,10 @@ test('bulk sales registration registers only the orders checked in the register 
   assert.equal(element('sales-register-message').textContent,'매출등록할 수주를 체크하세요.');
   vm.runInContext("salesRegisterCheckedIds=new Set(['checked']);openBulkSalesRegisterConfirmation()",context);
   assert.equal(element('sales-register-confirm-message').textContent,'1건의 매출등록을 진행하시겠습니까?');
+  assert.deepEqual(calls,['checked']);
   await vm.runInContext('completeSalesRegistration()',context);
   vm.runInContext("salesRegisterCheckedIds=new Set(['unshipped']);openBulkSalesRegisterConfirmation()",context);
   assert.match(element('sales-register-message').textContent,/출고일자가 있는 전량 출고 품목만/);
-  assert.deepEqual(calls,['checked']);
 });
 
 test('sales registration add button clears conditions and restores the search input',()=>{
@@ -518,8 +519,7 @@ test('sales registration with shipment inputs recognizes DB auto-completion afte
   context.renderSalesBalance=()=>{};
   context.updateIssueSalesOrders=()=>{};
   context.loadStock=async()=>{};
-  element('sales-register-ship-date').value='2026-11-05';
-  element('sales-register-ship-quantity').value='2';
+  vm.runInContext("salesRegisterRowInputs.set('order-9',{date:'2026-11-05',quantity:2})",context);
   vm.runInContext(`currentUser={id:'user'};client=testClient;
     salesOrders=[{id:'order-9',order_number:'SO-9',product_name:'품목9',product_code:'P9',unit:'EA',quantity:2,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];
     salesRegisterCheckedIds=new Set(['order-9']);salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
@@ -605,8 +605,7 @@ test('partial sales registration posts the issue and keeps the order in progress
   context.renderSalesBalance=()=>{};
   context.updateIssueSalesOrders=()=>{};
   context.loadStock=async()=>{};
-  element('sales-register-ship-date').value='2026-11-06';
-  element('sales-register-ship-quantity').value='2';
+  vm.runInContext("salesRegisterRowInputs.set('order-10',{date:'2026-11-06',quantity:2})",context);
   vm.runInContext(`currentUser={id:'user'};client=testClient;
     salesOrders=[{id:'order-10',order_number:'SO-10',product_name:'품목10',product_code:'P10',unit:'EA',quantity:5,shipped_quantity:2,shipped_date:'2026-11-05',sales_progress_status:'진행'}];
     salesRegisterCheckedIds=new Set(['order-10']);salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);

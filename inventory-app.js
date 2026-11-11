@@ -725,19 +725,10 @@ function salesRegistrationEligible(order){
   const shipped=Number(order.shipped_quantity||0),quantity=Number(order.quantity||0);
   return Boolean(String(order.shipped_date||'').trim())&&!salesRegistrationDone(order)&&!(shipped>0&&shipped<quantity);
 }
-function salesRegisterShipmentInput(){
-  const dateValue=$('sales-register-ship-date').value,quantityValue=$('sales-register-ship-quantity').value.trim();
-  if(!dateValue&&!quantityValue)return null;
-  const quantity=Number(quantityValue);
-  if(!validDate(dateValue)||!Number.isSafeInteger(quantity)||quantity<1)return {invalid:true};
-  return {date:dateValue,quantity};
-}
 function salesRegisterShipmentFor(order){
-  const row=salesRegisterRowInputs.get(order.id)||{},top=salesRegisterShipmentInput();
-  if(!row.date&&!row.quantity&&!top)return null;
-  if(top?.invalid&&!row.quantity)return {invalid:true};
-  const date=row.date||top?.date||String(order.shipped_date||'').slice(0,10);
-  const quantity=row.quantity||top?.quantity;
+  const row=salesRegisterRowInputs.get(order.id)||{};
+  if(!row.date&&!row.quantity)return null;
+  const date=row.date||String(order.shipped_date||'').slice(0,10),quantity=row.quantity;
   if(!validDate(date)||!Number.isSafeInteger(quantity)||quantity<1||quantity>salesRegisterRemaining(order))return {invalid:true};
   return {date,quantity};
 }
@@ -3327,8 +3318,6 @@ async function startApp(){
   $('search-sales-register').addEventListener('click',applySalesRegisterSearch);
   $('add-sales-register').addEventListener('click',resetSalesRegisterSearch);
   $('bulk-sales-register').addEventListener('click',openBulkSalesRegisterConfirmation);
-  $('sales-register-ship-date').addEventListener('input',renderSalesRegister);
-  $('sales-register-ship-quantity').addEventListener('input',renderSalesRegister);
   $('sales-register-query').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();applySalesRegisterSearch();}});
   $('close-sales-register-confirm').addEventListener('click',cancelSalesRegisterConfirmation);
   $('cancel-sales-register-confirm').addEventListener('click',cancelSalesRegisterConfirmation);

@@ -24,7 +24,8 @@ test('품번 입력은 배송방법 다음에 위치하고 품목별 가수주�
   vm.runInContext('addSalesOrderLine()',context);
   assert.equal(vm.runInContext('salesDraftLines[0].product_code',context),'SKU-1');
   assert.equal(element('sales_product_code').value,'');
-  assert.equal(vm.runInContext("salesOrderRecordPayload({id:'1',product_code:'SKU-1',address:'서울',due_date:'2026-12-01'}).address",context),'서울');
+  assert.equal(vm.runInContext("salesOrderRecordPayload({id:'1',product_code:'SKU-1',address:'서울',postal_code:'04524',due_date:'2026-12-01'}).address",context),'서울');
+  assert.equal(vm.runInContext("salesOrderRecordPayload({id:'1',product_code:'SKU-1',address:'서울',postal_code:'04524',due_date:'2026-12-01'}).postal_code",context),'04524');
   assert.equal(vm.runInContext("salesOrderRecordPayload({id:'1',product_code:'SKU-1',due_date:'2026-12-01'}).product_code",context),'SKU-1');
   vm.runInContext(`salesOrders=[{id:'1',order_group_id:'g',product_code:'SKU-2',product_name:'품목',
     specification:'',unit:'EA(개)',quantity:2,unit_price:30,due_date:'2026-12-01'}];
@@ -127,15 +128,18 @@ test('수주 DB는 품목별 품번을 저장하고 기존 호출과 수정 시 
     await assert.rejects(db.query('select public.register_sales_order_group($1,$2,$3,$4,$5,$6,$7)',
       [...args.slice(0,6),[{...line,product_code:'A'.repeat(81)}]]),/INVALID_SALES_ORDER_LINE/);
     const additional={...line,product_code:'SKU-3',product_name:'두번째'};
-    const withAddress={...line,product_code:'SKU-4',address:'서울특별시 강남구 테헤란로 1'};
+    const withAddress={...line,product_code:'SKU-4',address:'서울특별시 강남구 테헤란로 1',postal_code:'06234'};
     const addressed=(await db.query('select public.register_sales_order_group($1,$2,$3,$4,$5,$6,$7) as result',[...args.slice(0,6),[withAddress]])).rows[0].result;
     assert.equal(addressed.orders[0].address,'서울특별시 강남구 테헤란로 1');
-    const moved={...withAddress,line_id:addressed.orders[0].id,address:'부산광역시 해운대구'};
+    assert.equal(addressed.orders[0].postal_code,'06234');
+    const moved={...withAddress,line_id:addressed.orders[0].id,address:'부산광역시 해운대구',postal_code:'48094'};
     let movedResult=(await db.query('select public.update_sales_order_group($1,$2,$3,$4,$5,$6,$7,$8) as result',[addressed.group_id,...args.slice(0,6),[moved]])).rows[0].result;
     assert.equal(movedResult.orders[0].address,'부산광역시 해운대구');
-    delete moved.address;
+    assert.equal(movedResult.orders[0].postal_code,'48094');
+    delete moved.address;delete moved.postal_code;
     movedResult=(await db.query('select public.update_sales_order_group($1,$2,$3,$4,$5,$6,$7,$8) as result',[addressed.group_id,...args.slice(0,6),[moved]])).rows[0].result;
     assert.equal(movedResult.orders[0].address,'부산광역시 해운대구');
+    assert.equal(movedResult.orders[0].postal_code,'48094');
     const group=(await db.query('select public.register_sales_order_group($1,$2,$3,$4,$5,$6,$7)',
       [...args.slice(0,6),[line,additional]])).rows[0].register_sales_order_group;
     await db.query('insert into public.stock_movements(sales_order_id) values($1)',[group.orders[1].id]);

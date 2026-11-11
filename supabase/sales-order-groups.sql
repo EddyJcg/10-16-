@@ -3,7 +3,8 @@ begin;
 
 alter table public.sales_orders
   add column if not exists order_group_id uuid not null default gen_random_uuid(),
-  add column if not exists product_code text not null default '';
+  add column if not exists product_code text not null default '',
+  add column if not exists postal_code text not null default '';
 create index if not exists sales_orders_order_group_id on public.sales_orders(order_group_id);
 
 create or replace function public.sales_order_product_code_ready()
@@ -64,11 +65,11 @@ begin
     insert into public.sales_orders(
       order_group_id,order_date,order_number,order_type,vendor_id,vendor_name,vendor_contact,
       product_code,product_name,specification,unit,quantity,unit_price,amount,due_date,delivery_method,
-      address,notes,created_by
+      address,postal_code,notes,created_by
     ) values(
       v_group_id,p_order_date,trim(p_order_number),p_order_type,null,trim(p_vendor_name),
       nullif(trim(coalesce(p_vendor_contact,'')),''),trim(coalesce(v_line->>'product_code','')),v_name,v_specification,v_unit,v_quantity,
-      v_unit_price,v_quantity*v_unit_price,v_due_date,coalesce(p_delivery_method,''),left(trim(coalesce(v_line->>'address','')),300),'',auth.uid()
+      v_unit_price,v_quantity*v_unit_price,v_due_date,coalesce(p_delivery_method,''),left(trim(coalesce(v_line->>'address','')),300),left(trim(coalesce(v_line->>'postal_code','')),20),'',auth.uid()
     ) returning * into v_order;
     v_orders:=v_orders||jsonb_build_array(to_jsonb(v_order));
   end loop;
@@ -147,17 +148,18 @@ begin
         product_name=v_name,specification=v_specification,unit=v_unit,quantity=v_quantity,
         unit_price=v_unit_price,amount=v_quantity*v_unit_price,due_date=v_due_date,
         delivery_method=coalesce(p_delivery_method,''),
-        address=case when v_line ? 'address' then left(trim(coalesce(v_line->>'address','')),300) else v_current.address end
+        address=case when v_line ? 'address' then left(trim(coalesce(v_line->>'address','')),300) else v_current.address end,
+        postal_code=case when v_line ? 'postal_code' then left(trim(coalesce(v_line->>'postal_code','')),20) else v_current.postal_code end
       where id=v_line_id returning * into v_order;
     else
       insert into public.sales_orders(
         order_group_id,order_date,order_number,order_type,vendor_id,vendor_name,vendor_contact,
         product_code,product_name,specification,unit,quantity,unit_price,amount,due_date,delivery_method,
-        address,notes,created_by
+        address,postal_code,notes,created_by
       ) values(
         p_group_id,p_order_date,trim(p_order_number),p_order_type,null,trim(p_vendor_name),
         nullif(trim(coalesce(p_vendor_contact,'')),''),trim(coalesce(v_line->>'product_code','')),v_name,v_specification,v_unit,v_quantity,
-        v_unit_price,v_quantity*v_unit_price,v_due_date,coalesce(p_delivery_method,''),left(trim(coalesce(v_line->>'address','')),300),'',auth.uid()
+        v_unit_price,v_quantity*v_unit_price,v_due_date,coalesce(p_delivery_method,''),left(trim(coalesce(v_line->>'address','')),300),left(trim(coalesce(v_line->>'postal_code','')),20),'',auth.uid()
       ) returning * into v_order;
     end if;
     v_kept_ids:=array_append(v_kept_ids,v_order.id);

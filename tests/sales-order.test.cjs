@@ -118,6 +118,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(style,/@media\(min-width:851px\)\{[\s\S]*?\.sales-order-dialog \.form-grid\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
   assert.match(style,/@media\(min-width:1600px\)\{[\s\S]*?\.sales-order-dialog \.sales-order-line-grid\{grid-template-columns:repeat\(6,minmax\(0,1fr\)\) minmax\(430px,2fr\)/);
   assert.match(style,/\.sales-order-dialog \.sales-order-draft-register\{flex:0 0 160px;width:160px;min-width:150px\}/);
+  assert.match(style,/\.sales-order-dialog \.sales-order-line-add\{[^}]*background:#ffe0b2;border-color:#efb76f;color:#633500/);
   for(const attr of ['data-edit-sales-draft','data-delete-sales-draft','data-sales-order-id','data-delete-sales-order-id'])
     assert.ok(style.includes(`button[${attr}]`),attr);
   assert.match(style,/width:64px;transform:scaleX\(\.5\);transform-origin:left center;margin-right:-32px/);

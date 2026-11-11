@@ -376,7 +376,7 @@ let movementListKind='';
 function movementListLabel(){return movementListKind==='opening'?'기초재고 내역':movementListKind==='receipt'?'입고 현황':movementListKind==='issue'?'출고 내역':'입출고 내역';}
 let salesOrders = [],salesDraftLines=[],salesOrdersLoading = false,salesOrderSaving = false;
 let salesDraftSequence=0,salesDraftGroupId='';
-let salesRegisterQuery='',salesRegisterSearched=false,salesRegisterVisibleOrders=[],salesRegisterTargetOrderIds=[],salesRegisterConfirmMode='register',salesRegisterCheckedIds=new Set();
+let salesRegisterQuery='',salesRegisterSearched=false,salesRegisterVisibleOrders=[],salesRegisterTargetOrderIds=[],salesRegisterConfirmMode='register',salesRegisterCheckedIds=new Set(),salesRegisterRowInputs=new Map();
 let purchaseOrders=[],purchaseOrderLines=[],purchaseReceipts=[],purchaseDraftLines=[],purchaseOrderVendors=[],purchaseOrderVendorsLoaded=false,purchaseLoading=false,purchaseSaving=false,purchaseSyncTimer=null,purchaseOrderSaved=false;
 let receivingPurchaseLineId='',receivingPurchaseRequestId='';
 let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''},appliedSalesQueryFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:'',orderNumber:'',vendorName:''},salesStatusUpdating=false;
@@ -626,16 +626,62 @@ function renderSalesStatus(view='status'){
     body.append(row);
   });
 }
-function appendSalesRegisterCells(row,order){
+function salesRegisterRowEntry(id){
+  if(!salesRegisterRowInputs.has(id))salesRegisterRowInputs.set(id,{});
+  return salesRegisterRowInputs.get(id);
+}
+function salesRegisterRemaining(order){
+  return Number(order.quantity||0)-Number(order.shipped_quantity||0);
+}
+function salesRegisterDateCell(order){
+  const cell=document.createElement('td'),input=document.createElement('input');
+  input.type='date';input.disabled=salesStatusUpdating;input.setAttribute('aria-label','출고일자');
+  input.value=salesRegisterRowInputs.get(order.id)?.date||String(order.shipped_date||'').slice(0,10);
+  input.addEventListener('change',()=>{
+    const entry=salesRegisterRowEntry(order.id);
+    if(validDate(input.value))entry.date=input.value;else delete entry.date;
+    renderSalesRegister();
+  });
+  cell.append(input);
+  return cell;
+}
+function salesRegisterQuantityCell(order){
+  const cell=document.createElement('td'),input=document.createElement('input'),remaining=salesRegisterRemaining(order);
+  input.type='number';input.min='1';input.max=String(remaining);input.step='1';input.disabled=salesStatusUpdating;
+  input.placeholder=String(remaining);input.title='수주수량 '+number(order.quantity)+' · 잔여 수량 '+number(remaining);
+  input.setAttribute('aria-label','출고 수량');
+  input.value=salesRegisterRowInputs.get(order.id)?.quantity??'';
+  input.addEventListener('change',()=>{
+    const entry=salesRegisterRowEntry(order.id),raw=input.value.trim();
+    if(!raw){delete entry.quantity;renderSalesRegister();return;}
+    const value=Number(raw);
+    if(!Number.isSafeInteger(value)||value<1){
+      window.alert('수량은 1 이상의 정수로 입력하세요.');
+      input.value=entry.quantity??'';return;
+    }
+    if(value>remaining){
+      window.alert('입력 수량 '+number(value)+'은(는) 잔여 수량 '+number(remaining)+'을(를) 초과할 수 없습니다.');
+      input.value=entry.quantity??'';return;
+    }
+    entry.quantity=value;renderSalesRegister();
+  });
+  cell.append(input);
+  return cell;
+}
+function appendSalesRegisterCells(row,order,editable=false){
   row.append(makeCell(number(order.sequence_id),true));
   [String(order.order_date||'').slice(0,10),order.order_number,order.order_type,
-    order.vendor_name||'',String(order.shipped_date||'').slice(0,10)]
+    order.vendor_name||'']
     .forEach(value=>row.append(makeCell(value)));
+  row.append(editable?salesRegisterDateCell(order):makeCell(String(order.shipped_date||'').slice(0,10)));
   const statusCell=document.createElement('td'),status=salesOrderStatusSelect(order);
   status.disabled=true;statusCell.append(status);row.append(statusCell);
   [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
     money(order.amount),String(order.due_date||'').slice(0,10),order.delivery_method,salesAddressDisplay(order)]
-    .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
+    .forEach((value,index)=>{
+      if(index===3&&editable)row.append(salesRegisterQuantityCell(order));
+      else row.append(makeCell(value,index===3||index===4||index===5));
+    });
   return row;
 }
 function renderSalesRegister(){
@@ -646,15 +692,16 @@ function renderSalesRegister(){
   const completedOrders=salesOrders.filter(order=>salesRegistrationDone(order));
   salesRegisterVisibleOrders=visibleOrders;
   salesRegisterCheckedIds=new Set(visibleOrders.filter(order=>salesRegisterCheckedIds.has(order.id)).map(order=>order.id));
-  const shipment=salesRegisterShipmentInput();
-  $('bulk-sales-register').disabled=salesStatusUpdating||!visibleOrders.some(order=>salesRegisterCheckedIds.has(order.id)&&salesRegistrationCandidate(order,shipment));
+  const visibleIds=new Set(visibleOrders.map(order=>order.id));
+  [...salesRegisterRowInputs.keys()].forEach(id=>{if(!visibleIds.has(id))salesRegisterRowInputs.delete(id);});
+  $('bulk-sales-register').disabled=salesStatusUpdating||!visibleOrders.some(order=>salesRegisterCheckedIds.has(order.id)&&salesRegistrationCandidate(order,salesRegisterShipmentFor(order)));
   $('stop-sales-order').disabled=salesStatusUpdating||!visibleOrders.some(salesOrderStoppable);
   if(!salesRegisterSearched)emptyRow(body,17,'수주번호 또는 거래처(성명)를 검색하세요.');
   else if(!visibleOrders.length)emptyRow(body,17,matchedOrders.length?'매출 등록 대상이 없습니다. 검색된 수주는 모두 매출 등록이 완료되었습니다.':'검색 결과가 없습니다.');
   visibleOrders.forEach(order=>{
     const row=document.createElement('tr');
     bindStockRow(row,order);
-    body.append(appendSalesRegisterCells(row,order));
+    body.append(appendSalesRegisterCells(row,order,true));
     row.append(salesRegisterCheckCell(order));
   });
   if(!completedOrders.length)emptyRow(completedBody,16,'매출 등록이 완료된 수주가 없습니다.');
@@ -685,9 +732,18 @@ function salesRegisterShipmentInput(){
   if(!validDate(dateValue)||!Number.isSafeInteger(quantity)||quantity<1)return {invalid:true};
   return {date:dateValue,quantity};
 }
+function salesRegisterShipmentFor(order){
+  const row=salesRegisterRowInputs.get(order.id)||{},top=salesRegisterShipmentInput();
+  if(!row.date&&!row.quantity&&!top)return null;
+  if(top?.invalid&&!row.quantity)return {invalid:true};
+  const date=row.date||top?.date||String(order.shipped_date||'').slice(0,10);
+  const quantity=row.quantity||top?.quantity;
+  if(!validDate(date)||!Number.isSafeInteger(quantity)||quantity<1||quantity>salesRegisterRemaining(order))return {invalid:true};
+  return {date,quantity};
+}
 function salesRegistrationCandidate(order,shipment){
   if(salesRegistrationDone(order))return false;
-  if(shipment&&!shipment.invalid)return Number(order.shipped_quantity||0)<Number(order.quantity||0);
+  if(shipment)return !shipment.invalid&&Number(order.shipped_quantity||0)<Number(order.quantity||0);
   return salesRegistrationEligible(order);
 }
 async function loadSalesOrders(){
@@ -1024,23 +1080,24 @@ function applySalesRegisterSearch(){
 }
 function openBulkSalesRegisterConfirmation(){
   if(!currentUser||salesStatusUpdating)return;
-  const shipment=salesRegisterShipmentInput();
-  if(shipment?.invalid){
-    $('sales-register-message').textContent='출고일자와 수량을 확인하세요. 수량은 1 이상의 정수입니다.';
-    return;
-  }
   if(!salesRegisterCheckedIds.size){
     $('sales-register-message').textContent='매출등록할 수주를 체크하세요.';
     return;
   }
-  salesRegisterTargetOrderIds=salesRegisterVisibleOrders.filter(order=>salesRegisterCheckedIds.has(order.id)&&salesRegistrationCandidate(order,shipment)).map(order=>order.id);
+  const checkedOrders=salesRegisterVisibleOrders.filter(order=>salesRegisterCheckedIds.has(order.id));
+  if(checkedOrders.some(order=>salesRegisterShipmentFor(order)?.invalid)){
+    $('sales-register-message').textContent='출고일자와 수량을 확인하세요. 수량은 1 이상의 정수이며 잔여 수량을 넘을 수 없습니다.';
+    return;
+  }
+  salesRegisterTargetOrderIds=checkedOrders.filter(order=>salesRegistrationCandidate(order,salesRegisterShipmentFor(order))).map(order=>order.id);
   if(!salesRegisterTargetOrderIds.length){
     $('sales-register-message').textContent='체크된 수주 중 매출 등록 가능한 품목이 없습니다.';
     return;
   }
+  const shipping=checkedOrders.some(order=>salesRegisterShipmentFor(order));
   salesRegisterConfirmMode='register';$('complete-sales-register-confirm').textContent='완료';
   $('sales-register-confirm-message').textContent=salesRegisterTargetOrderIds.length+'건의 매출등록을 진행하시겠습니까?';
-  $('sales-register-confirm-status').textContent=shipment
+  $('sales-register-confirm-status').textContent=shipping
     ? '입력한 출고일자와 수량으로 선입선출 방식의 재고 출고를 기록한 후 매출 등록합니다. 수량은 수주의 잔여 수량으로 제한합니다. 수량이 잔여 수량보다 적으면 매출완료로 처리하지 않고 진행 상태로 유지합니다.'
     : '현재 검색 결과의 미등록 품목만 순서대로 등록합니다.';
   $('complete-sales-register-confirm').disabled=false;
@@ -1121,7 +1178,7 @@ function confirmSalesRegisterAction(){
 }
 async function completeSalesRegistration(){
   if(!salesRegisterTargetOrderIds.length||!currentUser||salesStatusUpdating)return;
-  const generation=authGeneration,targetIds=[...new Set(salesRegisterTargetOrderIds)],shipment=salesRegisterShipmentInput();
+  const generation=authGeneration,targetIds=[...new Set(salesRegisterTargetOrderIds)];
   salesStatusUpdating=true;$('complete-sales-register-confirm').disabled=true;
   $('cancel-sales-register-confirm').disabled=true;$('close-sales-register-confirm').disabled=true;
   $('sales-register-confirm-status').textContent='매출 등록을 저장하는 중… (0/'+number(targetIds.length)+')';
@@ -1132,17 +1189,17 @@ async function completeSalesRegistration(){
     for(let index=0;index<targetIds.length;index++){
       if(generation!==authGeneration)return;
       const order=salesOrders.find(row=>row.id===targetIds[index]);
+      const shipment=order?salesRegisterShipmentFor(order):null;
       if(!order||!salesRegistrationCandidate(order,shipment)){skipped++;continue;}
       $('sales-register-confirm-status').textContent='매출 등록을 저장하는 중… ('+number(index+1)+'/'+number(targetIds.length)+')';
       try{
         let current=order;
-        const shipping=Boolean(shipment&&!shipment.invalid);
+        const shipping=Boolean(shipment);
         if(shipping){
-          const remaining=Number(order.quantity)-Number(order.shipped_quantity||0);
           const {error:issueError}=await client.rpc('post_stock_movement',{
             p_request_id:crypto.randomUUID(),p_kind:'issue',p_date:shipment.date,
             p_details:{product_code:order.product_code||'',unit:order.unit,sales_order_id:order.id},
-            p_quantity:Math.min(shipment.quantity,remaining),p_unit_cost:0
+            p_quantity:shipment.quantity,p_unit_cost:0
           });
           if(issueError)throw issueError;
           if(generation!==authGeneration)return;
@@ -1163,6 +1220,7 @@ async function completeSalesRegistration(){
           salesOrders=salesOrders.map(row=>row.id===data.id?data:row);
           completed++;
         }
+        salesRegisterRowInputs.delete(order.id);
       }catch(error){
         if(generation!==authGeneration)return;
         failed.push({order,message:errorText(error)});

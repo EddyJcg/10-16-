@@ -516,7 +516,7 @@ test('sales registration with shipment inputs posts a capped stock issue before 
   context.updateIssueSalesOrders=()=>{};
   context.loadStock=async()=>{};
   element('sales-register-ship-date').value='2026-11-05';
-  element('sales-register-ship-quantity').value='5';
+  element('sales-register-ship-quantity').value='2';
   vm.runInContext(`currentUser={id:'user'};client=testClient;
     salesOrders=[{id:'order-9',order_number:'SO-9',product_name:'품목9',product_code:'P9',unit:'EA',quantity:2,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];
     salesRegisterCheckedIds=new Set(['order-9']);salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
@@ -525,12 +525,31 @@ test('sales registration with shipment inputs posts a capped stock issue before 
   assert.ok(issue,'a stock issue is posted');
   assert.equal(issue[1].p_kind,'issue');
   assert.equal(issue[1].p_date,'2026-11-05');
-  assert.equal(issue[1].p_quantity,2,'the issue quantity is capped at the order quantity');
+  assert.equal(issue[1].p_quantity,2,'the issue quantity is the entered quantity within the remaining quantity');
   assert.equal(issue[1].p_details.product_code,'P9');
   assert.equal(issue[1].p_details.sales_order_id,'order-9');
   assert.equal(rpcCalls.at(-1)[0],'set_sales_order_status');
   assert.equal(rpcCalls.at(-1)[1].p_sales_status,'완료');
   assert.equal(fromCalls.length,1);
+});
+
+test('per-order shipment inputs are rejected when they exceed the remaining quantity',()=>{
+  const elements=new Map();
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false});
+    return elements.get(id);
+  };
+  const context=vm.createContext({
+    document:{getElementById:element},salesOrderStatus,number:value=>String(value),
+    validDate:value=>/^\d{4}-\d{2}-\d{2}$/.test(value)
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`salesRegisterRowInputs.set('order-11',{date:'2026-11-07',quantity:3});`,context);
+  const order='{id:"order-11",quantity:5,shipped_quantity:3,shipped_date:"2026-11-05"}';
+  assert.equal(vm.runInContext(`salesRegisterShipmentFor(${order}).invalid`,context),true,'a quantity above the remaining 2 is rejected');
+  vm.runInContext(`salesRegisterRowInputs.set('order-11',{date:'2026-11-07',quantity:2});`,context);
+  const accepted=vm.runInContext(`salesRegisterShipmentFor(${order})`,context);
+  assert.deepEqual({...accepted},{date:'2026-11-07',quantity:2});
 });
 
 test('partial sales registration posts the issue and keeps the order in progress',async()=>{

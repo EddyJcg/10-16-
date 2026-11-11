@@ -29,13 +29,20 @@
   .sales-status-order-search .field{max-width:none}
   .sales-register-confirm-dialog .dialog-footer button{flex:1}
 }
-.sales-order-dialog .sales-order-due-date-actions{display:flex;align-items:stretch;gap:8px}
-.sales-order-dialog .sales-order-due-date-actions input{flex:1;min-width:0}
+.sales-order-dialog .sales-order-due-date-actions{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.sales-order-dialog .sales-order-due-date-actions input{flex:1 1 130px;min-width:0}
+.sales-order-dialog .sales-order-line-add{flex:0 0 120px;width:120px}
 .sales-order-dialog .sales-order-draft-register{flex:0 0 160px;width:160px;min-width:150px}
 .sales-order-dialog .sales-order-save-actions #save-sales-order,
 .sales-order-dialog .sales-order-draft-register{width:160px}
 .sales-order-draft-table input[type="checkbox"]{
   width:20px;height:20px;margin:0 6px 0 0;padding:0;vertical-align:middle;accent-color:#348fe2;cursor:pointer
+}
+.sales-order-dialog .sales-order-draft-table button[data-edit-sales-draft],
+.sales-order-dialog .sales-order-draft-table button[data-delete-sales-draft],
+.sales-order-dialog .sales-order-table button[data-sales-order-id],
+.sales-order-dialog .sales-order-table button[data-delete-sales-order-id]{
+  width:64px;transform:scaleX(.5);transform-origin:left center;margin-right:-32px
 }
 .sales-order-draft-table th[data-grid-min-width]{min-width:360px}
 .sales-order-table th[data-grid-min-width]{min-width:180px}
@@ -48,7 +55,7 @@
 .sales-order-dialog .sales-order-draft-table tbody tr[data-grid-blank] td:last-child,
 .sales-order-dialog .sales-order-table tbody tr[data-grid-blank] td:last-child{background:#f1f2f4}
 @media(min-width:1600px){
-  .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(6,minmax(0,1fr)) minmax(320px,2fr)}
+  .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(6,minmax(0,1fr)) minmax(430px,2fr)}
 }
 @media(min-width:851px) and (max-width:1599px){
   .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -57,8 +64,13 @@
 @media(max-width:850px){
   .sales-order-dialog .sales-order-due-date-field{grid-column:1/-1}
 }
+@media(min-width:521px) and (max-width:1599px){
+  .sales-order-dialog .sales-order-due-date-actions input{flex:1 0 100%}
+}
 @media(max-width:520px){
   .sales-order-dialog .sales-order-due-date-actions{flex-direction:column}
+  .sales-order-dialog .sales-order-due-date-actions input{flex:0 0 auto}
+  .sales-order-dialog .sales-order-line-add{flex:0 0 auto;width:100%}
   .sales-order-dialog .sales-order-draft-register{flex:0 0 auto;width:100%}
 }
 @media print{

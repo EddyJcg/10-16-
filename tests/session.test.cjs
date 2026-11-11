@@ -89,6 +89,7 @@ test('sales order menu opens its dialog and binds save and amount calculation',a
   assert.equal(typeof app.element('import-sales-order-button').handlers.click,'function');
   assert.equal(typeof app.element('sales-order-import-file').handlers.change,'function');
   assert.equal(typeof app.element('sales-order-draft-items').handlers.click,'function');
+  assert.equal(typeof app.element('add-sales-line').handlers.click,'function');
   assert.equal(typeof app.element('sales_quantity').handlers.input,'function');
   assert.equal(typeof app.element('sales_unit_price').handlers.input,'function');
 });

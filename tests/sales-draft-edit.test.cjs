@@ -38,6 +38,24 @@ test('연락처·배송방법을 제외한 각 항목이 없으면 가수주가 
   assert.equal(vm.runInContext('salesDraftLines[0].unit_price',context),0);
 });
 
+test('같은 수주에 여러 품목을 추가해도 수주번호와 공통 정보가 유지된다',()=>{
+  const {context,element,values}=setup();
+  vm.runInContext('addSalesOrderLine()',context);
+  for(const id of ['sales_order_date','sales_order_number','sales_order_type','sales_vendor_name','sales_vendor_contact','sales_delivery_method'])
+    assert.equal(element(id).value,values[id],id);
+  for(const id of ['sales_product_code','sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_amount','sales_due_date'])
+    assert.equal(element(id).value,'',id);
+  for(const id of ['sales_product_code','sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_due_date'])
+    element(id).value=values[id];
+  element('sales_product_code').value='B';
+  element('sales_product_name').value='두 번째';
+  vm.runInContext('addSalesOrderLine()',context);
+  assert.equal(vm.runInContext('salesDraftLines.length',context),2);
+  assert.equal(vm.runInContext('salesDraftLines[0].product_code',context),'A');
+  assert.equal(vm.runInContext('salesDraftLines[1].product_code',context),'B');
+  assert.equal(element('sales_order_number').value,'SO-1');
+});
+
 test('가수주 수정 후 등록은 기존 행을 갱신하고 편집 중 저장을 차단한다',async()=>{
   const {context,element}=setup();
   vm.runInContext(`currentUser={id:'u'};addSalesOrderLine();salesDraftLines[0].line_id='saved-id';

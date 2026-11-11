@@ -31,6 +31,9 @@
 }
 .sales-order-dialog .sales-order-due-date-actions{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
 .sales-order-dialog .sales-order-due-date-actions input{flex:1 1 130px;min-width:0}
+.sales-order-dialog #sales_order_date,.sales-order-dialog #sales_order_number,.sales-order-dialog #sales_vendor_contact,
+.sales-order-dialog #sales_delivery_method,.sales-order-dialog #sales_product_code,.sales-order-dialog #sales_quantity,
+.sales-order-dialog #sales_unit_price{width:70%}
 .sales-order-dialog .sales-order-line-add{flex:0 0 120px;width:120px;background:#ffe0b2;border-color:#efb76f;color:#633500}
 .sales-order-dialog .sales-order-line-add:hover{background:#ffcf8a}
 .sales-order-dialog .sales-order-draft-register{flex:0 0 160px;width:160px;min-width:150px}
@@ -74,9 +77,6 @@
 .sales-order-dialog .sales-order-address-actions input:last-child{flex:0 0 96px}
 .sales-address-dialog{width:min(560px,94vw);max-height:86vh}
 .sales-address-dialog .sales-address-search{height:480px;border:1px solid #d7dbe0;border-radius:6px;overflow:hidden}
-@media(min-width:521px) and (max-width:1599px){
-  .sales-order-dialog .sales-order-due-date-actions input{flex:1 0 100%}
-}
 @media(max-width:520px){
   .sales-order-dialog .sales-order-due-date-actions{flex-direction:column}
   .sales-order-dialog .sales-order-due-date-actions input{flex:0 0 auto}

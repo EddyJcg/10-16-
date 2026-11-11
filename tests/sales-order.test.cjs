@@ -354,10 +354,10 @@ test('sales status view omits the completion checkbox column',()=>{
   assert.match(html,/id="sales-status-button"[^>]*>수주 현황<\/button>/);
   assert.match(search,/for="sales-status-order-query">수주번호 또는 거래처\(성명\) 검색<\/label><input id="sales-status-order-query" type="search"/);
   assert.match(search,/id="search-sales-status-orders"[^>]*>검색<\/button>/);
-  assert.match(table,/<th>수주번호<\/th><th>수주형태<\/th><th>거래처<\/th><th>연락처<\/th><th>출고일자<\/th><th>매출 상태<\/th>/);
+  assert.match(table,/<th>수주번호<\/th><th>수주형태<\/th><th>거래처<\/th><th>연락처<\/th><th>출고일자<\/th><th>수주상태<\/th>/);
   assert.doesNotMatch(table,/<th>완료 체크<\/th>/);
   assert.doesNotMatch(table,/<select/);
-  for(const label of ['일련번호','수주일자','수주번호','매출 상태','수주형태','거래처','연락처','출고일자','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
+  for(const label of ['일련번호','수주일자','수주번호','수주상태','수주형태','거래처','연락처','출고일자','품명','규격','단위','수량','단가','수주금액','납기일자','배송방법','주소','기타사항'])
     assert.ok(table.includes(`<th>${label}</th>`),label);
   for(const id of ['sales-status-start-date','sales-status-end-date','sales-status-type-filter','sales-status-filter','sales-status-total','sales-status-completed-total','sales-status-outstanding-total'])
     assert.match(html,new RegExp(`id="${id}"`),id);
@@ -595,7 +595,7 @@ test('dashboard sales balance retains its completion checkbox column and status 
   const statusHeaders=html.match(/<table aria-label="전체 수주현황"[^>]*><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
   const balanceHeaders=html.match(/<table aria-label="수주잔고 현황"[^>]*><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
   assert.ok(balanceHeaders.includes('<th>완료 체크</th>'));
-  assert.equal(balanceHeaders.replace('<th>완료 체크</th>',''),statusHeaders);
+  assert.equal(balanceHeaders.replace('<th>완료 체크</th>','').replace('<th>매출 상태</th>','<th>수주상태</th>'),statusHeaders);
   assert.match(html,/id="sales-balance-items"/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/select\.value=status;select\.disabled=salesStatusUpdating/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/checkbox\.disabled=salesStatusUpdating\|\|Number\(order\.shipped_quantity\|\|0\)>0/);

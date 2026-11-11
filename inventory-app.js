@@ -519,7 +519,7 @@ function renderSalesDraftLines(){
     checkbox.setAttribute('aria-label',line.product_name+' 일괄저장 선택');
     checkbox.disabled=!!editingSalesOrderId||salesOrderSaving;
     if(editingSalesOrderId)checkbox.title='기존 수주 수정 중에는 품목 선택을 변경할 수 없습니다.';
-    button.type='button';button.className='secondary';button.textContent='수주등록';
+    button.type='button';button.className='secondary';button.textContent='등록';
     button.dataset.registerSalesLine=String(line.draftId);button.disabled=!!editingSalesOrderId||salesOrderSaving;
     if(editingSalesOrderId)button.title='기존 수주 수정 중에는 개별 등록할 수 없습니다.';
     const edit=document.createElement('button'),remove=document.createElement('button');

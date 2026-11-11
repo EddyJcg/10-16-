@@ -111,7 +111,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(form,/id="sales-order-draft-items"/);
   assert.match(html,/<th>거래처<\/th><th>연락처<\/th>/);
   assert.match(html,/id="sales-order-items"/);
-  assert.match(html,/<th>배송방법<\/th><th>주소<\/th><th>기타사항<\/th><th data-grid-min-width="180" data-column-required>관리<\/th>/);
+  assert.match(html,/<th>배송방법<\/th><th>주소<\/th><th>기타사항<\/th><th data-grid-min-width="150" data-column-required>관리<\/th>/);
   assert.match(html,/<th>일련번호<\/th><th>수주일자<\/th><th>수주번호<\/th>/);
   assert.match(html,/<link rel="stylesheet" href="\/sales-order\.css/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);
@@ -121,7 +121,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(style,/\.sales-order-dialog \.sales-order-line-add\{[^}]*background:#ffe0b2;border-color:#efb76f;color:#633500/);
   for(const attr of ['data-edit-sales-draft','data-delete-sales-draft','data-sales-order-id','data-delete-sales-order-id'])
     assert.ok(style.includes(`button[${attr}]`),attr);
-  assert.match(style,/width:64px;transform:scaleX\(\.5\);transform-origin:left center;margin-right:-32px/);
+  assert.match(style,/width:64px;transform:scaleX\(\.65\);transform-origin:left center;margin-right:-22px/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('save-sales-order-draft'\)\.addEventListener\('click',addSalesOrderLine\)/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('add-sales-line'\)\.addEventListener\('click',addSalesOrderLine\)/);
   assert.doesNotMatch(fs.readFileSync('inventory-app.js','utf8'),/add-sales-line-footer/);
@@ -156,7 +156,7 @@ test('draft management checkboxes are preselected and saving requires a selectio
   assert.equal(first.checked,true);
   assert.equal(second.checked,false);
   const actions=body.children[0].children[14].children;
-  assert.deepEqual(actions.slice(1).map(button=>button.textContent),['수주등록','수정','삭제']);
+  assert.deepEqual(actions.slice(1).map(button=>button.textContent),['등록','수정','삭제']);
   assert.equal(actions[2].dataset.editSalesDraft,'draft-a');
   assert.equal(actions[3].dataset.deleteSalesDraft,'draft-a');
   assert.equal(saveButton.disabled,false);

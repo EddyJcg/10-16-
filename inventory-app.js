@@ -1215,6 +1215,8 @@ async function completeSalesRegistration(){
         }
         if(shipping&&Number(current.shipped_quantity||0)<Number(current.quantity||0)){
           partial++;
+        }else if(shipping&&salesRegistrationDone(current)){
+          completed++;
         }else{
           if(!salesRegistrationEligible(current))throw new Error('매출 등록 조건을 확인하세요.');
           const {data,error}=await client.rpc('set_sales_order_status',{p_order_id:order.id,p_sales_status:'완료'});

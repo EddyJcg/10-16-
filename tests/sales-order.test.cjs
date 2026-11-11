@@ -487,8 +487,8 @@ test('bulk sales registration processes only unregistered eligible search result
   assert.equal(calls.length,2,'a repeated bulk action does not call the database again');
 });
 
-test('sales registration with shipment inputs posts a capped stock issue before registering',async()=>{
-  const elements=new Map(),rpcCalls=[],fromCalls=[];
+test('sales registration with shipment inputs recognizes DB auto-completion after a full issue',async()=>{
+  const elements=new Map(),rpcCalls=[],fromCalls=[],renderedStatuses=[];
   const element=id=>{
     if(!elements.has(id))elements.set(id,{value:'',open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
     return elements.get(id);
@@ -501,7 +501,7 @@ test('sales registration with shipment inputs posts a capped stock issue before 
     },
     from:table=>({select:()=>({eq:(column,value)=>({single:async()=>{
       fromCalls.push([table,column,value]);
-      return {data:{id:value,order_number:'SO-9',product_name:'품목9',product_code:'P9',unit:'EA',quantity:2,shipped_quantity:2,shipped_date:'2026-11-05',sales_progress_status:'진행'},error:null};
+      return {data:{id:value,order_number:'SO-9',product_name:'품목9',product_code:'P9',unit:'EA',quantity:2,shipped_quantity:2,shipped_date:'2026-11-05',sales_progress_status:'완료',sales_status:'매출완료'},error:null};
     }})})})
   };
   const context=vm.createContext({
@@ -511,7 +511,7 @@ test('sales registration with shipment inputs posts a capped stock issue before 
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   context.renderSalesOrders=()=>{};
   context.renderSalesStatus=()=>{};
-  context.renderSalesRegister=()=>{};
+  context.renderSalesRegister=()=>{renderedStatuses.push(vm.runInContext('salesOrders[0]?.sales_status',context));};
   context.renderSalesBalance=()=>{};
   context.updateIssueSalesOrders=()=>{};
   context.loadStock=async()=>{};
@@ -528,8 +528,9 @@ test('sales registration with shipment inputs posts a capped stock issue before 
   assert.equal(issue[1].p_quantity,2,'the issue quantity is the entered quantity within the remaining quantity');
   assert.equal(issue[1].p_details.product_code,'P9');
   assert.equal(issue[1].p_details.sales_order_id,'order-9');
-  assert.equal(rpcCalls.at(-1)[0],'set_sales_order_status');
-  assert.equal(rpcCalls.at(-1)[1].p_sales_status,'완료');
+  assert.deepEqual(rpcCalls.map(([name])=>name),['post_stock_movement'],'the database trigger completes a fully shipped order');
+  assert.equal(renderedStatuses.at(-1),'매출완료','the completed order is rendered from the refreshed database row');
+  assert.match(element('sales-register-message').textContent,/1건 완료/);
   assert.equal(fromCalls.length,1);
 });
 

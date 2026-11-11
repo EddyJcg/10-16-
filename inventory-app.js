@@ -532,7 +532,7 @@ function updateSalesOrderSaveButton(){
 function salesOrderStatusSelect(order){
   const select=document.createElement('select'),status=salesOrderStatus(order);
   select.dataset.orderId=order.id;select.setAttribute('aria-label',order.order_number+' 매출 상태');
-  [['진행','진행'],['완료','완료'],['중단','중단']].forEach(([value,label])=>{
+  [['진행','수주진행'],['완료','매출완료'],['중단','수주중단']].forEach(([value,label])=>{
     const option=document.createElement('option');option.value=value;option.textContent=label;
     if(value==='완료'&&Number(order.shipped_quantity||0)>0&&Number(order.shipped_quantity)<Number(order.quantity))option.disabled=true;
     if(value!=='완료'&&Number(order.shipped_quantity||0)>=Number(order.quantity)&&Number(order.shipped_quantity||0)>0)option.disabled=true;

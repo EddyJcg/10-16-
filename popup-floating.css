@@ -9,5 +9,5 @@ dialog.popup-floating :is(button,input,select,textarea,a,label,summary){cursor:a
 dialog.popup-floating :is(button,a,summary,label){cursor:pointer}
 dialog.popup-floating[open]{transform:none}
 dialog.popup-floating{max-width:calc(var(--popup-area-width,100vw)*.95)!important;max-height:calc(var(--popup-area-height,100vh)*.95)!important}
-dialog.popup-floating.dialog-expanded[open]:not(.search-calendar){position:fixed!important;inset:auto!important;left:calc(var(--popup-area-left,0px) + var(--popup-area-width,100vw)*.025)!important;top:calc(var(--popup-area-height,100vh)*.025)!important;width:calc(var(--popup-area-width,100vw)*.95)!important;height:calc(var(--popup-area-height,100vh)*.95)!important;max-width:calc(var(--popup-area-width,100vw)*.95)!important;max-height:calc(var(--popup-area-height,100vh)*.95)!important;border-radius:12px!important}
-dialog.popup-floating.dialog-expanded[open]:not(.search-calendar) .dialog-body{max-height:calc(var(--popup-area-height,100vh)*.95 - 180px)}
+dialog.popup-floating.dialog-expanded[open]:not(.search-calendar){position:fixed!important;inset:auto!important;left:var(--popup-area-left,0px)!important;top:0!important;width:var(--popup-area-width,100vw)!important;height:var(--popup-area-height,100vh)!important;max-width:var(--popup-area-width,100vw)!important;max-height:var(--popup-area-height,100vh)!important;border-radius:0!important}
+dialog.popup-floating.dialog-expanded[open]:not(.search-calendar) .dialog-body{max-height:calc(var(--popup-area-height,100vh) - 180px)}

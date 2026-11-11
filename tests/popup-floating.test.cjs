@@ -160,7 +160,7 @@ test('popups stay inside the dashboard area right of the sidebar and cap at 95 p
   assert.match(js,/window\.popupArea=area/);
   const css=fs.readFileSync('popup-floating.css','utf8');
   assert.match(css,/max-width:calc\(var\(--popup-area-width,100vw\)\*\.95\)!important/);
-  assert.match(css,/dialog\.popup-floating\.dialog-expanded\[open\]:not\(\.search-calendar\)\{[^}]*width:calc\(var\(--popup-area-width,100vw\)\*\.95\)!important/);
+  assert.match(css,/dialog\.popup-floating\.dialog-expanded\[open\]:not\(\.search-calendar\)\{[^}]*left:var\(--popup-area-left,0px\)!important;top:0!important;width:var\(--popup-area-width,100vw\)!important;height:var\(--popup-area-height,100vh\)!important/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/area\.width\*\.95/);
 });
 

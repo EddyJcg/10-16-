@@ -533,6 +533,34 @@ test('sales registration with shipment inputs posts a capped stock issue before 
   assert.equal(fromCalls.length,1);
 });
 
+test('stock issue uses the matching stock product code when an older order has none',async()=>{
+  const rpcCalls=[];
+  const testClient={
+    rpc:async(name,args)=>{
+      rpcCalls.push([name,args]);
+      if(name==='post_stock_movement')return {data:null,error:null};
+      return {data:{id:'order-8',product_name:'품목8',quantity:2,shipped_quantity:2,shipped_date:'2026-11-05',sales_progress_status:'진행',sales_status:'매출완료'},error:null};
+    },
+    from:()=>({select:()=>({eq:()=>({single:async()=>({data:{id:'order-8',quantity:2,shipped_quantity:2,shipped_date:'2026-11-05'},error:null})})})})
+  };
+  const element=()=>({value:'',open:false,textContent:'',disabled:false,showModal(){},close(){}});
+  const context=vm.createContext({
+    document:{getElementById:element},testClient,salesOrderStatus,number:value=>String(value),
+    crypto:{randomUUID:()=>'request-2'},validDate:value=>/^\d{4}-\d{2}-\d{2}$/.test(value)
+  });
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  for(const name of ['renderSalesOrders','renderSalesStatus','renderSalesRegister','renderSalesBalance','updateIssueSalesOrders'])context[name]=()=>{};
+  context.loadStock=async()=>{};
+  vm.runInContext(`currentUser={id:'user'};client=testClient;
+    items=[{id:'item-8',product_code:'P8',product_name:'품목8',specification:'',unit:'EA'}];
+    salesOrders=[{id:'order-8',order_number:'SO-8',product_name:'품목8',product_code:'',specification:'',unit:'EA',quantity:2,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];
+    salesRegisterTargetOrderIds=['order-8'];salesRegisterRowInputs.set('order-8',{date:'2026-11-05',quantity:2});`,context);
+  await vm.runInContext('completeSalesRegistration()',context);
+  const issue=rpcCalls.find(([name])=>name==='post_stock_movement');
+  assert.ok(issue,'a stock issue is posted');
+  assert.equal(issue[1].p_details.product_code,'P8');
+});
+
 test('per-order shipment inputs are rejected when they exceed the remaining quantity',()=>{
   const elements=new Map();
   const element=id=>{

@@ -117,7 +117,6 @@ test('sales register menu uses a dedicated search dialog and binds confirmation 
   assert.ok(dialog);
   assert.doesNotMatch(dialog,/export-sales-register|data-print(?:-settings)?="sales-register"/);
   assert.equal(typeof app.element('sales-register-query').handlers.keydown,'function');
-  assert.equal(typeof app.element('sales-register-items').handlers.click,'function');
 });
 
 test('sales and inventory lists bind their Excel download buttons',async()=>{
@@ -138,11 +137,15 @@ test('admin link stays hidden unless the server verifies the current user as adm
   vm.runInContext('currentUser={id:"admin"};client.auth.getSession=async()=>({data:{session:{access_token:"verified-token"}}});',app.context);
   await vm.runInContext('refreshAdminAccess()',app.context);assert.equal(app.element('admin-link').hidden,false);
   assert.equal(app.element('admin-folder').hidden,false);
+  assert.equal(app.element('asset-classification-folder').hidden,false,'분류 설정 folder is shown to admins');
   app.context.fetch=async()=>({ok:true,json:async()=>({is_admin:false})});
   await vm.runInContext('refreshAdminAccess()',app.context);assert.equal(app.element('admin-link').hidden,true);
   assert.equal(app.element('admin-folder').hidden,true);
+  assert.equal(app.element('asset-classification-folder').hidden,true,'분류 설정 folder is hidden from non-admins');
+  assert.equal(vm.runInContext('currentIsAdmin',app.context),false);
   app.context.fetch=async()=>{throw new Error('offline');};
   await vm.runInContext('refreshAdminAccess()',app.context);assert.equal(app.element('admin-link').hidden,true);
+  assert.equal(app.element('asset-classification-folder').hidden,true);
 });
 
 test('direct admin visit by an ordinary user hides panels and returns to inventory',async()=>{

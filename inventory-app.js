@@ -376,7 +376,7 @@ let movementListKind='';
 function movementListLabel(){return movementListKind==='opening'?'기초재고 내역':movementListKind==='receipt'?'입고 현황':movementListKind==='issue'?'출고 내역':'입출고 내역';}
 let salesOrders = [],salesDraftLines=[],salesOrdersLoading = false,salesOrderSaving = false;
 let salesDraftSequence=0,salesDraftGroupId='';
-let salesRegisterQuery='',salesRegisterSearched=false,salesRegisterVisibleOrders=[],salesRegisterTargetOrderIds=[],salesRegisterConfirmMode='register',salesRegisterCheckedIds=new Set(),salesRegisterRowInputs=new Map();
+let salesRegisterQuery='',salesRegisterSearched=false,salesRegisterVisibleOrders=[],salesRegisterTargetOrderIds=[],salesRegisterConfirmMode='register',salesRegisterCheckedIds=new Set(),salesRegisterRowInputs=new Map(),currentIsAdmin=false;
 let purchaseOrders=[],purchaseOrderLines=[],purchaseReceipts=[],purchaseDraftLines=[],purchaseOrderVendors=[],purchaseOrderVendorsLoaded=false,purchaseLoading=false,purchaseSaving=false,purchaseSyncTimer=null,purchaseOrderSaved=false;
 let receivingPurchaseLineId='',receivingPurchaseRequestId='';
 let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''},appliedSalesQueryFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:'',orderNumber:'',vendorName:''},salesStatusUpdating=false;
@@ -740,6 +740,10 @@ function salesRegisterShipmentFor(order){
   const quantity=row.quantity||top?.quantity;
   if(!validDate(date)||!Number.isSafeInteger(quantity)||quantity<1||quantity>salesRegisterRemaining(order))return {invalid:true};
   return {date,quantity};
+}
+function salesOrderProductCode(order){
+  if(order.product_code)return order.product_code;
+  return items.find(item=>stockLedgerManaged(item)&&item.product_name===order.product_name&&(item.specification||'')===(order.specification||'')&&item.unit===order.unit)?.product_code||'';
 }
 function salesRegistrationCandidate(order,shipment){
   if(salesRegistrationDone(order))return false;
@@ -1198,7 +1202,7 @@ async function completeSalesRegistration(){
         if(shipping){
           const {error:issueError}=await client.rpc('post_stock_movement',{
             p_request_id:crypto.randomUUID(),p_kind:'issue',p_date:shipment.date,
-            p_details:{product_code:order.product_code||'',unit:order.unit,sales_order_id:order.id},
+            p_details:{product_code:salesOrderProductCode(order),unit:order.unit,sales_order_id:order.id},
             p_quantity:shipment.quantity,p_unit_cost:0
           });
           if(issueError)throw issueError;
@@ -1802,8 +1806,10 @@ function subscribeToChanges() {
 }
 async function refreshAdminAccess() {
   const generation = authGeneration;
+  currentIsAdmin = false;
   $('admin-link').hidden = true;
   $('admin-folder').hidden = true;
+  $('asset-classification-folder').hidden = true;
   if (!currentUser) return;
   try {
     const {data,error} = await client.auth.getSession();
@@ -1814,10 +1820,12 @@ async function refreshAdminAccess() {
     if (!response.ok) return;
     const result = await response.json();
     if (generation === authGeneration && currentUser) {
-      $('admin-link').hidden = result.is_admin !== true;
-      $('admin-folder').hidden = result.is_admin !== true;
+      currentIsAdmin = result.is_admin === true;
+      $('admin-link').hidden = !currentIsAdmin;
+      $('admin-folder').hidden = !currentIsAdmin;
+      $('asset-classification-folder').hidden = !currentIsAdmin;
     }
-  } catch { /* 권한 조회에 실패하면 관리자 링크를 숨긴 상태로 유지합니다. */ }
+  } catch { /* 권한 조회에 실패하면 관리자 메뉴를 숨긴 상태로 유지합니다. */ }
 }
 async function updateSession(session) {
   const next = session?.user || null;
@@ -1829,7 +1837,9 @@ async function updateSession(session) {
   appliedDateProductIds=null;appliedSupplier='';salesRegisterQuery='';salesRegisterSearched=false;salesRegisterVisibleOrders=[];salesRegisterTargetOrderIds=[];$('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';$('supplier-filter-wrap').hidden=true;
   $('admin-link').hidden = true;
   $('admin-folder').hidden = true;
-  $('sidebar-toggle').hidden = !currentUser;
+  $('asset-classification-folder').hidden = true;
+  currentIsAdmin = false;
+
   $('header-account').hidden = !currentUser;
   $('profile-menu').hidden=true;
   $('profile-menu-toggle').setAttribute('aria-expanded','false');
@@ -2124,7 +2134,7 @@ async function saveAssetClassification(event) {
   finally{busy=false;$('asset-classification-form').querySelectorAll('input,select,button').forEach(el=>el.disabled=false);$('cancel-asset-classification-edit').hidden=!editingAssetClassificationId;}
 }
 async function showAssetClassifications() {
-  if(!currentUser||busy)return;
+  if(!currentUser||!currentIsAdmin||busy)return;
   resetAssetClassificationForm();$('asset-classification-status').textContent='분류를 불러오는 중…';$('asset-classification-dialog').showModal();
   try{await loadAssetClassifications();$('asset-classification-status').textContent=`품목자산분류 ${number(assetClassifications.length)}개`}
   catch(error){$('asset-classification-status').textContent='분류를 불러오지 못했습니다. Supabase에서 supabase/item-asset-classification.sql을 실행하세요. '+errorText(error);}

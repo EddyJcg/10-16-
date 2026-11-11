@@ -1246,21 +1246,45 @@ function loadSalesPostcodeScript(){
   }
   return salesPostcodeScriptPromise;
 }
+let salesAddressPending=null;
+function renderSalesAddressSearch(){
+  const PostcodeService=window.kakao?.Postcode||window.daum.Postcode;
+  const container=$('sales-address-search');
+  container.replaceChildren();
+  new PostcodeService({
+    oncomplete(data){showSalesAddressDetailStep(data);}
+  }).embed(container);
+}
+function showSalesAddressSearchStep(){
+  salesAddressPending=null;
+  $('sales-address-search').hidden=false;
+  $('sales-address-detail-step').hidden=true;
+  $('sales-address-detail-input').value='';
+}
+function showSalesAddressDetailStep(data){
+  const address=data.roadAddress||data.jibunAddress||data.address||'';
+  const postalCode=data.zonecode||'';
+  salesAddressPending={address,postal_code:postalCode};
+  $('sales-address-selected').textContent=postalCode?`(${postalCode}) ${address}`:address;
+  $('sales-address-search').hidden=true;
+  $('sales-address-detail-step').hidden=false;
+  $('sales-address-detail-input').focus();
+}
+function confirmSalesAddress(){
+  if(!salesAddressPending)return;
+  const detail=$('sales-address-detail-input').value.trim();
+  $('sales_address').value=[salesAddressPending.address,detail].filter(Boolean).join(' ');
+  $('sales_postal_code').value=salesAddressPending.postal_code;
+  salesAddressPending=null;
+  $('sales-address-dialog').close();
+  $('sales-draft-validation-status').textContent='';
+}
 function openSalesAddressSearch(){
   if(salesOrderSaving||$('sales-address-dialog').open)return;
   $('sales-draft-validation-status').textContent='';
   loadSalesPostcodeScript().then(()=>{
-    const PostcodeService=window.kakao?.Postcode||window.daum.Postcode;
-    const container=$('sales-address-search');
-    container.replaceChildren();
-    new PostcodeService({
-      oncomplete(data){
-        $('sales_address').value=data.roadAddress||data.jibunAddress||data.address||'';
-        $('sales_postal_code').value=data.zonecode||'';
-        $('sales-address-dialog').close();
-        $('sales-draft-validation-status').textContent='';
-      }
-    }).embed(container);
+    showSalesAddressSearchStep();
+    renderSalesAddressSearch();
     $('sales-address-dialog').showModal();
   }).catch(error=>{$('sales-draft-validation-status').textContent=error.message;});
 }
@@ -3200,6 +3224,9 @@ async function startApp(){
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
   $('sales_address').addEventListener('click',openSalesAddressSearch);
   $('close-sales-address').addEventListener('click',()=>$('sales-address-dialog').close());
+  $('sales-address-back').addEventListener('click',()=>{showSalesAddressSearchStep();renderSalesAddressSearch();});
+  $('sales-address-confirm').addEventListener('click',confirmSalesAddress);
+  $('sales-address-detail-input').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();confirmSalesAddress();}});
   $('cancel-sales-order').addEventListener('click',cancelSalesOrder);
   $('sales-order-form').addEventListener('submit',saveSalesOrder);
   $('sales_product_code').addEventListener('input',()=>populateSalesProductDetails());

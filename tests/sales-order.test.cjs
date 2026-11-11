@@ -80,6 +80,17 @@ test('매출현황 조회는 수주현황과 별도 창과 독립된 검색 조�
   assert.match(app,/'sales-status-query':'sales-status-query-dialog'/);
 });
 
+test('address search asks for detail address after selecting a road address and merges both into the order address',()=>{
+  const app=fs.readFileSync('inventory-app.js','utf8');
+  assert.match(app,/oncomplete\(data\)\{showSalesAddressDetailStep\(data\);\}/);
+  assert.match(app,/\$\('sales-address-search'\)\.hidden=true;\s*\$\('sales-address-detail-step'\)\.hidden=false;/);
+  assert.match(app,/const detail=\$\('sales-address-detail-input'\)\.value\.trim\(\);\s*\$\('sales_address'\)\.value=\[salesAddressPending\.address,detail\]\.filter\(Boolean\)\.join\(' '\);/);
+  assert.match(app,/\$\('sales_postal_code'\)\.value=salesAddressPending\.postal_code;/);
+  assert.match(app,/\$\('sales-address-back'\)\.addEventListener\('click',\(\)=>\{showSalesAddressSearchStep\(\);renderSalesAddressSearch\(\);\}\);/);
+  assert.match(app,/\$\('sales-address-confirm'\)\.addEventListener\('click',confirmSalesAddress\);/);
+  assert.match(app,/\$\('sales-address-detail-input'\)\.addEventListener\('keydown',event=>\{if\(event\.key==='Enter'\)\{event\.preventDefault\(\);confirmSalesAddress\(\);\}\}\);/);
+});
+
 test('sales order dialog separates free-text header details from repeatable order lines',()=>{
   const html=fs.readFileSync('inventory.html','utf8');
   const style=fs.readFileSync('sales-order.css','utf8');
@@ -100,7 +111,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.doesNotMatch(form,/<label for="sales_unit">|id="sales_unit" required/);
   assert.match(form,/<input id="sales_unit" type="text" hidden/);
   assert.match(form,/class="field sales-order-address-field"><label for="sales_address">주소<\/label><div class="sales-order-address-actions"><input id="sales_address" required readonly[^>]*><input id="sales_postal_code" readonly[^>]*><\/div><\/div>/);
-  assert.match(html,/<dialog id="sales-address-dialog"[\s\S]*?<div id="sales-address-search" class="sales-address-search"><\/div>\s*<\/dialog>/);
+  assert.match(html,/<dialog id="sales-address-dialog"[\s\S]*?<div id="sales-address-search" class="sales-address-search"><\/div>\s*<div id="sales-address-detail-step" class="sales-address-detail-step" hidden>[\s\S]*?<input id="sales-address-detail-input"[\s\S]*?<button type="button" id="sales-address-confirm" class="primary">주소 입력<\/button>[\s\S]*?<\/div>\s*<\/dialog>/);
   assert.match(html,/<th>수주금액<\/th><th>주소<\/th><th>납기일자<\/th><th data-grid-min-width="200" data-column-required>관리<\/th>/);
   assert.match(form,/id="sales_order_type" required><option value="">선택하세요<\/option><option value="온라인 수주">온라인 수주<\/option><option value="오프라인 수주">오프라인 수주<\/option>/);
   assert.match(form,/id="sales_vendor_name" required/);

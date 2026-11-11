@@ -37,6 +37,8 @@
 .sales-order-draft-table input[type="checkbox"]{
   width:20px;height:20px;margin:0 6px 0 0;padding:0;vertical-align:middle;accent-color:#348fe2;cursor:pointer
 }
+.sales-order-draft-table th[data-grid-min-width]{min-width:360px}
+.sales-order-table th[data-grid-min-width]{min-width:180px}
 @media(min-width:1600px){
   .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(6,minmax(0,1fr)) minmax(320px,2fr)}
 }

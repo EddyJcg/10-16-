@@ -64,7 +64,8 @@
     const head=headerRow(table);
     const th=head.cells[index];
     if(!th)return;
-    const value=Math.max(MIN_WIDTH,Math.round(width))+'px';
+    const minWidth=Number(th.dataset.gridMinWidth)||MIN_WIDTH;
+    const value=Math.max(MIN_WIDTH,minWidth,Math.round(width))+'px';
     th.style.width=value;th.style.minWidth=value;th.style.maxWidth=value;
     const col=table.querySelectorAll('colgroup > col')[index];
     if(col){col.style.width=value;col.style.minWidth=value;}

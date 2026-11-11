@@ -496,9 +496,10 @@ function renderSalesOrders(){
     [number(order.sequence_id),String(order.order_date).slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',order.product_code||'',order.product_name,order.specification,order.unit,
       number(order.quantity),money(order.unit_price),money(order.amount),String(order.due_date).slice(0,10),
       order.delivery_method,order.address,order.notes].forEach((value,index)=>row.append(makeCell(value,index===0||index===10||index===11||index===12)));
-    const action=document.createElement('td'),button=document.createElement('button');
+    const action=document.createElement('td'),button=document.createElement('button'),remove=document.createElement('button');
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
-    action.append(button);row.append(action);
+    remove.type='button';remove.className='secondary';remove.textContent='삭제';remove.dataset.deleteSalesOrderId=order.id;
+    action.append(button,remove);row.append(action);
     body.append(row);
   });
 }
@@ -1247,6 +1248,7 @@ function cancelSalesOrder(){
   resetSalesOrderForm();$('sales-order-dialog').close();
 }
 function editSalesOrder(id){
+  if(salesOrderSaving)return;
   const order=salesOrders.find(row=>row.id===id);if(!order)return;
   const blockedReason=salesOrderDownstreamReason(id);
   if(blockedReason){alertBlocked(blockedReason);return;}
@@ -1263,6 +1265,36 @@ function editSalesOrder(id){
   renderSalesDraftLines();
   $('sales-order-title').textContent='수주 수정';$('save-sales-order').textContent='변경 사항 저장';$('save-sales-order').disabled=false;
   $('sales_order_number').focus();
+}
+async function deleteSalesOrder(id){
+  if(!currentUser||busy||salesOrderSaving)return;
+  const order=salesOrders.find(row=>row.id===id);
+  if(!order){$('sales-order-status').textContent='삭제할 수주를 찾을 수 없습니다.';return;}
+  if(editingSalesOrderId||editingSalesDraftId){
+    $('sales-order-status').textContent='수정 중인 수주를 저장하거나 취소한 뒤 삭제하세요.';return;
+  }
+  const blockedReason=salesOrderDownstreamReason(id);
+  if(blockedReason){alertBlocked(blockedReason);return;}
+  if(!window.confirm(`수주 '${order.order_number} · ${order.product_name}' 품목을 삭제하시겠습니까?`))return;
+  const generation=authGeneration;
+  salesOrderSaving=true;$('sales-order-editor').disabled=true;$('sales-order-status').textContent='수주 품목을 삭제하는 중…';
+  try{
+    const {data,error}=await client.rpc('delete_sales_order_line',{p_order_id:id});
+    if(error)throw error;
+    if(generation!==authGeneration)return;
+    if(data?.id!==id)throw new Error('삭제 결과의 수주 품목이 일치하지 않습니다.');
+    salesOrders=salesOrders.filter(row=>row.id!==id);
+    if(salesDraftGroupId&&!salesOrders.some(row=>(row.order_group_id||row.id)===salesDraftGroupId))salesDraftGroupId='';
+    renderSalesStatus();renderSalesStatus('query');renderSalesRegister();renderSalesBalance();updateIssueSalesOrders();
+    $('sales-order-status').textContent='수주 품목을 삭제했습니다.';
+  }catch(error){
+    if(generation===authGeneration)$('sales-order-status').textContent=error?.code==='PGRST202'||error?.code==='42883'
+      ?'수주 삭제 DB 설정이 필요합니다. 최신 supabase/sales-order-groups.sql을 실행하세요.'
+      :'수주 품목 삭제에 실패했습니다. '+errorText(error);
+  }finally{
+    salesOrderSaving=false;$('sales-order-editor').disabled=false;
+    if(generation===authGeneration){renderSalesOrders();updateSalesOrderSaveButton();}
+  }
 }
 async function showSalesOrder(){
   if(!currentUser||busy||salesOrderSaving)return;
@@ -3052,7 +3084,11 @@ async function startApp(){
     else if(edit)editSalesDraft(edit.dataset.editSalesDraft);
     else if(remove)deleteSalesDraft(remove.dataset.deleteSalesDraft);
   });
-  $('sales-order-items').addEventListener('click',event=>{const button=event.target.closest('[data-sales-order-id]');if(button)editSalesOrder(button.dataset.salesOrderId);});
+  $('sales-order-items').addEventListener('click',event=>{
+    const edit=event.target.closest('[data-sales-order-id]'),remove=event.target.closest('[data-delete-sales-order-id]');
+    if(edit)editSalesOrder(edit.dataset.salesOrderId);
+    else if(remove)deleteSalesOrder(remove.dataset.deleteSalesOrderId);
+  });
   $('close-sales-status').addEventListener('click',()=>$('sales-status-dialog').close());
   $('close-sales-query').addEventListener('click',()=>$('sales-status-query-dialog').close());
   $('close-sales-register').addEventListener('click',()=>$('sales-register-dialog').close());

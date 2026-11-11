@@ -107,7 +107,8 @@ test('수주 DB는 품목별 품번을 저장하고 기존 호출과 수정 시 
         order_date date,order_number text,order_type text,vendor_id uuid,vendor_name text,vendor_contact text,
         product_name text,specification text,unit text,quantity integer,unit_price numeric,amount numeric,due_date date,
         delivery_method text,address text,notes text,created_by uuid,shipped_quantity integer not null default 0
-      );`);
+      );
+      create table public.stock_movements (sales_order_id uuid references public.sales_orders(id));`);
     const sql=fs.readFileSync('supabase/sales-order-groups.sql','utf8');
     await db.exec(sql);await db.exec(sql);
     const line={product_code:' SKU-1 ',product_name:'품목',specification:'',unit:'EA(개)',quantity:2,unit_price:30,due_date:'2026-12-01'};
@@ -124,5 +125,22 @@ test('수주 DB는 품목별 품번을 저장하고 기존 호출과 수정 시 
     assert.equal(updated.orders[0].product_code,'SKU-2');
     await assert.rejects(db.query('select public.register_sales_order_group($1,$2,$3,$4,$5,$6,$7)',
       [...args.slice(0,6),[{...line,product_code:'A'.repeat(81)}]]),/INVALID_SALES_ORDER_LINE/);
+    const additional={...line,product_code:'SKU-3',product_name:'두번째'};
+    const group=(await db.query('select public.register_sales_order_group($1,$2,$3,$4,$5,$6,$7)',
+      [...args.slice(0,6),[line,additional]])).rows[0].register_sales_order_group;
+    await db.query('insert into public.stock_movements(sales_order_id) values($1)',[group.orders[1].id]);
+    await assert.rejects(db.query('select public.delete_sales_order_line($1)',[group.orders[0].id]),/SALES_ORDER_HAS_SHIPMENTS/);
+    await db.query('delete from public.stock_movements where sales_order_id=$1',[group.orders[1].id]);
+    await db.query('update public.sales_orders set shipped_quantity=1 where id=$1',[group.orders[1].id]);
+    await assert.rejects(db.query('select public.delete_sales_order_line($1)',[group.orders[0].id]),/SALES_ORDER_HAS_SHIPMENTS/);
+    await db.query('update public.sales_orders set shipped_quantity=0 where id=$1',[group.orders[1].id]);
+    await db.exec("alter table public.sales_orders add column sales_progress_status text");
+    await db.query("update public.sales_orders set sales_progress_status='완료' where id=$1",[group.orders[1].id]);
+    await assert.rejects(db.query('select public.delete_sales_order_line($1)',[group.orders[0].id]),/SALES_ORDER_HAS_SHIPMENTS/);
+    await db.query("update public.sales_orders set sales_progress_status='진행' where id=$1",[group.orders[1].id]);
+    const deleted=(await db.query('select public.delete_sales_order_line($1) as result',[group.orders[0].id])).rows[0].result;
+    assert.equal(deleted.id,group.orders[0].id);
+    assert.equal((await db.query('select count(*)::int as count from public.sales_orders where order_group_id=$1',[group.group_id])).rows[0].count,1);
+    await assert.rejects(db.query('select public.delete_sales_order_line($1)',[group.orders[0].id]),/SALES_ORDER_NOT_FOUND/);
   }finally{await db.close();}
 });

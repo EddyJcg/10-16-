@@ -54,6 +54,31 @@ test('닫힌 창에서 저장된 열 너비를 복원할 때 새 열도 표시�
   assert.equal(table.style.tableLayout,'fixed');
 });
 
+test('수주 관리 열은 저장된 너비나 드래그로 버튼이 잘리지 않는다', () => {
+  const headers=['일련번호','관리'].map((label,index)=>({
+    textContent:label,dataset:index?{gridMinWidth:'360'}:{},style:{},
+    hasAttribute:name=>name==='data-grid-serial'&&index===0,
+    getBoundingClientRect:()=>({width:0})
+  }));
+  const dialog={id:'sales-order-dialog',querySelectorAll:()=>[table]};
+  const table={tHead:{rows:[{cells:headers}]},style:{},classList:{add(){}},
+    closest:()=>dialog,querySelectorAll:()=>[]};
+  const context=vm.createContext({
+    document:{querySelectorAll:()=>[]},MutationObserver:class{observe(){} disconnect(){}},
+    localStorage:{getItem:()=>JSON.stringify({'sales-order-dialog|0|관리':45})},
+    window:{addEventListener(){}}
+  });
+  const script=read('popup-table-grid.js').replace('  syncAll();',
+    '  window.testRestoreWidths=restoreWidths;window.testSetColumnWidth=setColumnWidth;\n  syncAll();');
+  vm.runInContext(script,context);
+  context.window.testRestoreWidths(table);
+  assert.equal(headers[1].style.width,'360px');
+  context.window.testSetColumnWidth(table,1,60);
+  assert.equal(headers[1].style.width,'360px');
+  assert.match(read('sales-order.css'),/sales-order-draft-table th\[data-grid-min-width\]\{min-width:360px\}/);
+  assert.match(read('sales-order.css'),/sales-order-table th\[data-grid-min-width\]\{min-width:180px\}/);
+});
+
 test('표 제목줄과 행 높이가 2/3로 줄어든다', () => {
   const css = read('popup-table-grid.css');
   assert.match(css, /dialog table th,dialog table td\{padding-top:4\.5px!important;padding-bottom:4\.5px!important/);

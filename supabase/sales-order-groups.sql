@@ -175,6 +175,33 @@ begin
 end;
 $$;
 
+create or replace function public.delete_sales_order_line(p_order_id uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  v_order public.sales_orders%rowtype;
+  v_group_id uuid;
+begin
+  if not public.inventory_access_allowed() then raise exception 'ACCOUNT_DISABLED' using errcode='42501'; end if;
+  if p_order_id is null then raise exception 'INVALID_SALES_ORDER' using errcode='22023'; end if;
+  select order_group_id into v_group_id from public.sales_orders where id=p_order_id;
+  if not found then raise exception 'SALES_ORDER_NOT_FOUND' using errcode='P0002'; end if;
+  perform 1 from public.sales_orders where order_group_id=v_group_id order by id for update;
+  select * into v_order from public.sales_orders where id=p_order_id and order_group_id=v_group_id;
+  if not found then raise exception 'SALES_ORDER_NOT_FOUND' using errcode='P0002'; end if;
+  if exists(
+    select 1 from public.sales_orders so
+    where so.order_group_id=v_group_id
+      and (so.shipped_quantity>0 or to_jsonb(so)->>'sales_progress_status'='완료'
+        or to_jsonb(so)->>'sales_status'='매출완료'
+        or exists(select 1 from public.stock_movements m where m.sales_order_id=so.id))
+  ) then raise exception 'SALES_ORDER_HAS_SHIPMENTS' using errcode='22023'; end if;
+  delete from public.sales_orders where id=p_order_id;
+  return jsonb_build_object('id',v_order.id,'order_group_id',v_group_id);
+end;
+$$;
+revoke all on function public.delete_sales_order_line(uuid) from public,anon;
+grant execute on function public.delete_sales_order_line(uuid) to authenticated;
+
 revoke all on function public.register_sales_order_group(date,text,text,text,text,text,jsonb) from public,anon;
 grant execute on function public.register_sales_order_group(date,text,text,text,text,text,jsonb) to authenticated;
 revoke all on function public.update_sales_order_group(uuid,date,text,text,text,text,text,jsonb) from public,anon;

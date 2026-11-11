@@ -121,6 +121,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(style,/\.sales-order-dialog \.sales-order-line-add\{[^}]*background:#ffe0b2;border-color:#efb76f;color:#633500/);
   for(const attr of ['data-edit-sales-draft','data-delete-sales-draft','data-sales-order-id','data-delete-sales-order-id'])
     assert.ok(style.includes(`button[${attr}]`),attr);
+  assert.match(style,/\.sales-order-dialog \.sales-order-draft-table button\[data-register-sales-line\]\{transform:scaleX\(\.7\);transform-origin:left center\}/);
   assert.match(style,/width:64px;transform:scaleX\(\.65\);transform-origin:left center;margin-right:-22px/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('save-sales-order-draft'\)\.addEventListener\('click',addSalesOrderLine\)/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('add-sales-line'\)\.addEventListener\('click',addSalesOrderLine\)/);

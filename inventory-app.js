@@ -376,7 +376,7 @@ let movementListKind='';
 function movementListLabel(){return movementListKind==='opening'?'기초재고 내역':movementListKind==='receipt'?'입고 현황':movementListKind==='issue'?'출고 내역':'입출고 내역';}
 let salesOrders = [],salesDraftLines=[],salesOrdersLoading = false,salesOrderSaving = false;
 let salesDraftSequence=0,salesDraftGroupId='';
-let salesRegisterQuery='',salesRegisterSearched=false,salesRegisterVisibleOrders=[],salesRegisterTargetOrderIds=[];
+let salesRegisterQuery='',salesRegisterSearched=false,salesRegisterVisibleOrders=[],salesRegisterTargetOrderIds=[],salesRegisterConfirmMode='register';
 let purchaseOrders=[],purchaseOrderLines=[],purchaseReceipts=[],purchaseDraftLines=[],purchaseOrderVendors=[],purchaseOrderVendorsLoaded=false,purchaseLoading=false,purchaseSaving=false,purchaseSyncTimer=null,purchaseOrderSaved=false;
 let receivingPurchaseLineId='',receivingPurchaseRequestId='';
 let appliedSalesStatusFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:''},appliedSalesQueryFilters={startDate:'',endDate:'',orderType:'',salesStatus:'',query:'',orderNumber:'',vendorName:''},salesStatusUpdating=false;
@@ -636,6 +636,7 @@ function renderSalesRegister(){
   const visibleOrders=salesRegisterSearched?filterSalesOrders(salesOrders,{query:salesRegisterQuery}):[];
   salesRegisterVisibleOrders=visibleOrders;
   $('bulk-sales-register').disabled=salesStatusUpdating||!visibleOrders.some(salesRegistrationEligible);
+  $('stop-sales-order').disabled=salesStatusUpdating||!visibleOrders.some(salesOrderStoppable);
   if(!salesRegisterSearched){emptyRow(body,17,'수주번호 또는 거래처(성명)를 검색하세요.');return;}
   if(!visibleOrders.length){emptyRow(body,17,'검색 결과가 없습니다.');return;}
   visibleOrders.forEach(order=>{
@@ -998,6 +999,7 @@ function openSalesRegisterConfirmation(id){
   const alreadyComplete=salesOrderStatus(order)==='완료',partialShipment=shipped>0&&shipped<quantity;
   const hasShippedDate=Boolean(String(order.shipped_date||'').trim());
   salesRegisterTargetOrderIds=alreadyComplete||!hasShippedDate||partialShipment?[]:[order.id];
+  salesRegisterConfirmMode='register';$('complete-sales-register-confirm').textContent='완료';
   $('sales-register-confirm-message').textContent='매출등록을 하시겠습니까?';
   $('sales-register-confirm-status').textContent=alreadyComplete
     ? '이미 매출 등록이 완료된 품목입니다.'
@@ -1014,6 +1016,7 @@ function openBulkSalesRegisterConfirmation(){
     $('sales-register-message').textContent='출고등록이 완료된 매출 미등록 품목이 없습니다.';
     return;
   }
+  salesRegisterConfirmMode='register';$('complete-sales-register-confirm').textContent='완료';
   $('sales-register-confirm-message').textContent=salesRegisterTargetOrderIds.length+'건의 매출등록을 진행하시겠습니까?';
   $('sales-register-confirm-status').textContent='현재 검색 결과의 미등록 품목만 순서대로 등록합니다.';
   $('complete-sales-register-confirm').disabled=false;
@@ -1024,6 +1027,73 @@ function cancelSalesRegisterConfirmation(){
   if(salesStatusUpdating)return;
   salesRegisterTargetOrderIds=[];
   $('sales-register-confirm-dialog').close();
+}
+function salesOrderStoppable(order){
+  const shipped=Number(order.shipped_quantity||0),quantity=Number(order.quantity||0);
+  return salesOrderStatus(order)==='진행'&&shipped<quantity;
+}
+function openStopSalesConfirmation(){
+  if(!currentUser||salesStatusUpdating)return;
+  salesRegisterTargetOrderIds=salesRegisterVisibleOrders.filter(salesOrderStoppable).map(order=>order.id);
+  if(!salesRegisterTargetOrderIds.length){
+    $('sales-register-message').textContent='수주중단이 가능한 진행 중인 품목이 없습니다.';
+    return;
+  }
+  salesRegisterConfirmMode='stop';
+  $('sales-register-confirm-message').textContent=salesRegisterTargetOrderIds.length+'건의 수주를 중단하시겠습니까?';
+  $('sales-register-confirm-status').textContent='중단된 수주는 매출 상태가 중단으로 표시되며 출고 처리가 막힙니다.';
+  $('complete-sales-register-confirm').textContent='중단';$('complete-sales-register-confirm').disabled=false;
+  $('cancel-sales-register-confirm').disabled=false;$('close-sales-register-confirm').disabled=false;
+  $('sales-register-confirm-dialog').showModal();
+}
+async function stopSalesOrders(){
+  if(!salesRegisterTargetOrderIds.length||!currentUser||salesStatusUpdating)return;
+  const generation=authGeneration,targetIds=[...new Set(salesRegisterTargetOrderIds)];
+  salesStatusUpdating=true;$('complete-sales-register-confirm').disabled=true;
+  $('cancel-sales-register-confirm').disabled=true;$('close-sales-register-confirm').disabled=true;
+  renderSalesRegister();
+  const failed=[];
+  let stopped=0,skipped=0;
+  try{
+    for(let index=0;index<targetIds.length;index++){
+      if(generation!==authGeneration)return;
+      const order=salesOrders.find(row=>row.id===targetIds[index]);
+      if(!order||!salesOrderStoppable(order)){skipped++;continue;}
+      $('sales-register-confirm-status').textContent='수주중단을 저장하는 중… ('+number(index+1)+'/'+number(targetIds.length)+')';
+      try{
+        const {data,error}=await client.rpc('set_sales_order_status',{p_order_id:order.id,p_sales_status:'중단'});
+        if(error)throw error;
+        if(generation!==authGeneration)return;
+        salesOrders=salesOrders.map(row=>row.id===data.id?data:row);
+        stopped++;
+      }catch(error){
+        if(generation!==authGeneration)return;
+        failed.push({order,message:errorText(error)});
+      }
+      renderSalesOrders();renderSalesStatus();renderSalesStatus('query');renderSalesRegister();renderSalesBalance();updateIssueSalesOrders();
+    }
+    if(generation!==authGeneration)return;
+    salesRegisterTargetOrderIds=failed.map(({order})=>order.id);
+    if(failed.length){
+      $('sales-register-confirm-message').textContent='수주중단 결과: '+number(stopped)+'건 완료, '+number(failed.length)+'건 실패';
+      $('sales-register-confirm-status').textContent=failed.map(({order,message})=>order.order_number+' · '+order.product_name+': '+message).join('\n');
+      $('sales-register-message').textContent='수주중단 '+number(stopped)+'건 완료, '+number(failed.length)+'건 실패했습니다. 실패 항목을 확인하세요.';
+    }else{
+      $('sales-register-confirm-dialog').close();salesRegisterTargetOrderIds=[];
+      $('sales-register-message').textContent='수주 '+number(stopped)+'건을 중단했습니다.'+(skipped?' 중단 조건에 맞지 않는 '+number(skipped)+'건은 제외했습니다.':'');
+    }
+  }finally{
+    salesStatusUpdating=false;
+    if(generation===authGeneration){
+      renderSalesRegister();
+      if(failed.length){
+        $('complete-sales-register-confirm').disabled=false;$('cancel-sales-register-confirm').disabled=false;$('close-sales-register-confirm').disabled=false;
+      }
+    }
+  }
+}
+function confirmSalesRegisterAction(){
+  return salesRegisterConfirmMode==='stop'?stopSalesOrders():completeSalesRegistration();
 }
 async function completeSalesRegistration(){
   if(!salesRegisterTargetOrderIds.length||!currentUser||salesStatusUpdating)return;
@@ -3173,7 +3243,8 @@ async function startApp(){
   $('sales-register-confirm-dialog').addEventListener('cancel',event=>{
     if(salesStatusUpdating)event.preventDefault();else salesRegisterTargetOrderIds=[];
   });
-  $('complete-sales-register-confirm').addEventListener('click',completeSalesRegistration);
+  $('complete-sales-register-confirm').addEventListener('click',confirmSalesRegisterAction);
+  $('stop-sales-order').addEventListener('click',openStopSalesConfirmation);
   $('apply-sales-status-search').addEventListener('click',()=>applySalesStatusSearch());
   $('search-sales-status-orders').addEventListener('click',()=>applySalesStatusSearch());
   $('clear-sales-status-search').addEventListener('click',()=>applySalesStatusSearch(true));

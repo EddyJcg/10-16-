@@ -379,6 +379,7 @@ test('sales registration has its own search dialog, matching order columns and c
   assert.doesNotMatch(registerHeader,/<th>(?:연락처|완료 체크|기타사항)<\/th>/);
   assert.match(registerDialog,/id="sales-register-query" type="search"/);
   assert.match(registerDialog,/id="search-sales-register"[^>]*>검색<\/button>/);
+  assert.match(registerDialog,/<button id="stop-sales-order"[^>]*>수주중단<\/button><button id="add-sales-register"[^>]*>매출 등록 추가<\/button><button id="bulk-sales-register"[^>]*>일괄 매출등록<\/button>/);
   assert.match(registerDialog,/<button id="add-sales-register"[^>]*>매출 등록 추가<\/button><button id="bulk-sales-register"[^>]*>일괄 매출등록<\/button>/);
   assert.doesNotMatch(registerDialog,/sales-status-start-date|sales-status-total/);
   assert.match(html,/<dialog id="sales-register-confirm-dialog"[\s\S]*?매출등록을 하시겠습니까\?[\s\S]*?id="cancel-sales-register-confirm"[^>]*>취소<\/button>[\s\S]*?id="complete-sales-register-confirm"[^>]*>완료<\/button>/);
@@ -524,6 +525,37 @@ test('bulk sales registration processes only unregistered eligible search result
   assert.equal(vm.runInContext("salesOrders.filter(order=>order.sales_progress_status==='완료').length",context),3);
   await vm.runInContext('completeSalesRegistration()',context);
   assert.equal(calls.length,2,'a repeated bulk action does not call the database again');
+});
+
+test('sales order stop bulk action stops only in-progress orders that are not fully shipped',async()=>{
+  const elements=new Map(),calls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
+    return elements.get(id);
+  };
+  const testClient={rpc:async(name,args)=>{
+    calls.push([name,args.p_order_id,args.p_sales_status]);
+    return {data:{id:args.p_order_id,order_number:args.p_order_id,product_name:'품목',sales_progress_status:'중단',sales_status:'매출미완료'},error:null};
+  }};
+  const context=vm.createContext({document:{getElementById:element},testClient,salesOrderStatus,number:value=>String(value)});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  for(const name of ['renderSalesOrders','renderSalesStatus','renderSalesRegister','renderSalesBalance','updateIssueSalesOrders'])context[name]=()=>{};
+  vm.runInContext(`currentUser={id:'user'};client=testClient;
+    salesOrders=[
+      {id:'open-1',order_number:'SO-1',product_name:'품목1',quantity:2,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'},
+      {id:'partial',order_number:'SO-2',product_name:'품목2',quantity:2,shipped_quantity:1,shipped_date:'2026-11-02',sales_progress_status:'진행'},
+      {id:'full',order_number:'SO-3',product_name:'품목3',quantity:1,shipped_quantity:1,shipped_date:'2026-11-03',sales_progress_status:'완료'},
+      {id:'stopped',order_number:'SO-4',product_name:'품목4',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'중단'}
+    ];
+    salesRegisterVisibleOrders=salesOrders;openStopSalesConfirmation()`,context);
+  assert.equal(element('sales-register-confirm-message').textContent,'2건의 수주를 중단하시겠습니까?');
+  assert.equal(element('complete-sales-register-confirm').textContent,'중단');
+  await vm.runInContext('confirmSalesRegisterAction()',context);
+  assert.deepEqual(calls.map(([name,id,status])=>[name,id,status]),[['set_sales_order_status','open-1','중단'],['set_sales_order_status','partial','중단']]);
+  assert.equal(vm.runInContext("salesOrders.find(order=>order.id==='open-1').sales_progress_status",context),'중단');
+  assert.equal(element('sales-register-confirm-dialog').open,false);
+  vm.runInContext("salesOrders=[{id:'x',order_number:'SO-9',product_name:'품목',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];salesRegisterVisibleOrders=[];openStopSalesConfirmation()",context);
+  assert.equal(element('sales-register-message').textContent,'수주중단이 가능한 진행 중인 품목이 없습니다.');
 });
 
 test('sales item completion checkbox saves the selected order status',async()=>{

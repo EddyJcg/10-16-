@@ -79,6 +79,30 @@ test('수주 관리 열은 저장된 너비나 드래그로 버튼이 잘리지 
   assert.match(read('sales-order.css'),/sales-order-table th\[data-grid-min-width\]\{min-width:180px\}/);
 });
 
+test('필수 관리 열은 기존 숨김 설정에도 표시되고 다른 열 숨김은 유지된다', () => {
+  const headers=[
+    {dataset:{popupColumnKey:'품명#0'},style:{},hasAttribute:()=>false},
+    {dataset:{popupColumnKey:'관리#0'},style:{},hasAttribute:name=>name==='data-column-required'}
+  ];
+  const cells=[{style:{}},{style:{}}],columns=[{style:{}},{style:{}}];
+  const table={tHead:{rows:[{cells:headers}]},tBodies:[{rows:[{cells}]}],
+    querySelectorAll:()=>columns};
+  const context=vm.createContext({document:{addEventListener(){},querySelectorAll:()=>[]},window:{}});
+  const script=read('popup-table-menu.js').replace('  initializeTables();',
+    '  window.testApplyVisibility=applyVisibility;\n  initializeTables();');
+  vm.runInContext(script,context);
+  context.window.testApplyVisibility(table,new Set(['품명#0','관리#0']));
+  assert.equal(headers[0].style.display,'none');
+  assert.equal(cells[0].style.display,'none');
+  assert.equal(headers[1].style.display,'');
+  assert.equal(cells[1].style.display,'');
+  assert.equal(columns[1].style.display,'');
+  assert.match(read('popup-table-menu.js'),/checkbox\.disabled=header\.hasAttribute\('data-column-required'\)/);
+  const css=read('sales-order.css');
+  assert.match(css,/th\[data-column-required\]\{position:sticky;right:0/);
+  assert.match(css,/position:sticky;right:0;z-index:2;background:#fff/);
+});
+
 test('표 제목줄과 행 높이가 2/3로 줄어든다', () => {
   const css = read('popup-table-grid.css');
   assert.match(css, /dialog table th,dialog table td\{padding-top:4\.5px!important;padding-bottom:4\.5px!important/);

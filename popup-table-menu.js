@@ -69,7 +69,7 @@
     if(!table.tHead?.rows[0])return;
     const keys=columnKeys(table),headers=[...table.tHead.rows[0].cells];
     headers.forEach((header,index)=>{
-      const isHidden=hidden.has(keys[index]);
+      const isHidden=!header.hasAttribute('data-column-required')&&hidden.has(keys[index]);
       header.style.display=isHidden?'none':'';
       [...table.tBodies].forEach(body=>[...body.rows].forEach(row=>{
         if(row.cells.length===1&&row.cells[0].colSpan>1)return;
@@ -202,7 +202,10 @@
     const options=[];
     headers.forEach((header,index)=>{
       const option=document.createElement('label');option.className='popup-table-column-option';
-      const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=selected.has(keys[index]);
+      const checkbox=document.createElement('input');checkbox.type='checkbox';
+      checkbox.disabled=header.hasAttribute('data-column-required');
+      checkbox.checked=!checkbox.disabled&&selected.has(keys[index]);
+      if(checkbox.disabled)checkbox.title='이 열은 항상 표시됩니다.';
       const text=document.createElement('span');text.textContent=columnLabel(header,index);
       option.classList.toggle('is-selected',checkbox.checked);
       checkbox.addEventListener('change',()=>option.classList.toggle('is-selected',checkbox.checked));

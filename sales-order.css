@@ -39,6 +39,14 @@
 }
 .sales-order-draft-table th[data-grid-min-width]{min-width:360px}
 .sales-order-table th[data-grid-min-width]{min-width:180px}
+.sales-order-dialog .sales-order-draft-table th[data-column-required],
+.sales-order-dialog .sales-order-table th[data-column-required]{position:sticky;right:0;z-index:5}
+.sales-order-dialog .sales-order-draft-table tbody tr:not(.grid-empty-hidden) td:last-child,
+.sales-order-dialog .sales-order-table tbody tr:not(.grid-empty-hidden) td:last-child{
+  position:sticky;right:0;z-index:2;background:#fff
+}
+.sales-order-dialog .sales-order-draft-table tbody tr[data-grid-blank] td:last-child,
+.sales-order-dialog .sales-order-table tbody tr[data-grid-blank] td:last-child{background:#f1f2f4}
 @media(min-width:1600px){
   .sales-order-dialog .sales-order-line-grid{grid-template-columns:repeat(6,minmax(0,1fr)) minmax(320px,2fr)}
 }

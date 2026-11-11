@@ -111,7 +111,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(form,/id="sales-order-draft-items"/);
   assert.match(html,/<th>거래처<\/th><th>연락처<\/th>/);
   assert.match(html,/id="sales-order-items"/);
-  assert.match(html,/<th>배송방법<\/th><th>주소<\/th><th>기타사항<\/th><th>관리<\/th>/);
+  assert.match(html,/<th>배송방법<\/th><th>주소<\/th><th>기타사항<\/th><th data-grid-min-width="180" data-column-required>관리<\/th>/);
   assert.match(html,/<th>일련번호<\/th><th>수주일자<\/th><th>수주번호<\/th>/);
   assert.match(html,/<link rel="stylesheet" href="\/sales-order\.css/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/String\(order\.order_date\)\.slice\(0,10\)/);

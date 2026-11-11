@@ -89,6 +89,7 @@ test('address search asks for detail address after selecting a road address and 
   assert.match(app,/\$\('sales-address-back'\)\.addEventListener\('click',\(\)=>\{showSalesAddressSearchStep\(\);renderSalesAddressSearch\(\);\}\);/);
   assert.match(app,/\$\('sales-address-confirm'\)\.addEventListener\('click',confirmSalesAddress\);/);
   assert.match(app,/\$\('sales-address-detail-input'\)\.addEventListener\('keydown',event=>\{if\(event\.key==='Enter'\)\{event\.preventDefault\(\);confirmSalesAddress\(\);\}\}\);/);
+  assert.match(fs.readFileSync('sales-order.css','utf8'),/\.sales-address-dialog \.sales-address-detail-step\[hidden\]\{display:none\}/);
 });
 
 test('sales order dialog separates free-text header details from repeatable order lines',()=>{

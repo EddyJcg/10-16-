@@ -79,6 +79,7 @@
 .sales-address-dialog{width:min(560px,94vw);max-height:86vh}
 .sales-address-dialog .sales-address-search{height:480px;border:1px solid #d7dbe0;border-radius:6px;overflow:hidden}
 .sales-address-dialog .sales-address-detail-step{display:grid;gap:12px;padding:4px 2px}
+.sales-address-dialog .sales-address-detail-step[hidden]{display:none}
 .sales-address-dialog .sales-address-selected{margin:0;font-weight:600;word-break:keep-all}
 .sales-address-dialog .sales-address-detail-help{margin:0;color:#5f6b76;font-size:13px}
 .sales-address-dialog .sales-address-detail-actions{justify-content:flex-end;gap:8px}

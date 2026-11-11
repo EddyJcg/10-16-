@@ -422,7 +422,7 @@ function errorText(error) {
     SALES_ORDER_LINE_NOT_FOUND:'수정할 수주 품목을 찾을 수 없습니다. 수주 목록을 새로고침하세요.',
     DUPLICATE_SALES_ORDER_LINE:'같은 수주 품목이 중복으로 전달되었습니다. 창을 새로고침하세요.',
     SALES_ORDER_STOPPED:'중단된 수주는 출고할 수 없습니다. 매출 상태를 진행으로 바꾸세요.',
-    INVALID_SALES_STATUS:'매출 상태는 진행·완료·중단 중에서 선택하세요.',
+    INVALID_SALES_STATUS:'매출 상태 DB 함수가 이전 버전입니다. Supabase SQL Editor에서 supabase/sales-status-workflow.sql을 실행하세요.',
     INVALID_SALES_ORDER_LINK:'출고에 연결할 수주번호를 확인하세요.',
     SALES_ORDER_NOT_FOUND:'연결할 수주를 찾을 수 없습니다. 수주 목록을 새로 확인하세요.',
     SALES_ORDER_PRODUCT_MISMATCH:'선택한 수주의 품명·규격·단위가 출고 품목과 다릅니다.',
@@ -725,19 +725,10 @@ function salesRegistrationEligible(order){
   const shipped=Number(order.shipped_quantity||0),quantity=Number(order.quantity||0);
   return Boolean(String(order.shipped_date||'').trim())&&!salesRegistrationDone(order)&&!(shipped>0&&shipped<quantity);
 }
-function salesRegisterShipmentInput(){
-  const dateValue=$('sales-register-ship-date').value,quantityValue=$('sales-register-ship-quantity').value.trim();
-  if(!dateValue&&!quantityValue)return null;
-  const quantity=Number(quantityValue);
-  if(!validDate(dateValue)||!Number.isSafeInteger(quantity)||quantity<1)return {invalid:true};
-  return {date:dateValue,quantity};
-}
 function salesRegisterShipmentFor(order){
-  const row=salesRegisterRowInputs.get(order.id)||{},top=salesRegisterShipmentInput();
-  if(!row.date&&!row.quantity&&!top)return null;
-  if(top?.invalid&&!row.quantity)return {invalid:true};
-  const date=row.date||top?.date||String(order.shipped_date||'').slice(0,10);
-  const quantity=row.quantity||top?.quantity;
+  const row=salesRegisterRowInputs.get(order.id)||{};
+  if(!row.date&&!row.quantity)return null;
+  const date=row.date||String(order.shipped_date||'').slice(0,10),quantity=row.quantity;
   if(!validDate(date)||!Number.isSafeInteger(quantity)||quantity<1||quantity>salesRegisterRemaining(order))return {invalid:true};
   return {date,quantity};
 }
@@ -1095,7 +1086,7 @@ function openBulkSalesRegisterConfirmation(){
   }
   salesRegisterTargetOrderIds=checkedOrders.filter(order=>salesRegistrationCandidate(order,salesRegisterShipmentFor(order))).map(order=>order.id);
   if(!salesRegisterTargetOrderIds.length){
-    $('sales-register-message').textContent='체크된 수주 중 매출 등록 가능한 품목이 없습니다.';
+    $('sales-register-message').textContent='체크된 수주 중 매출 등록 가능한 품목이 없습니다. 출고일자가 있는 전량 출고 품목만 매출완료 처리할 수 있습니다.';
     return;
   }
   const shipping=checkedOrders.some(order=>salesRegisterShipmentFor(order));
@@ -1215,6 +1206,8 @@ async function completeSalesRegistration(){
         }
         if(shipping&&Number(current.shipped_quantity||0)<Number(current.quantity||0)){
           partial++;
+        }else if(shipping&&salesRegistrationDone(current)){
+          completed++;
         }else{
           if(!salesRegistrationEligible(current))throw new Error('매출 등록 조건을 확인하세요.');
           const {data,error}=await client.rpc('set_sales_order_status',{p_order_id:order.id,p_sales_status:'완료'});
@@ -3320,12 +3313,11 @@ async function startApp(){
   });
   $('close-sales-status').addEventListener('click',()=>$('sales-status-dialog').close());
   $('close-sales-query').addEventListener('click',()=>$('sales-status-query-dialog').close());
+  $('sales-register-submit').addEventListener('click',openBulkSalesRegisterConfirmation);
   $('close-sales-register').addEventListener('click',()=>$('sales-register-dialog').close());
   $('search-sales-register').addEventListener('click',applySalesRegisterSearch);
   $('add-sales-register').addEventListener('click',resetSalesRegisterSearch);
   $('bulk-sales-register').addEventListener('click',openBulkSalesRegisterConfirmation);
-  $('sales-register-ship-date').addEventListener('input',renderSalesRegister);
-  $('sales-register-ship-quantity').addEventListener('input',renderSalesRegister);
   $('sales-register-query').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();applySalesRegisterSearch();}});
   $('close-sales-register-confirm').addEventListener('click',cancelSalesRegisterConfirmation);
   $('cancel-sales-register-confirm').addEventListener('click',cancelSalesRegisterConfirmation);

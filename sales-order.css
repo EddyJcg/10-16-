@@ -21,6 +21,8 @@
 .sales-register-dialog .dialog-body{max-height:calc(90vh - 160px)}
 .sales-register-dialog .sales-register-actions{gap:8px}
 .sales-register-dialog h3{margin:18px 0 10px}
+.sales-register-section-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sales-register-section-header button{margin:18px 0 10px}
 .sales-status-table td.sales-status-action{text-align:center;white-space:nowrap}
 .sales-status-table td.sales-status-action button+button{margin-left:6px}
 .sales-register-confirm-dialog{width:min(460px,calc(100% - 32px))}

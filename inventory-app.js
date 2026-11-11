@@ -1270,7 +1270,7 @@ function salesOrderLinePayload(line){
 function salesOrderRecordPayload(order){
   return {
     line_id:order.id,product_code:order.product_code||'',product_name:order.product_name,specification:order.specification||'',unit:order.unit,
-    quantity:Number(order.quantity),unit_price:Number(order.unit_price),due_date:String(order.due_date).slice(0,10)
+    quantity:Number(order.quantity),unit_price:Number(order.unit_price),address:order.address||'',due_date:String(order.due_date).slice(0,10)
   };
 }
 async function ensureSalesOrderProductCodeReady(lines){
@@ -1317,7 +1317,7 @@ function editSalesOrder(id){
     .forEach(([field,key])=>$(field).value=order[key]??'');
   salesDraftLines=group.map(line=>({
     line_id:line.id,draftId:'sales-draft-'+(++salesDraftSequence),product_code:line.product_code||'',product_name:line.product_name,specification:line.specification||'',unit:line.unit,
-    quantity:Number(line.quantity),unit_price:Number(line.unit_price),due_date:String(line.due_date).slice(0,10),selected:true
+    quantity:Number(line.quantity),unit_price:Number(line.unit_price),address:line.address||'',due_date:String(line.due_date).slice(0,10),selected:true
   }));
   renderSalesDraftLines();
   $('sales-order-title').textContent='수주 수정';$('save-sales-order').textContent='변경 사항 저장';$('save-sales-order').disabled=false;

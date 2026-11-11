@@ -68,7 +68,7 @@ begin
     ) values(
       v_group_id,p_order_date,trim(p_order_number),p_order_type,null,trim(p_vendor_name),
       nullif(trim(coalesce(p_vendor_contact,'')),''),trim(coalesce(v_line->>'product_code','')),v_name,v_specification,v_unit,v_quantity,
-      v_unit_price,v_quantity*v_unit_price,v_due_date,coalesce(p_delivery_method,''),'','',auth.uid()
+      v_unit_price,v_quantity*v_unit_price,v_due_date,coalesce(p_delivery_method,''),left(trim(coalesce(v_line->>'address','')),300),'',auth.uid()
     ) returning * into v_order;
     v_orders:=v_orders||jsonb_build_array(to_jsonb(v_order));
   end loop;
@@ -146,7 +146,8 @@ begin
         product_code=case when v_line ? 'product_code' then trim(coalesce(v_line->>'product_code','')) else v_current.product_code end,
         product_name=v_name,specification=v_specification,unit=v_unit,quantity=v_quantity,
         unit_price=v_unit_price,amount=v_quantity*v_unit_price,due_date=v_due_date,
-        delivery_method=coalesce(p_delivery_method,'')
+        delivery_method=coalesce(p_delivery_method,''),
+        address=case when v_line ? 'address' then left(trim(coalesce(v_line->>'address','')),300) else v_current.address end
       where id=v_line_id returning * into v_order;
     else
       insert into public.sales_orders(
@@ -156,7 +157,7 @@ begin
       ) values(
         p_group_id,p_order_date,trim(p_order_number),p_order_type,null,trim(p_vendor_name),
         nullif(trim(coalesce(p_vendor_contact,'')),''),trim(coalesce(v_line->>'product_code','')),v_name,v_specification,v_unit,v_quantity,
-        v_unit_price,v_quantity*v_unit_price,v_due_date,coalesce(p_delivery_method,''),'','',auth.uid()
+        v_unit_price,v_quantity*v_unit_price,v_due_date,coalesce(p_delivery_method,''),left(trim(coalesce(v_line->>'address','')),300),'',auth.uid()
       ) returning * into v_order;
     end if;
     v_kept_ids:=array_append(v_kept_ids,v_order.id);

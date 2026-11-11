@@ -147,7 +147,6 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(style,/\.sales-order-dialog \.sales-order-line-add\{[^}]*background:#ffe0b2;border-color:#efb76f;color:#633500/);
   for(const attr of ['data-edit-sales-draft','data-delete-sales-draft','data-sales-order-id','data-delete-sales-order-id'])
     assert.ok(style.includes(`button[${attr}]`),attr);
-  assert.match(style,/\.sales-order-dialog \.sales-order-draft-table button\[data-register-sales-line\]\{transform:scaleX\(\.7\);transform-origin:left center\}/);
   assert.match(style,/width:64px;transform:scaleX\(\.78\);transform-origin:left center;margin-right:-14px/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('save-sales-order-draft'\)\.addEventListener\('click',addSalesOrderLine\)/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/\$\('add-sales-line'\)\.addEventListener\('click',addSalesOrderLine\)/);
@@ -183,9 +182,9 @@ test('draft management checkboxes are preselected and saving requires a selectio
   assert.equal(first.checked,true);
   assert.equal(second.checked,false);
   const actions=body.children[0].children[15].children;
-  assert.deepEqual(actions.slice(1).map(button=>button.textContent),['등록','수정','삭제']);
-  assert.equal(actions[2].dataset.editSalesDraft,'draft-a');
-  assert.equal(actions[3].dataset.deleteSalesDraft,'draft-a');
+  assert.deepEqual(actions.slice(1).map(button=>button.textContent),['수정','삭제']);
+  assert.equal(actions[1].dataset.editSalesDraft,'draft-a');
+  assert.equal(actions[2].dataset.deleteSalesDraft,'draft-a');
   assert.equal(saveButton.disabled,false);
   first.checked=false;
   vm.runInContext('changeSalesDraftSelection',context)({target:{closest:()=>first}});
@@ -213,105 +212,6 @@ test('resetting the sales order form clears the draft while preserving saved ord
   assert.equal(element('sales_order_date').value,'2026-11-03');
   assert.equal(element('sales_order_number').value,'PO20261103-003');
   assert.equal(vm.runInContext('nextSalesOrderNumber("2026-11-04")',context),'PO20261104-001');
-});
-
-test('individual sales order registration removes its draft and blocks repeated saves',async()=>{
-  const elements=new Map(),alerts=[],calls=[];
-  const element=id=>{
-    if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false});
-    return elements.get(id);
-  };
-  let resolveSave;
-  const testClient={rpc:(name,args)=>{
-    calls.push([name,args]);
-    return new Promise(resolve=>{resolveSave=()=>resolve({data:{group_id:'group-1',orders:[{
-      ...args.p_lines[0],id:'saved-1',sequence_id:10,order_group_id:'group-1',order_number:args.p_order_number,amount:25
-    }]},error:null});});
-  }};
-  const context=vm.createContext({
-    document:{getElementById:element},window:{alert:message=>alerts.push(message)},
-    testClient,validOrderDueDate:value=>['2026-11-03','2026-12-01'].includes(value),number:value=>String(value),money:value=>String(value)
-  });
-  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
-  vm.runInContext(`currentUser={id:'user'};authGeneration=1;client=testClient;
-    $('sales_order_date').value='2026-11-03';$('sales_order_number').value='SO-1';
-    $('sales_order_type').value='온라인 수주';$('sales_vendor_name').value='거래처';
-    salesDraftLines=[{draftId:'draft-1',product_name:'품목',specification:'규격',unit:'EA(개)',quantity:1,unit_price:25,due_date:'2026-12-01'}]`,context);
-  context.renderSalesDraftLines=()=>{};
-  context.renderSalesOrders=()=>{};
-  context.renderSalesStatus=()=>{};
-  context.renderSalesBalance=()=>{};
-  context.updateIssueSalesOrders=()=>{};
-  const first=vm.runInContext("registerSalesOrderLine('draft-1')",context);
-  await vm.runInContext("registerSalesOrderLine('draft-1')",context);
-  assert.equal(calls.length,1);
-  assert.match(alerts[0],/중복 등록되지 않았습니다/);
-  resolveSave();
-  await first;
-  assert.equal(vm.runInContext('salesDraftLines.length',context),0);
-  assert.equal(vm.runInContext('salesOrders.length',context),1);
-  await vm.runInContext("registerSalesOrderLine('draft-1')",context);
-  assert.equal(calls.length,1);
-});
-
-test('individual and batch sales registration retain one group and batch saving respects selections',async()=>{
-  const elements=new Map(),calls=[];
-  const element=id=>{
-    if(!elements.has(id))elements.set(id,{value:'',textContent:'',disabled:false,reset(){}});
-    return elements.get(id);
-  };
-  let sequence=0;
-  const testClient={rpc:async(name,args)=>{
-    calls.push([name,args]);
-    const groupId=args.p_group_id||(calls.filter(([callName])=>callName==='register_sales_order_group').length>1?'group-next':'group-shared');
-    const orders=args.p_lines.map(line=>({
-      ...line,id:line.line_id||`saved-${++sequence}`,sequence_id:sequence,
-      order_group_id:groupId,order_number:args.p_order_number,amount:line.quantity*line.unit_price
-    }));
-    return {data:{group_id:groupId,orders},error:null};
-  }};
-  const context=vm.createContext({
-    document:{getElementById:element},window:{alert(){}},testClient,
-    validOrderDueDate:value=>['2026-11-03','2026-12-01'].includes(value),number:value=>String(value),money:value=>String(value)
-  });
-  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
-  vm.runInContext(`client=testClient;currentUser={id:'user'};authGeneration=1;
-    $('sales_order_date').value='2026-11-03';$('sales_order_number').value='SO-3';
-    $('sales_order_type').value='온라인 수주';$('sales_vendor_name').value='거래처';
-    salesDraftLines=[{draftId:'draft-a',product_name:'품목 A',specification:'규격',unit:'EA(개)',quantity:1,unit_price:25,due_date:'2026-12-01'}]`,context);
-  context.renderSalesDraftLines=()=>{};
-  context.renderSalesOrders=()=>{};
-  context.renderSalesStatus=()=>{};
-  context.renderSalesBalance=()=>{};
-  context.updateIssueSalesOrders=()=>{};
-  await vm.runInContext("registerSalesOrderLine('draft-a')",context);
-  vm.runInContext(`salesDraftLines=[{draftId:'draft-b',product_name:'품목 B',specification:'',unit:'Box',quantity:2,unit_price:10,due_date:'2026-12-01'}]`,context);
-  await vm.runInContext("registerSalesOrderLine('draft-b')",context);
-  vm.runInContext(`salesDraftLines=[
-    {draftId:'draft-c',product_name:'품목 C',specification:'',unit:'M',quantity:3,unit_price:5,due_date:'2026-12-01',selected:true},
-    {draftId:'draft-d',product_name:'품목 D',specification:'',unit:'EA',quantity:4,unit_price:5,due_date:'2026-12-01',selected:false}
-  ]`,context);
-  vm.runInContext('resetSalesOrderForm=()=>{salesDraftLines=[]}',context);
-  await vm.runInContext("saveSalesOrder({preventDefault(){}})",context);
-  assert.deepEqual(calls.map(([name])=>name),[
-    'register_sales_order_group','update_sales_order_group','update_sales_order_group'
-  ]);
-  assert.equal(calls[1][1].p_group_id,'group-shared');
-  assert.equal(calls[1][1].p_lines.length,2);
-  assert.equal(calls[1][1].p_lines.filter(line=>line.line_id).length,1);
-  assert.equal(calls[2][1].p_group_id,'group-shared');
-  assert.equal(calls[2][1].p_lines.length,3);
-  assert.equal(calls[2][1].p_lines.filter(line=>!line.line_id).length,1);
-  assert.equal(vm.runInContext('salesDraftLines.length',context),1);
-  assert.equal(vm.runInContext('salesDraftLines[0].draftId',context),'draft-d');
-  vm.runInContext('salesDraftLines[0].selected=true',context);
-  await vm.runInContext("saveSalesOrder({preventDefault(){}})",context);
-  assert.equal(calls[3][0],'register_sales_order_group');
-  assert.equal(calls[3][1].p_order_number,'PO20261103-001');
-  assert.equal(calls[3][1].p_lines.length,1);
-  assert.equal(vm.runInContext('salesDraftLines.length',context),0);
-  assert.equal(element('sales_order_number').value,'PO20261103-002');
-  assert.equal(vm.runInContext('salesOrders.length',context),4);
 });
 
 test('sales order batch save submits every draft once and displays a duplicate-save notice',async()=>{

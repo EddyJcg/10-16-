@@ -513,19 +513,16 @@ function renderSalesDraftLines(){
     bindStockRow(row,line);
     [...orderHeader,line.product_code||'',line.product_name,line.specification,line.unit,number(line.quantity),money(line.unit_price),
       money(Number(line.quantity)*Number(line.unit_price)),line.address||'',line.due_date].forEach((value,col)=>row.append(makeCell(value,col===10||col===11||col===12)));
-    const action=document.createElement('td'),checkbox=document.createElement('input'),button=document.createElement('button');
+    const action=document.createElement('td'),checkbox=document.createElement('input');
     checkbox.type='checkbox';checkbox.checked=line.selected!==false;
     checkbox.dataset.salesDraftSelect=String(line.draftId);
     checkbox.setAttribute('aria-label',line.product_name+' 일괄저장 선택');
     checkbox.disabled=!!editingSalesOrderId||salesOrderSaving;
     if(editingSalesOrderId)checkbox.title='기존 수주 수정 중에는 품목 선택을 변경할 수 없습니다.';
-    button.type='button';button.className='secondary';button.textContent='등록';
-    button.dataset.registerSalesLine=String(line.draftId);button.disabled=!!editingSalesOrderId||salesOrderSaving;
-    if(editingSalesOrderId)button.title='기존 수주 수정 중에는 개별 등록할 수 없습니다.';
     const edit=document.createElement('button'),remove=document.createElement('button');
     edit.type='button';edit.className='secondary';edit.textContent='수정';edit.dataset.editSalesDraft=String(line.draftId);edit.disabled=salesOrderSaving;
     remove.type='button';remove.className='secondary';remove.textContent='삭제';remove.dataset.deleteSalesDraft=String(line.draftId);remove.disabled=salesOrderSaving;
-    action.append(checkbox,button,edit,remove);row.append(action);body.append(row);
+    action.append(checkbox,edit,remove);row.append(action);body.append(row);
   });
   updateSalesOrderSaveButton();
 }
@@ -1517,66 +1514,6 @@ async function saveSalesOrder(event){
       :errorText(error);
   }
   finally{salesOrderSaving=false;$('sales-order-editor').disabled=false;updateSalesOrderSaveButton();}
-}
-async function registerSalesOrderLine(draftId){
-  if(!currentUser||busy)return;
-  if(salesOrderSaving){showDuplicateSalesOrderNotice();return;}
-  if(editingSalesDraftId){$('sales-order-status').textContent='수정 중인 가수주를 먼저 등록하거나 삭제하세요.';return;}
-  if(editingSalesOrderId){
-    window.alert('기존 수주를 수정하는 동안에는 품목별 개별 등록을 할 수 없습니다. 변경 사항 저장을 사용하세요.');
-    return;
-  }
-  const line=salesDraftLines.find(row=>String(row.draftId)===String(draftId));
-  if(!line){showDuplicateSalesOrderNotice();return;}
-  if(!salesOrderHeaderIsValid()||!validOrderDueDate(line.due_date)){
-    $('sales-order-status').textContent='수주 상단의 필수 정보를 입력하고 품목 내용을 확인하세요.';
-    return;
-  }
-  const generation=authGeneration,orderDate=$('sales_order_date').value;
-  salesOrderSaving=true;$('sales-order-editor').disabled=true;
-  $('sales-order-status').textContent='선택한 수주 품목을 등록하는 중…';renderSalesDraftLines();
-  try{
-    const groupId=editingSalesOrderId||salesDraftGroupId;
-    const currentGroup=groupId?salesOrders.filter(order=>(order.order_group_id||order.id)===groupId):[];
-    const lines=[...currentGroup.map(salesOrderRecordPayload),salesOrderLinePayload(line)];
-    await ensureSalesOrderProductCodeReady(lines);
-    const rpcResult=groupId
-      ? await client.rpc('update_sales_order_group',{p_group_id:groupId,
-        p_order_date:orderDate,p_order_number:$('sales_order_number').value.trim(),
-        p_order_type:$('sales_order_type').value,p_vendor_name:$('sales_vendor_name').value.trim(),
-        p_vendor_contact:$('sales_vendor_contact').value.trim(),p_delivery_method:$('sales_delivery_method').value.trim(),p_lines:lines})
-      : await client.rpc('register_sales_order_group',{
-      p_order_date:orderDate,p_order_number:$('sales_order_number').value.trim(),
-      p_order_type:$('sales_order_type').value,p_vendor_name:$('sales_vendor_name').value.trim(),
-      p_vendor_contact:$('sales_vendor_contact').value.trim(),p_delivery_method:$('sales_delivery_method').value.trim(),
-      p_lines:lines
-    });
-    const {data,error}=rpcResult;
-    if(error)throw error;
-    if(generation!==authGeneration)return;
-    const registeredOrders=data?.orders||[],existingIds=new Set(currentGroup.map(order=>order.id));
-    const registered=registeredOrders.find(order=>!existingIds.has(order.id)&&
-      (order.product_code||'')===(line.product_code||'')&&order.product_name===line.product_name&&
-      order.specification===(line.specification||'')&&order.unit===line.unit&&Number(order.quantity)===Number(line.quantity)&&
-      Number(order.unit_price)===Number(line.unit_price)&&String(order.due_date).slice(0,10)===line.due_date);
-    if(!registered)
-      throw new Error('수주 등록 응답에 선택한 품목이 없습니다.');
-    const resultGroupId=data.group_id||registeredOrders[0].order_group_id;
-    if(groupId){
-      salesOrders=[...registeredOrders,...salesOrders.filter(order=>(order.order_group_id||order.id)!==groupId)]
-        .sort((a,b)=>Number(b.sequence_id)-Number(a.sequence_id));
-    }else{
-      salesOrders=[...registeredOrders,...salesOrders].sort((a,b)=>Number(b.sequence_id)-Number(a.sequence_id));
-    }
-    salesDraftGroupId=resultGroupId;
-    salesDraftLines=salesDraftLines.filter(row=>String(row.draftId)!==String(draftId));
-    renderSalesOrders();renderSalesStatus();renderSalesStatus('query');renderSalesBalance();renderSalesDraftLines();updateIssueSalesOrders();
-    $('sales-order-status').textContent='수주 품목을 개별 등록했습니다. 일련번호 '+number(registered.sequence_id)+' · '+registered.product_name;
-  }catch(error){
-    if(generation===authGeneration)$('sales-order-status').textContent='수주 품목 등록에 실패했습니다. '+errorText(error);
-  }finally{
-    salesOrderSaving=false;$('sales-order-editor').disabled=false;renderSalesDraftLines();
-  }
 }
 function openSalesOrderFilePicker(){
   if(!currentUser||busy||salesOrderSaving)return;
@@ -3242,11 +3179,9 @@ async function startApp(){
   });
   $('sales-order-draft-items').addEventListener('change',changeSalesDraftSelection);
   $('sales-order-draft-items').addEventListener('click',event=>{
-    const register=event.target.closest('[data-register-sales-line]');
     const edit=event.target.closest('[data-edit-sales-draft]');
     const remove=event.target.closest('[data-delete-sales-draft]');
-    if(register)registerSalesOrderLine(register.dataset.registerSalesLine);
-    else if(edit)editSalesDraft(edit.dataset.editSalesDraft);
+    if(edit)editSalesDraft(edit.dataset.editSalesDraft);
     else if(remove)deleteSalesDraft(remove.dataset.deleteSalesDraft);
   });
   $('sales-order-items').addEventListener('click',event=>{

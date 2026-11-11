@@ -92,7 +92,7 @@ test('같은 수주에 여러 품목을 추가해도 수주번호와 공통 정�
   assert.equal(element('sales_order_number').value,'SO-1');
 });
 
-test('가수주 수정 후 등록은 기존 행을 갱신하고 편집 중 저장을 차단한다',async()=>{
+test('가수주 수정 중에는 저장을 차단하고 수정 완료 후 기존 행을 갱신한다',async()=>{
   const {context,element}=setup();
   vm.runInContext(`currentUser={id:'u'};addSalesOrderLine();salesDraftLines[0].line_id='saved-id';
     salesDraftLines[0].selected=false;editSalesDraft(salesDraftLines[0].draftId)`,context);
@@ -101,8 +101,6 @@ test('가수주 수정 후 등록은 기존 행을 갱신하고 편집 중 저�
   assert.equal(element('sales_amount').value,'0원');
   element('sales_product_name').value='수정 품목';
   element('sales_quantity').value='3';
-  await vm.runInContext("registerSalesOrderLine(salesDraftLines[0].draftId)",context);
-  assert.match(element('sales-order-status').textContent,/수정 중인 가수주/);
   await vm.runInContext('saveSalesOrder({preventDefault(){}})',context);
   assert.match(element('sales-order-status').textContent,/수정 중인 가수주/);
   vm.runInContext('addSalesOrderLine()',context);

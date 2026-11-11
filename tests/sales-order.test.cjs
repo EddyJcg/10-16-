@@ -296,7 +296,7 @@ test('sales registration has its own search dialog, matching order columns and c
   const registerDialog=html.match(/<dialog id="sales-register-dialog"[\s\S]*?<\/dialog>/)?.[0]||'';
   const registerHeader=registerDialog.match(/<table aria-label="매출 등록 대상 수주 현황"><thead>([\s\S]*?)<\/thead>/)?.[1];
   assert.match(registerHeader,/<th>일련번호<\/th><th>수주일자<\/th>/);
-  assert.doesNotMatch(registerHeader,/<th>관리<\/th>/);
+  assert.match(registerHeader,/<th>주소<\/th><th>관리<\/th><\/tr>$/);
   assert.match(registerDialog,/<h3>매출 등록 완료 현황<\/h3>/);
   assert.match(registerDialog,/<tbody id="sales-register-completed-items"><\/tbody>/);
   assert.doesNotMatch(registerHeader,/<th>(?:연락처|완료 체크|기타사항)<\/th>/);
@@ -332,12 +332,13 @@ test('sales registration search filters the loaded orders by order number or ven
   assert.equal(element('sales-register-message').textContent,'검색 결과 1건');
 });
 
-test('sales registration table has no 관리 column and lists completed orders below the pending ones',()=>{
+test('sales registration table ends with a check column and lists completed orders below the pending ones',()=>{
   class Element{
     constructor(){this.children=[];this.dataset={};this.attributes={};this.textContent='';this.value='';this.classList={toggle(){}};}
     append(...children){this.children.push(...children);}
     replaceChildren(...children){this.children=children;}
     setAttribute(name,value){this.attributes[name]=value;}
+    addEventListener(){}
   }
   const body=new Element(),completedBody=new Element();
   const elements={'sales-register-items':body,'sales-register-completed-items':completedBody};
@@ -359,7 +360,10 @@ test('sales registration table has no 관리 column and lists completed orders b
       unit:'EA',quantity:1,unit_price:5,amount:5,due_date:'2026-11-10',delivery_method:'택배',address:'주소',notes:'비고'}];
     salesRegisterSearched=true;salesRegisterQuery='SO-1';salesStatusUpdating=false;renderSalesRegister()`,context);
   assert.equal(body.children.length,1,'completed orders are removed from the registration table');
-  assert.equal(body.children[0].children.length,16);
+  assert.equal(body.children[0].children.length,17);
+  const checkCell=body.children[0].children[16];
+  assert.equal(checkCell.children[0].type,'checkbox');
+  assert.equal(checkCell.children[0].checked,false);
   assert.equal(body.children[0].children.some(cell=>cell.textContent==='수정'||cell.textContent==='매출등록'),false);
   assert.equal(completedBody.children.length,1);
   assert.equal(completedBody.children[0].children.length,16);
@@ -390,7 +394,7 @@ test('bulk sales registration completes only eligible pending orders and keeps t
       {id:'line-2',order_number:'SO-2',product_name:'품목',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'},
       {id:'line-3',order_number:'SO-3',product_name:'품목',quantity:1,shipped_quantity:1,shipped_date:'2026-11-03',sales_progress_status:'완료'}];
     client=testClient;renderSalesOrders=()=>{};renderSalesStatus=()=>{};renderSalesRegister=()=>{};renderSalesBalance=()=>{};updateIssueSalesOrders=()=>{};
-    salesRegisterVisibleOrders=salesOrders.filter(order=>salesOrderStatus(order)!=='완료');
+    salesRegisterCheckedIds=new Set(['line-1','line-2']);salesRegisterVisibleOrders=salesOrders.filter(order=>salesOrderStatus(order)!=='완료');
     $('sales-register-dialog').showModal();openBulkSalesRegisterConfirmation()`,context);
   await vm.runInContext('completeSalesRegistration()',context);
   assert.equal(calls.length,1,'only the shipped pending order is registered');
@@ -403,6 +407,31 @@ test('bulk sales registration completes only eligible pending orders and keeps t
   vm.runInContext("salesRegisterVisibleOrders=salesOrders.filter(order=>salesOrderStatus(order)!=='완료');openBulkSalesRegisterConfirmation();completeSalesRegistration()",context);
   await Promise.resolve();
   assert.equal(calls.length,1,'an already completed order cannot be registered twice');
+});
+
+test('bulk sales registration registers only the orders checked in the register table',async()=>{
+  const elements=new Map(),calls=[];
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',open:false,textContent:'',disabled:false,showModal(){this.open=true;},close(){this.open=false;}});
+    return elements.get(id);
+  };
+  const testClient={rpc:async(name,args)=>{
+    calls.push(args.p_order_id);
+    return {data:{id:args.p_order_id,sales_progress_status:'완료',sales_status:'매출완료'},error:null};
+  }};
+  const context=vm.createContext({document:{getElementById:element},testClient,salesOrderStatus,number:value=>String(value)});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`currentUser={id:'user'};client=testClient;
+    salesOrders=[
+      {id:'checked',order_number:'SO-1',product_name:'품목1',quantity:1,shipped_quantity:1,shipped_date:'2026-11-01',sales_progress_status:'진행'},
+      {id:'unchecked',order_number:'SO-2',product_name:'품목2',quantity:1,shipped_quantity:1,shipped_date:'2026-11-02',sales_progress_status:'진행'}];
+    renderSalesOrders=()=>{};renderSalesStatus=()=>{};renderSalesRegister=()=>{};renderSalesBalance=()=>{};updateIssueSalesOrders=()=>{};
+    salesRegisterVisibleOrders=salesOrders;salesRegisterCheckedIds=new Set();openBulkSalesRegisterConfirmation()`,context);
+  assert.equal(element('sales-register-message').textContent,'매출등록할 수주를 체크하세요.');
+  vm.runInContext("salesRegisterCheckedIds=new Set(['checked']);openBulkSalesRegisterConfirmation()",context);
+  assert.equal(element('sales-register-confirm-message').textContent,'1건의 매출등록을 진행하시겠습니까?');
+  await vm.runInContext('completeSalesRegistration()',context);
+  assert.deepEqual(calls,['checked']);
 });
 
 test('sales registration add button clears conditions and restores the search input',()=>{
@@ -447,7 +476,7 @@ test('bulk sales registration processes only unregistered eligible search result
       {id:'completed',order_number:'SO-4',product_name:'품목4',quantity:1,shipped_quantity:1,shipped_date:'2026-11-03',sales_progress_status:'완료'},
       {id:'partial',order_number:'SO-5',product_name:'품목5',quantity:2,shipped_quantity:1,shipped_date:'2026-11-04',sales_progress_status:'진행'}
     ];
-    salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
+    salesRegisterCheckedIds=new Set(salesOrders.map(order=>order.id));salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
   assert.equal(element('sales-register-confirm-message').textContent,'2건의 매출등록을 진행하시겠습니까?');
   await vm.runInContext('completeSalesRegistration()',context);
   assert.equal(calls.length,2);
@@ -490,7 +519,7 @@ test('sales registration with shipment inputs posts a capped stock issue before 
   element('sales-register-ship-quantity').value='5';
   vm.runInContext(`currentUser={id:'user'};client=testClient;
     salesOrders=[{id:'order-9',order_number:'SO-9',product_name:'품목9',product_code:'P9',unit:'EA',quantity:2,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];
-    salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
+    salesRegisterCheckedIds=new Set(['order-9']);salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
   await vm.runInContext('completeSalesRegistration()',context);
   const issue=rpcCalls.find(([name])=>name==='post_stock_movement');
   assert.ok(issue,'a stock issue is posted');
@@ -529,7 +558,7 @@ test('partial sales registration posts the issue and keeps the order in progress
   element('sales-register-ship-quantity').value='2';
   vm.runInContext(`currentUser={id:'user'};client=testClient;
     salesOrders=[{id:'order-10',order_number:'SO-10',product_name:'품목10',product_code:'P10',unit:'EA',quantity:5,shipped_quantity:2,shipped_date:'2026-11-05',sales_progress_status:'진행'}];
-    salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
+    salesRegisterCheckedIds=new Set(['order-10']);salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
   await vm.runInContext('completeSalesRegistration()',context);
   const issue=rpcCalls.find(([name])=>name==='post_stock_movement');
   assert.equal(issue[1].p_quantity,2,'the issue quantity is the entered quantity within the remaining quantity');

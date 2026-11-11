@@ -177,14 +177,16 @@ test('resetting the sales order form clears the draft while preserving saved ord
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   context.renderSalesDraftLines=()=>{};
   vm.runInContext(`todayDate=()=> '2026-11-03';
-    salesOrders=[{id:'saved-1'}];salesDraftGroupId='group-1';
+    salesOrders=[{id:'saved-1',order_number:'PO20261103-002'},{id:'saved-2',order_number:'PO20261102-009'}];salesDraftGroupId='group-1';
     salesDraftLines=[{draftId:'draft-1'}];
     $('sales_order_number').value='SO-1'`,context);
   vm.runInContext('resetSalesOrderForm()',context);
   assert.equal(vm.runInContext('salesDraftLines.length',context),0);
   assert.equal(vm.runInContext('salesDraftGroupId',context),'');
-  assert.equal(vm.runInContext('salesOrders.length',context),1);
+  assert.equal(vm.runInContext('salesOrders.length',context),2);
   assert.equal(element('sales_order_date').value,'2026-11-03');
+  assert.equal(element('sales_order_number').value,'PO20261103-003');
+  assert.equal(vm.runInContext('nextSalesOrderNumber("2026-11-04")',context),'PO20261104-001');
 });
 
 test('individual sales order registration removes its draft and blocks repeated saves',async()=>{
@@ -235,11 +237,12 @@ test('individual and batch sales registration retain one group and batch saving 
   let sequence=0;
   const testClient={rpc:async(name,args)=>{
     calls.push([name,args]);
+    const groupId=args.p_group_id||(calls.filter(([callName])=>callName==='register_sales_order_group').length>1?'group-next':'group-shared');
     const orders=args.p_lines.map(line=>({
       ...line,id:line.line_id||`saved-${++sequence}`,sequence_id:sequence,
-      order_group_id:args.p_group_id||'group-shared',order_number:args.p_order_number,amount:line.quantity*line.unit_price
+      order_group_id:groupId,order_number:args.p_order_number,amount:line.quantity*line.unit_price
     }));
-    return {data:{group_id:args.p_group_id||'group-shared',orders},error:null};
+    return {data:{group_id:groupId,orders},error:null};
   }};
   const context=vm.createContext({
     document:{getElementById:element},window:{alert(){}},testClient,
@@ -277,12 +280,12 @@ test('individual and batch sales registration retain one group and batch saving 
   assert.equal(vm.runInContext('salesDraftLines[0].draftId',context),'draft-d');
   vm.runInContext('salesDraftLines[0].selected=true',context);
   await vm.runInContext("saveSalesOrder({preventDefault(){}})",context);
-  assert.equal(calls[3][1].p_group_id,'group-shared');
-  assert.equal(calls[3][1].p_lines.length,4);
-  assert.equal(calls[3][1].p_lines.filter(line=>!line.line_id).length,1);
+  assert.equal(calls[3][0],'register_sales_order_group');
+  assert.equal(calls[3][1].p_order_number,'PO20261103-001');
+  assert.equal(calls[3][1].p_lines.length,1);
   assert.equal(vm.runInContext('salesDraftLines.length',context),0);
+  assert.equal(element('sales_order_number').value,'PO20261103-002');
   assert.equal(vm.runInContext('salesOrders.length',context),4);
-  assert.ok(vm.runInContext('salesOrders.every(order=>order.order_group_id==="group-shared")',context));
 });
 
 test('sales order batch save submits every draft once and displays a duplicate-save notice',async()=>{

@@ -1249,8 +1249,19 @@ async function ensureSalesOrderProductCodeReady(lines){
   }
   if(data!==true)throw new Error('품번 저장 권한을 확인하세요.');
 }
+function nextSalesOrderNumber(orderDate){
+  const prefix='PO'+String(orderDate||'').replace(/-/g,'')+'-';
+  const lastSequence=salesOrders.reduce((max,order)=>{
+    const number=String(order.order_number||'');
+    if(!number.startsWith(prefix))return max;
+    const sequence=Number(number.slice(prefix.length));
+    return Number.isFinite(sequence)?Math.max(max,sequence):max;
+  },0);
+  return prefix+String(lastSequence+1).padStart(3,'0');
+}
 function resetSalesOrderForm(){
   editingSalesOrderId='';salesDraftGroupId='';$('sales-order-form').reset();$('sales_order_date').value=todayDate();
+  $('sales_order_number').value=nextSalesOrderNumber($('sales_order_date').value);
   editingSalesDraftId='';salesProductAutofill=null;$('sales-product-code-message').textContent='';$('sales-draft-validation-status').textContent='';
   salesDraftLines=[];renderSalesDraftLines();
   $('sales-order-title').textContent='수주 입력';$('save-sales-order').textContent='수주 일괄저장';
@@ -1365,7 +1376,8 @@ async function saveSalesOrder(event){
     else{
       const savedDraftIds=new Set(selectedDraftLines.map(line=>String(line.draftId)));
       salesDraftLines=salesDraftLines.filter(line=>!savedDraftIds.has(String(line.draftId)));
-      salesDraftGroupId=data.group_id;
+      salesDraftGroupId='';
+      $('sales_order_number').value=nextSalesOrderNumber(orderDate);
       renderSalesDraftLines();
     }
     $('sales-order-status').textContent=(isEditing?'수주를 수정했습니다.':'수주를 저장했습니다.')+' 일련번호 '+number(sequence)+' · 총수주금액 '+money(total)+'원';
@@ -3090,6 +3102,9 @@ async function startApp(){
   $('add-sales-line').addEventListener('click',addSalesOrderLine);
   ['sales_order_date','sales_order_number','sales_order_type','sales_vendor_name','sales_vendor_contact','sales_delivery_method']
     .forEach(id=>['input','change'].forEach(type=>$(id).addEventListener(type,renderSalesDraftLines)));
+  $('sales_order_date').addEventListener('change',()=>{
+    if(!editingSalesOrderId&&!salesDraftGroupId)$('sales_order_number').value=nextSalesOrderNumber($('sales_order_date').value);
+  });
   $('sales-order-draft-items').addEventListener('change',changeSalesDraftSelection);
   $('sales-order-draft-items').addEventListener('click',event=>{
     const register=event.target.closest('[data-register-sales-line]');

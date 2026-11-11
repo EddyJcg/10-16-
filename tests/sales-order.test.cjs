@@ -91,12 +91,17 @@ test('sales order dialog separates free-text header details from repeatable orde
     ['sales_order_date','수주일자'],['sales_order_number','수주번호'],['sales_order_type','수주형태'],
     ['sales_vendor_name','거래처(성명)'],['sales_vendor_contact','연락처'],['sales_delivery_method','배송방법'],
     ['sales_product_name','품명'],
-    ['sales_specification','규격'],['sales_unit','단위'],['sales_quantity','수량'],
-    ['sales_unit_price','단가'],['sales_amount','수주금액'],['sales_due_date','납기일자']
+    ['sales_specification','규격'],['sales_quantity','수량'],
+    ['sales_unit_price','단가'],['sales_amount','수주금액'],['sales_address','주소'],['sales_due_date','납기일자']
   ]){
     assert.match(form,new RegExp(`id="${id}"`),id);
     assert.ok(form.includes('>'+label+'</label>'),label);
   }
+  assert.doesNotMatch(form,/<label for="sales_unit">|id="sales_unit" required/);
+  assert.match(form,/<input id="sales_unit" type="text" hidden/);
+  assert.match(form,/class="field sales-order-address-field"><label for="sales_address">주소<\/label><div class="sales-order-address-actions"><input id="sales_address" required readonly[^>]*><input id="sales_postal_code" readonly[^>]*><\/div><\/div>/);
+  assert.match(html,/<dialog id="sales-address-dialog"[\s\S]*?<div id="sales-address-search" class="sales-address-search"><\/div>\s*<\/dialog>/);
+  assert.match(html,/<th>수주금액<\/th><th>주소<\/th><th>납기일자<\/th><th data-grid-min-width="200" data-column-required>관리<\/th>/);
   assert.match(form,/id="sales_order_type" required><option value="">선택하세요<\/option><option value="온라인 수주">온라인 수주<\/option><option value="오프라인 수주">오프라인 수주<\/option>/);
   assert.match(form,/id="sales_vendor_name" required/);
   assert.doesNotMatch(form,/id="sales_vendor_id"/);
@@ -152,11 +157,11 @@ test('draft management checkboxes are preselected and saving requires a selectio
     {draftId:'draft-a',product_name:'품목 A',unit:'EA',quantity:1,unit_price:10,due_date:'2026-12-01',selected:true},
     {draftId:'draft-b',product_name:'품목 B',unit:'EA',quantity:2,unit_price:20,due_date:'2026-12-01',selected:false}
   ];renderSalesDraftLines()`,context);
-  const first=body.children[0].children[14].children[0],second=body.children[1].children[14].children[0];
+  const first=body.children[0].children[15].children[0],second=body.children[1].children[15].children[0];
   assert.equal(first.type,'checkbox');
   assert.equal(first.checked,true);
   assert.equal(second.checked,false);
-  const actions=body.children[0].children[14].children;
+  const actions=body.children[0].children[15].children;
   assert.deepEqual(actions.slice(1).map(button=>button.textContent),['등록','수정','삭제']);
   assert.equal(actions[2].dataset.editSalesDraft,'draft-a');
   assert.equal(actions[3].dataset.deleteSalesDraft,'draft-a');

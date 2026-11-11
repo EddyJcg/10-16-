@@ -16,7 +16,7 @@ function setup(){
   const values={sales_order_date:'2026-11-11',sales_order_number:'SO-1',sales_order_type:'온라인 수주',
     sales_vendor_name:'고객',sales_vendor_contact:'',sales_delivery_method:'',
     sales_product_code:'A',sales_product_name:'품목',sales_specification:'규격',sales_unit:'EA(개)',
-    sales_quantity:'2',sales_unit_price:'0',sales_due_date:'2026-12-01'};
+    sales_quantity:'2',sales_unit_price:'0',sales_address:'서울특별시 강남구 테헤란로 1',sales_postal_code:'06234',sales_due_date:'2026-12-01'};
   Object.entries(values).forEach(([id,value])=>element(id).value=value);
   return {context,element,values};
 }
@@ -24,7 +24,7 @@ function setup(){
 test('연락처·배송방법을 제외한 각 항목이 없으면 가수주가 등록되지 않는다',()=>{
   const required={sales_order_date:'수주일자',sales_order_number:'수주번호',sales_order_type:'수주형태',sales_vendor_name:'거래처',
     sales_product_code:'품번',sales_product_name:'품명',sales_specification:'규격',sales_unit:'단위',
-    sales_quantity:'수량',sales_unit_price:'단가',sales_due_date:'납기일자'};
+    sales_quantity:'수량',sales_unit_price:'단가',sales_address:'주소',sales_due_date:'납기일자'};
   for(const [id,label] of Object.entries(required)){
     const {context,element}=setup();
     element(id).value='';
@@ -79,9 +79,9 @@ test('같은 수주에 여러 품목을 추가해도 수주번호와 공통 정�
   vm.runInContext('addSalesOrderLine()',context);
   for(const id of ['sales_order_date','sales_order_number','sales_order_type','sales_vendor_name','sales_vendor_contact','sales_delivery_method'])
     assert.equal(element(id).value,values[id],id);
-  for(const id of ['sales_product_code','sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_amount','sales_due_date'])
+  for(const id of ['sales_product_code','sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_amount','sales_address','sales_postal_code','sales_due_date'])
     assert.equal(element(id).value,'',id);
-  for(const id of ['sales_product_code','sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_due_date'])
+  for(const id of ['sales_product_code','sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_address','sales_postal_code','sales_due_date'])
     element(id).value=values[id];
   element('sales_product_code').value='B';
   element('sales_product_name').value='두 번째';

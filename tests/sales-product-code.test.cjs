@@ -19,7 +19,7 @@ test('품번 입력은 배송방법 다음에 위치하고 품목별 가수주�
   for(const [id,value] of Object.entries({
     sales_order_date:'2026-11-01',sales_order_number:'SO-1',sales_order_type:'온라인 수주',sales_vendor_name:'거래처',
     sales_product_code:' SKU-1 ',sales_product_name:'품목',sales_specification:'규격',sales_unit:'EA(개)',
-    sales_quantity:'2',sales_unit_price:'30',sales_due_date:'2026-12-01'
+    sales_quantity:'2',sales_unit_price:'30',sales_address:'서울특별시 강남구 테헤란로 1',sales_due_date:'2026-12-01'
   }))element(id).value=value;
   vm.runInContext('addSalesOrderLine()',context);
   assert.equal(vm.runInContext('salesDraftLines[0].product_code',context),'SKU-1');

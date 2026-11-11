@@ -66,7 +66,14 @@
 }
 @media(max-width:850px){
   .sales-order-dialog .sales-order-due-date-field{grid-column:1/-1}
+  .sales-order-dialog .sales-order-address-field{grid-column:1/-1}
 }
+.sales-order-dialog .sales-order-address-field{grid-column:span 2}
+.sales-order-dialog .sales-order-address-actions{display:flex;gap:6px}
+.sales-order-dialog .sales-order-address-actions input:first-child{flex:1 1 auto;min-width:0;cursor:pointer}
+.sales-order-dialog .sales-order-address-actions input:last-child{flex:0 0 96px}
+.sales-address-dialog{width:min(560px,94vw);max-height:86vh}
+.sales-address-dialog .sales-address-search{height:480px;border:1px solid #d7dbe0;border-radius:6px;overflow:hidden}
 @media(min-width:521px) and (max-width:1599px){
   .sales-order-dialog .sales-order-due-date-actions input{flex:1 0 100%}
 }

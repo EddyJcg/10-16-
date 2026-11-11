@@ -505,14 +505,14 @@ function renderSalesOrders(){
 }
 function renderSalesDraftLines(){
   const body=$('sales-order-draft-items');body.replaceChildren();
-  if(!salesDraftLines.length){emptyRow(body,15,'수주 품목을 추가하세요.');updateSalesOrderSaveButton();return;}
+  if(!salesDraftLines.length){emptyRow(body,16,'수주 품목을 추가하세요.');updateSalesOrderSaveButton();return;}
   const orderHeader=[$('sales_order_date').value,$('sales_order_number').value.trim(),$('sales_order_type').value,
     $('sales_vendor_name').value.trim(),$('sales_vendor_contact').value.trim(),$('sales_delivery_method').value.trim()];
   salesDraftLines.forEach((line,index)=>{
     const row=document.createElement('tr');
     bindStockRow(row,line);
     [...orderHeader,line.product_code||'',line.product_name,line.specification,line.unit,number(line.quantity),money(line.unit_price),
-      money(Number(line.quantity)*Number(line.unit_price)),line.due_date].forEach((value,col)=>row.append(makeCell(value,col===10||col===11||col===12)));
+      money(Number(line.quantity)*Number(line.unit_price)),line.address||'',line.due_date].forEach((value,col)=>row.append(makeCell(value,col===10||col===11||col===12)));
     const action=document.createElement('td'),checkbox=document.createElement('input'),button=document.createElement('button');
     checkbox.type='checkbox';checkbox.checked=line.selected!==false;
     checkbox.dataset.salesDraftSelect=String(line.draftId);
@@ -1127,7 +1127,7 @@ function updateSalesAmount(){
     ? money(quantity*price)+'원':'';
 }
 let salesProductAutofill=null,editingSalesDraftId='';
-const SALES_LINE_INPUTS=['sales_product_code','sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_amount','sales_due_date'];
+const SALES_LINE_INPUTS=['sales_product_code','sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_amount','sales_address','sales_postal_code','sales_due_date'];
 function clearSalesLineInputs(){
   SALES_LINE_INPUTS.forEach(id=>$(id).value='');
   salesProductAutofill=null;$('sales-product-code-message').textContent='';
@@ -1160,6 +1160,38 @@ function populateSalesProductDetails(showMissing=false){
   $('sales-product-code-message').textContent=showMissing&&code&&!item
     ?'등록된 품번이 아닙니다. 품목정보를 확인하거나 품명·규격·단위를 직접 입력하세요.':'';
 }
+let salesPostcodeScriptPromise=null;
+function loadSalesPostcodeScript(){
+  if(window.kakao?.Postcode||window.daum?.Postcode)return Promise.resolve();
+  if(!salesPostcodeScriptPromise){
+    salesPostcodeScriptPromise=new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src='https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+      script.onload=resolve;
+      script.onerror=()=>{script.remove();salesPostcodeScriptPromise=null;reject(new Error('주소 검색 서비스를 불러오지 못했습니다. 네트워크 연결을 확인하세요.'));};
+      document.head.append(script);
+    });
+  }
+  return salesPostcodeScriptPromise;
+}
+function openSalesAddressSearch(){
+  if(salesOrderSaving||$('sales-address-dialog').open)return;
+  $('sales-draft-validation-status').textContent='';
+  loadSalesPostcodeScript().then(()=>{
+    const PostcodeService=window.kakao?.Postcode||window.daum.Postcode;
+    const container=$('sales-address-search');
+    container.replaceChildren();
+    new PostcodeService({
+      oncomplete(data){
+        $('sales_address').value=data.roadAddress||data.jibunAddress||data.address||'';
+        $('sales_postal_code').value=data.zonecode||'';
+        $('sales-address-dialog').close();
+        $('sales-draft-validation-status').textContent='';
+      }
+    }).embed(container);
+    $('sales-address-dialog').showModal();
+  }).catch(error=>{$('sales-draft-validation-status').textContent=error.message;});
+}
 function addSalesOrderLine(){
   const quantity=Number($('sales_quantity').value),unitPrice=Number($('sales_unit_price').value);
   const dueDate=$('sales_due_date').value;
@@ -1174,6 +1206,7 @@ function addSalesOrderLine(){
     ['sales_unit','단위',!!$('sales_unit').value],
     ['sales_quantity','수량 (1~1,000,000의 정수)',!!$('sales_quantity').value.trim()&&Number.isSafeInteger(quantity)&&quantity>=1&&quantity<=1000000],
     ['sales_unit_price','단가 (0~1,000,000,000, 소수 둘째 자리까지)',!!$('sales_unit_price').value.trim()&&Number.isFinite(unitPrice)&&unitPrice>=0&&unitPrice<=1000000000&&Math.abs(unitPrice*100-Math.round(unitPrice*100))<=0.0001],
+    ['sales_address','주소 (주소 입력창을 클릭해 검색)',!!$('sales_address').value.trim()],
     ['sales_due_date','납기일자 (1900-01-01 이상 날짜)',validOrderDueDate(dueDate)]
   ];
   const invalid=checks.filter(([, ,valid])=>!valid);
@@ -1188,7 +1221,7 @@ function addSalesOrderLine(){
   const line={
     ...(previous||{draftId:'sales-draft-'+(++salesDraftSequence),selected:true}),
     product_code:$('sales_product_code').value.trim(),product_name:$('sales_product_name').value.trim(),specification:$('sales_specification').value.trim(),
-    unit:$('sales_unit').value,quantity,unit_price:unitPrice,due_date:dueDate
+    unit:$('sales_unit').value,quantity,unit_price:unitPrice,address:$('sales_address').value.trim(),postal_code:$('sales_postal_code').value.trim(),due_date:dueDate
   };
   if(previous)salesDraftLines=salesDraftLines.map(row=>row===previous?line:row);
   else salesDraftLines.push(line);
@@ -1204,7 +1237,8 @@ function editSalesDraft(draftId){
   if(!line){$('sales-order-status').textContent='수정할 가수주를 찾을 수 없습니다.';return;}
   editingSalesDraftId=String(line.draftId);salesProductAutofill=null;$('sales-draft-validation-status').textContent='';
   [['sales_product_code','product_code'],['sales_product_name','product_name'],['sales_specification','specification'],
-    ['sales_unit','unit'],['sales_quantity','quantity'],['sales_unit_price','unit_price'],['sales_due_date','due_date']]
+    ['sales_unit','unit'],['sales_quantity','quantity'],['sales_unit_price','unit_price'],['sales_address','address'],
+    ['sales_postal_code','postal_code'],['sales_due_date','due_date']]
     .forEach(([id,key])=>$(id).value=String(line[key]??''));
   $('sales-product-code-message').textContent='';updateSalesAmount();
   $('sales-order-status').textContent='가수주를 수정한 뒤 가수주 등록을 눌러 반영하세요. 수주 상단 정보는 같은 수주의 모든 품목에 적용됩니다.';
@@ -1658,7 +1692,7 @@ async function updateSession(session) {
   $('profile-detail-email').textContent=currentUser?.email||'';
   if (!currentUser) {
     clearMinimizedDialogs();
-    $('password-dialog').close();$('movement-dialog').close(); $('product-info-dialog').close(); $('product-info-status-dialog').close(); $('asset-classification-dialog').close(); $('sales-order-dialog').close(); $('sales-status-dialog').close(); $('sales-status-query-dialog').close(); $('sales-register-dialog').close(); $('sales-register-confirm-dialog').close(); $('purchase-order-dialog').close(); $('purchase-receive-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
+    $('password-dialog').close();$('movement-dialog').close(); $('product-info-dialog').close(); $('product-info-status-dialog').close(); $('asset-classification-dialog').close(); $('sales-order-dialog').close(); $('sales-address-dialog').close(); $('sales-status-dialog').close(); $('sales-status-query-dialog').close(); $('sales-register-dialog').close(); $('sales-register-confirm-dialog').close(); $('purchase-order-dialog').close(); $('purchase-receive-dialog').close(); $('detail-dialog').close(); $('current-stock-dialog').close(); $('stock-risk-dialog').close(); $('long-stock-dialog').close(); $('product-list-dialog').close(); $('movement-list-dialog').close(); $('print-settings-dialog').close(); notify('등록된 계정으로 로그인해 주세요.'); return;
   }
   try {
     await loadStock();
@@ -3092,6 +3126,8 @@ async function startApp(){
   $('sales-register-button').addEventListener('click',showSalesRegister);
   $('sales-status-query-button').addEventListener('click',()=>showSalesStatus('query'));
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
+  $('sales_address').addEventListener('click',openSalesAddressSearch);
+  $('close-sales-address').addEventListener('click',()=>$('sales-address-dialog').close());
   $('cancel-sales-order').addEventListener('click',cancelSalesOrder);
   $('sales-order-form').addEventListener('submit',saveSalesOrder);
   $('sales_product_code').addEventListener('input',()=>populateSalesProductDetails());

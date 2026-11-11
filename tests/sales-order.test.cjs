@@ -854,7 +854,7 @@ test('sales order dialog is connected to the authenticated database save flow',(
   const script=fs.readFileSync('inventory-app.js','utf8');
   const sql=fs.readFileSync('supabase/fifo.sql','utf8');
   assert.match(html,/id="sales-order-button"/);
-  assert.match(html,/<div class="sales-register-section-header"><h3>매출 등록 대상 수주<\/h3><button id="sales-register-new-order" class="primary" type="button">수주등록<\/button><\/div>/);
+  assert.match(html,/<div class="sales-register-section-header"><h3>매출 등록 대상 수주<\/h3><button id="sales-register-submit" class="primary" type="button">매출등록<\/button><\/div>/);
   assert.match(html,/<dialog id="sales-order-dialog"/);
   assert.match(script,/function showSalesOrder\(\)/);
   assert.match(script,/function saveSalesOrder\(event\)/);
@@ -865,7 +865,7 @@ test('sales order dialog is connected to the authenticated database save flow',(
   assert.match(script,/p_lines:\[\.\.\.existingGroupLines,\.\.\.salesDraftLines\.map/);
   assert.match(script,/client\.rpc\('set_sales_order_status'/);
   assert.match(script,/sales-order-form'\)\.addEventListener\('submit',saveSalesOrder\)/);
-  assert.match(script,/\$('sales-register-new-order'\)\.addEventListener\('click',showSalesOrder\)/);
+  assert.match(script,/\$('sales-register-submit'\)\.addEventListener\('click',openBulkSalesRegisterConfirmation\)/);
   assert.match(script,/\$\('cancel-sales-order'\)\.addEventListener\('click',cancelSalesOrder\)/);
   assert.match(sql,/create table if not exists public\.sales_orders/);
   assert.match(sql,/create or replace function public\.register_sales_order/);

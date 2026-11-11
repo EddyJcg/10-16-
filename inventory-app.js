@@ -3320,7 +3320,7 @@ async function startApp(){
   });
   $('close-sales-status').addEventListener('click',()=>$('sales-status-dialog').close());
   $('close-sales-query').addEventListener('click',()=>$('sales-status-query-dialog').close());
-  $('sales-register-new-order').addEventListener('click',showSalesOrder);
+  $('sales-register-submit').addEventListener('click',openBulkSalesRegisterConfirmation);
   $('close-sales-register').addEventListener('click',()=>$('sales-register-dialog').close());
   $('search-sales-register').addEventListener('click',applySalesRegisterSearch);
   $('add-sales-register').addEventListener('click',resetSalesRegisterSearch);

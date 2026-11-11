@@ -51,7 +51,7 @@
 .sales-order-dialog .sales-order-draft-table th[data-column-required],
 .sales-order-dialog .sales-order-draft-table tbody tr td:last-child{text-align:center}
 .sales-order-dialog .sales-order-draft-table td:last-child button{transform-origin:center;margin:0 2px}
-.sales-order-draft-table th[data-grid-min-width]{min-width:200px}
+.sales-order-draft-table th[data-grid-min-width]{min-width:160px}
 .sales-order-table th[data-grid-min-width]{min-width:150px}
 .sales-order-dialog .sales-order-draft-table th[data-column-required],
 .sales-order-dialog .sales-order-table th[data-column-required]{position:sticky;right:0;z-index:5}

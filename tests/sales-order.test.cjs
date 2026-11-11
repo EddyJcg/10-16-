@@ -113,7 +113,7 @@ test('sales order dialog separates free-text header details from repeatable orde
   assert.match(form,/<input id="sales_unit" type="text" hidden/);
   assert.match(form,/class="field sales-order-address-field"><label for="sales_address">주소<\/label><div class="sales-order-address-actions"><input id="sales_address" required readonly[^>]*><input id="sales_postal_code" readonly[^>]*><\/div><\/div>/);
   assert.match(html,/<dialog id="sales-address-dialog"[\s\S]*?<div id="sales-address-search" class="sales-address-search"><\/div>\s*<div id="sales-address-detail-step" class="sales-address-detail-step" hidden>[\s\S]*?<input id="sales-address-detail-input"[\s\S]*?<button type="button" id="sales-address-confirm" class="primary">주소 입력<\/button>[\s\S]*?<\/div>\s*<\/dialog>/);
-  assert.match(html,/<th>수주금액<\/th><th>주소<\/th><th>납기일자<\/th><th data-grid-min-width="200" data-column-required>관리<\/th>/);
+  assert.match(html,/<th>수주금액<\/th><th>주소<\/th><th>납기일자<\/th><th data-grid-min-width="160" data-column-required>관리<\/th>/);
   assert.match(form,/id="sales_order_type" required><option value="">선택하세요<\/option><option value="온라인 수주">온라인 수주<\/option><option value="오프라인 수주">오프라인 수주<\/option>/);
   assert.match(form,/id="sales_vendor_name" required/);
   assert.doesNotMatch(form,/id="sales_vendor_id"/);

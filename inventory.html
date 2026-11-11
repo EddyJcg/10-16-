@@ -2,7 +2,7 @@
 <html lang="ko">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isummerly 매출/재고관리</title><link rel="icon" type="image/png" href="/isummerly-logo.png">
 <link rel="stylesheet" href="/inventory.css?v=20261110-mobile-layout">
-<link rel="stylesheet" href="/sales-order.css?v=20261111-draft-action-center">
+<link rel="stylesheet" href="/sales-order.css?v=20261111-draft-action-resize">
 <link rel="stylesheet" href="/purchase-folder-icon.css?v=20261104-sidebar-black-unboxed">
 <link rel="stylesheet" href="/purchase-order.css?v=20261102-purchase-entry-label-size">
 <link rel="stylesheet" href="/vendor-info-icon.css?v=20261102-vendor-info-product-icon">
@@ -303,7 +303,7 @@
           <p id="sales-draft-validation-status" class="sales-draft-validation-status" role="status" aria-live="polite"></p>
           <input id="sales-order-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
           <div class="sales-order-draft-header"><h3>가수주 현황</h3><div class="sales-order-draft-actions"><button id="add-sales-line" type="button" class="secondary sales-order-line-add">품목추가</button><button id="save-sales-order-draft" type="button" class="primary sales-order-draft-register">가수주 등록</button></div></div>
-          <div class="table-wrap sales-order-draft-table"><table aria-label="작성 중인 수주 품목"><thead><tr><th>수주일자</th><th>수주번호</th><th>수주형태</th><th>거래처(성명)</th><th>연락처</th><th>배송방법</th><th>품번</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>주소</th><th>납기일자</th><th data-grid-min-width="200" data-column-required>관리</th></tr></thead><tbody id="sales-order-draft-items"></tbody></table></div>
+          <div class="table-wrap sales-order-draft-table"><table aria-label="작성 중인 수주 품목"><thead><tr><th>수주일자</th><th>수주번호</th><th>수주형태</th><th>거래처(성명)</th><th>연락처</th><th>배송방법</th><th>품번</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>주소</th><th>납기일자</th><th data-grid-min-width="160" data-column-required>관리</th></tr></thead><tbody id="sales-order-draft-items"></tbody></table></div>
           <p id="sales-order-status" class="product-list-status" role="status" aria-live="polite"></p>
           <h3>저장된 수주</h3>
           <div class="table-wrap sales-order-table"><table aria-label="저장된 수주 목록"><thead><tr><th>일련번호</th><th>수주일자</th><th>수주번호</th><th>수주형태</th><th>거래처</th><th>연락처</th><th>품번</th><th>품명</th><th>규격</th><th>단위</th><th>수량</th><th>단가</th><th>수주금액</th><th>납기일자</th><th>배송방법</th><th>주소</th><th>기타사항</th><th data-grid-min-width="150" data-column-required>관리</th></tr></thead><tbody id="sales-order-items"></tbody></table></div>

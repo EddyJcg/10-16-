@@ -34,6 +34,7 @@
 .sales-order-dialog .sales-order-line-add{flex:0 0 120px;width:120px;background:#ffe0b2;border-color:#efb76f;color:#633500}
 .sales-order-dialog .sales-order-line-add:hover{background:#ffcf8a}
 .sales-order-dialog .sales-order-draft-register{flex:0 0 160px;width:160px;min-width:150px}
+.sales-order-dialog .sales-draft-validation-status:not(:empty){margin:8px 0;color:#a21c1c;font-weight:600}
 .sales-order-dialog .sales-order-save-actions #save-sales-order,
 .sales-order-dialog .sales-order-draft-register{width:160px}
 .sales-order-draft-table input[type="checkbox"]{

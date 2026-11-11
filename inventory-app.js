@@ -1161,18 +1161,28 @@ function populateSalesProductDetails(showMissing=false){
 function addSalesOrderLine(){
   const quantity=Number($('sales_quantity').value),unitPrice=Number($('sales_unit_price').value);
   const dueDate=$('sales_due_date').value;
-  if(!salesOrderHeaderIsValid()||!$('sales_product_code').value.trim()||!$('sales_product_name').value.trim()
-    ||!$('sales_specification').value.trim()||!$('sales_unit').value
-    ||!$('sales_quantity').value.trim()||!$('sales_unit_price').value.trim()
-    ||!Number.isSafeInteger(quantity)||quantity<1||quantity>1000000
-    ||!Number.isFinite(unitPrice)||unitPrice<0||unitPrice>1000000000
-    ||Math.abs(unitPrice*100-Math.round(unitPrice*100))>0.0001||!validOrderDueDate(dueDate)){
-    $('sales-order-status').textContent='연락처와 배송방법을 제외한 필수 항목을 올바르게 입력한 후 가수주를 등록하세요.';
+  const checks=[
+    ['sales_order_date','수주일자 (1900-01-01 이상 날짜)',validOrderDueDate($('sales_order_date').value)],
+    ['sales_order_number','수주번호',!!$('sales_order_number').value.trim()],
+    ['sales_order_type','수주형태',!!$('sales_order_type').value],
+    ['sales_vendor_name','거래처',!!$('sales_vendor_name').value.trim()],
+    ['sales_product_code','품번',!!$('sales_product_code').value.trim()],
+    ['sales_product_name','품명',!!$('sales_product_name').value.trim()],
+    ['sales_specification','규격',!!$('sales_specification').value.trim()],
+    ['sales_unit','단위',!!$('sales_unit').value],
+    ['sales_quantity','수량 (1~1,000,000의 정수)',!!$('sales_quantity').value.trim()&&Number.isSafeInteger(quantity)&&quantity>=1&&quantity<=1000000],
+    ['sales_unit_price','단가 (0~1,000,000,000, 소수 둘째 자리까지)',!!$('sales_unit_price').value.trim()&&Number.isFinite(unitPrice)&&unitPrice>=0&&unitPrice<=1000000000&&Math.abs(unitPrice*100-Math.round(unitPrice*100))<=0.0001],
+    ['sales_due_date','납기일자 (1900-01-01 이상 날짜)',validOrderDueDate(dueDate)]
+  ];
+  const invalid=checks.filter(([, ,valid])=>!valid);
+  if(invalid.length){
+    $('sales-draft-validation-status').textContent='가수주를 등록하지 못했습니다. 다음 필수 항목을 확인하세요: '+invalid.map(([,label])=>label).join(', ');
+    $(invalid[0][0]).focus();
     return;
   }
   const previous=editingSalesDraftId?salesDraftLines.find(line=>line.draftId===editingSalesDraftId):null;
-  if(editingSalesDraftId&&!previous){$('sales-order-status').textContent='수정할 가수주를 찾을 수 없습니다.';return;}
-  if(!previous&&salesDraftLines.length>=100){$('sales-order-status').textContent='가수주는 최대 100개까지 추가할 수 있습니다.';return;}
+  if(editingSalesDraftId&&!previous){$('sales-draft-validation-status').textContent='수정할 가수주를 찾을 수 없습니다.';return;}
+  if(!previous&&salesDraftLines.length>=100){$('sales-draft-validation-status').textContent='가수주는 최대 100개까지 추가할 수 있습니다.';return;}
   const line={
     ...(previous||{draftId:'sales-draft-'+(++salesDraftSequence),selected:true}),
     product_code:$('sales_product_code').value.trim(),product_name:$('sales_product_name').value.trim(),specification:$('sales_specification').value.trim(),
@@ -1181,7 +1191,7 @@ function addSalesOrderLine(){
   if(previous)salesDraftLines=salesDraftLines.map(row=>row===previous?line:row);
   else salesDraftLines.push(line);
   editingSalesDraftId='';clearSalesLineInputs();
-  renderSalesDraftLines();$('sales-order-status').textContent='';
+  renderSalesDraftLines();$('sales-draft-validation-status').textContent='';$('sales-order-status').textContent='';
 }
 function editSalesDraft(draftId){
   if(salesOrderSaving)return;
@@ -1190,7 +1200,7 @@ function editSalesDraft(draftId){
   }
   const line=salesDraftLines.find(row=>String(row.draftId)===String(draftId));
   if(!line){$('sales-order-status').textContent='수정할 가수주를 찾을 수 없습니다.';return;}
-  editingSalesDraftId=String(line.draftId);salesProductAutofill=null;
+  editingSalesDraftId=String(line.draftId);salesProductAutofill=null;$('sales-draft-validation-status').textContent='';
   [['sales_product_code','product_code'],['sales_product_name','product_name'],['sales_specification','specification'],
     ['sales_unit','unit'],['sales_quantity','quantity'],['sales_unit_price','unit_price'],['sales_due_date','due_date']]
     .forEach(([id,key])=>$(id).value=String(line[key]??''));
@@ -1204,7 +1214,7 @@ function deleteSalesDraft(draftId){
   if(!line){$('sales-order-status').textContent='삭제할 가수주를 찾을 수 없습니다.';return;}
   salesDraftLines=salesDraftLines.filter(row=>row!==line);
   if(editingSalesDraftId===String(draftId)){editingSalesDraftId='';clearSalesLineInputs();}
-  renderSalesDraftLines();$('sales-order-status').textContent=editingSalesOrderId
+  renderSalesDraftLines();$('sales-draft-validation-status').textContent='';$('sales-order-status').textContent=editingSalesOrderId
     ?'품목을 목록에서 삭제했습니다. 저장된 수주에 반영하려면 변경 사항 저장을 누르세요.'
     :'가수주 품목을 삭제했습니다.';
 }
@@ -1239,7 +1249,7 @@ async function ensureSalesOrderProductCodeReady(lines){
 }
 function resetSalesOrderForm(){
   editingSalesOrderId='';salesDraftGroupId='';$('sales-order-form').reset();$('sales_order_date').value=todayDate();
-  editingSalesDraftId='';salesProductAutofill=null;$('sales-product-code-message').textContent='';
+  editingSalesDraftId='';salesProductAutofill=null;$('sales-product-code-message').textContent='';$('sales-draft-validation-status').textContent='';
   salesDraftLines=[];renderSalesDraftLines();
   $('sales-order-title').textContent='수주 입력';$('save-sales-order').textContent='수주 일괄저장';
 }

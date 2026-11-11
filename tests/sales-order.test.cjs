@@ -132,7 +132,7 @@ test('sales order dialog separates free-text header details from repeatable orde
 
 test('draft management checkboxes are preselected and saving requires a selection',()=>{
   class Element{
-    constructor(name=''){this.name=name;this.children=[];this.dataset={};this.attributes={};this.disabled=false;this.checked=false;this.classList={toggle(){}};}
+    constructor(name=''){this.name=name;this.children=[];this.dataset={};this.attributes={};this.disabled=false;this.checked=false;this.value='';this.classList={toggle(){}};}
     append(...children){this.children.push(...children);}
     replaceChildren(...children){this.children=children;}
     setAttribute(name,value){this.attributes[name]=value;}
@@ -151,11 +151,11 @@ test('draft management checkboxes are preselected and saving requires a selectio
     {draftId:'draft-a',product_name:'품목 A',unit:'EA',quantity:1,unit_price:10,due_date:'2026-12-01',selected:true},
     {draftId:'draft-b',product_name:'품목 B',unit:'EA',quantity:2,unit_price:20,due_date:'2026-12-01',selected:false}
   ];renderSalesDraftLines()`,context);
-  const first=body.children[0].children[8].children[0],second=body.children[1].children[8].children[0];
+  const first=body.children[0].children[14].children[0],second=body.children[1].children[14].children[0];
   assert.equal(first.type,'checkbox');
   assert.equal(first.checked,true);
   assert.equal(second.checked,false);
-  const actions=body.children[0].children[8].children;
+  const actions=body.children[0].children[14].children;
   assert.deepEqual(actions.slice(1).map(button=>button.textContent),['수주등록','수정','삭제']);
   assert.equal(actions[2].dataset.editSalesDraft,'draft-a');
   assert.equal(actions[3].dataset.deleteSalesDraft,'draft-a');
@@ -738,4 +738,12 @@ test('delivery method input sits right after the contact input in the order head
   const html=fs.readFileSync('inventory.html','utf8');
   assert.match(html,/id="sales_vendor_contact"[^\n]*<\/div>\s*<div class="field"><label for="sales_delivery_method"/);
   assert.ok(html.indexOf('sales_delivery_method')<html.indexOf('sales-order-line-grid'));
+});
+
+test('draft table exposes order header columns in the same order as the input boxes',()=>{
+  const html=fs.readFileSync('inventory.html','utf8');
+  const head=html.match(/<table aria-label="작성 중인 수주 품목"><thead><tr>([\s\S]*?)<\/tr><\/thead>/)[1];
+  const labels=[...head.matchAll(/<th[^>]*>([^<]*)<\/th>/g)].map(match=>match[1]);
+  assert.deepEqual(labels.slice(0,7),['수주일자','수주번호','수주형태','거래처(성명)','연락처','배송방법','품번']);
+  assert.equal(labels.at(-1),'관리');
 });

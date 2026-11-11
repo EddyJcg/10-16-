@@ -505,12 +505,14 @@ function renderSalesOrders(){
 }
 function renderSalesDraftLines(){
   const body=$('sales-order-draft-items');body.replaceChildren();
-  if(!salesDraftLines.length){emptyRow(body,9,'수주 품목을 추가하세요.');updateSalesOrderSaveButton();return;}
+  if(!salesDraftLines.length){emptyRow(body,15,'수주 품목을 추가하세요.');updateSalesOrderSaveButton();return;}
+  const orderHeader=[$('sales_order_date').value,$('sales_order_number').value.trim(),$('sales_order_type').value,
+    $('sales_vendor_name').value.trim(),$('sales_vendor_contact').value.trim(),$('sales_delivery_method').value.trim()];
   salesDraftLines.forEach((line,index)=>{
     const row=document.createElement('tr');
     bindStockRow(row,line);
-    [line.product_code||'',line.product_name,line.specification,line.unit,number(line.quantity),money(line.unit_price),
-      money(Number(line.quantity)*Number(line.unit_price)),line.due_date].forEach((value,col)=>row.append(makeCell(value,col===4||col===5||col===6)));
+    [...orderHeader,line.product_code||'',line.product_name,line.specification,line.unit,number(line.quantity),money(line.unit_price),
+      money(Number(line.quantity)*Number(line.unit_price)),line.due_date].forEach((value,col)=>row.append(makeCell(value,col===10||col===11||col===12)));
     const action=document.createElement('td'),checkbox=document.createElement('input'),button=document.createElement('button');
     checkbox.type='checkbox';checkbox.checked=line.selected!==false;
     checkbox.dataset.salesDraftSelect=String(line.draftId);
@@ -3086,6 +3088,8 @@ async function startApp(){
   $('sales-order-import-file').addEventListener('change',importSalesOrderFile);
   $('save-sales-order-draft').addEventListener('click',addSalesOrderLine);
   $('add-sales-line').addEventListener('click',addSalesOrderLine);
+  ['sales_order_date','sales_order_number','sales_order_type','sales_vendor_name','sales_vendor_contact','sales_delivery_method']
+    .forEach(id=>['input','change'].forEach(type=>$(id).addEventListener(type,renderSalesDraftLines)));
   $('sales-order-draft-items').addEventListener('change',changeSalesDraftSelection);
   $('sales-order-draft-items').addEventListener('click',event=>{
     const register=event.target.closest('[data-register-sales-line]');

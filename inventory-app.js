@@ -615,7 +615,14 @@ function renderSalesStatus(view='status'){
       .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
     const action=document.createElement('td'),button=document.createElement('button');
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
-    action.append(button);row.append(action);
+    action.append(button);
+    if(view!=='query'){
+      action.className='sales-status-action';
+      const registerButton=document.createElement('button');
+      registerButton.type='button';registerButton.className='secondary';registerButton.textContent='매출등록';
+      registerButton.dataset.salesRegisterFromStatus=order.id;action.append(registerButton);
+    }
+    row.append(action);
     body.append(row);
   });
 }
@@ -959,6 +966,18 @@ async function showSalesRegister(){
   salesRegisterQuery='';salesRegisterSearched=false;salesRegisterVisibleOrders=[];salesRegisterTargetOrderIds=[];
   $('sales-register-query').value='';$('sales-register-message').textContent='';
   $('sales-register-confirm-status').textContent='';renderSalesRegister();
+  $('sales-register-dialog').showModal();
+  await loadSalesOrders();
+}
+async function openSalesRegisterFromStatus(id){
+  if(!currentUser||busy||salesOrderSaving)return;
+  const order=salesOrders.find(row=>row.id===id);
+  if(!order)return;
+  $('sales-status-dialog').close();$('sales-status-query-dialog').close();
+  salesRegisterQuery=order.order_number;salesRegisterSearched=true;salesRegisterTargetOrderIds=[];
+  $('sales-register-query').value=order.order_number;$('sales-register-confirm-status').textContent='';
+  renderSalesRegister();
+  $('sales-register-message').textContent='검색 결과 '+number(salesRegisterVisibleOrders.length)+'건';
   $('sales-register-dialog').showModal();
   await loadSalesOrders();
 }
@@ -3217,6 +3236,8 @@ async function startApp(){
   $('sales-status-items').addEventListener('click',event=>{
     const button=event.target.closest('[data-sales-order-id]');
     if(button)editSalesOrderFromStatus(button.dataset.salesOrderId);
+    const registerButton=event.target.closest('[data-sales-register-from-status]');
+    if(registerButton)openSalesRegisterFromStatus(registerButton.dataset.salesRegisterFromStatus);
   });
   $('sales-query-items').addEventListener('change',changeSalesOrderStatus);
   $('sales-query-items').addEventListener('click',event=>{

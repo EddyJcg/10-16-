@@ -277,13 +277,17 @@ test('sales status view omits the completion checkbox column',()=>{
     assert.ok(table.includes(`<th>${label}</th>`),label);
   for(const id of ['sales-status-start-date','sales-status-end-date','sales-status-type-filter','sales-status-filter','sales-status-total','sales-status-completed-total','sales-status-outstanding-total'])
     assert.match(html,new RegExp(`id="${id}"`),id);
-  assert.match(table,/<th>관리<\/th>/);
+  assert.match(table,/<th data-grid-min-width="160">관리<\/th>/);
   const app=fs.readFileSync('inventory-app.js','utf8');
   assert.match(app,/if\(view==='query'\)\{\s*const completeCell=document\.createElement\('td'\);completeCell\.append\(salesOrderCompleteCheckbox\(order\)\);row\.append\(completeCell\);\s*\}/);
   assert.match(app,/const statusCell=document\.createElement\('td'\);statusCell\.textContent=salesOrderStatus\(order\);row\.append\(statusCell\);/);
   assert.match(app,/\$\('sales-status-items'\)\.addEventListener\('click'/);
   assert.doesNotMatch(app,/\$\('sales-status-items'\)\.addEventListener\('change'/);
   assert.match(app,/function editSalesOrderFromStatus\(id\)/);
+  assert.match(app,/data-sales-register-from-status/);
+  assert.match(app,/event\.target\.closest\('\[data-sales-register-from-status\]'\)/);
+  assert.match(app,/async function openSalesRegisterFromStatus\(id\)[\s\S]*?salesRegisterQuery=order\.order_number;salesRegisterSearched=true;[\s\S]*?\$\('sales-register-dialog'\)\.showModal\(\)/);
+  assert.match(html,/<th data-grid-min-width="160">관리<\/th><\/tr><\/thead><tbody id="sales-status-items">/);
 });
 
 test('sales registration has its own search dialog, matching order columns and confirmation',()=>{
@@ -511,7 +515,7 @@ test('dashboard sales balance retains its completion checkbox column and status 
   const statusHeaders=html.match(/<table aria-label="전체 수주현황"[^>]*><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
   const balanceHeaders=html.match(/<table aria-label="수주잔고 현황"[^>]*><thead><tr>([\s\S]*?)<\/tr>/)?.[1]||'';
   assert.ok(balanceHeaders.includes('<th>완료 체크</th>'));
-  assert.equal(balanceHeaders.replace('<th>완료 체크</th>','').replace('<th>매출 상태</th>','<th>수주상태</th>'),statusHeaders);
+  assert.equal(balanceHeaders.replace('<th>완료 체크</th>','').replace('<th>매출 상태</th>','<th>수주상태</th>'),statusHeaders.replace('<th data-grid-min-width="160">관리</th>','<th>관리</th>'));
   assert.match(html,/id="sales-balance-items"/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/select\.value=status;select\.disabled=salesStatusUpdating/);
   assert.match(fs.readFileSync('inventory-app.js','utf8'),/checkbox\.disabled=salesStatusUpdating\|\|Number\(order\.shipped_quantity\|\|0\)>0/);

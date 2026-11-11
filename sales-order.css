@@ -21,6 +21,8 @@
 .sales-register-dialog .dialog-body{max-height:calc(90vh - 160px)}
 .sales-register-dialog .sales-register-actions{gap:8px}
 .sales-register-action{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.sales-status-table td.sales-status-action{text-align:center;white-space:nowrap}
+.sales-status-table td.sales-status-action button+button{margin-left:6px}
 .sales-register-icon{display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:50%;background:#e8f5ec;color:#23654e;font-size:13px;font-weight:750}
 .sales-register-confirm-dialog{width:min(460px,calc(100% - 32px))}
 .sales-register-confirm-dialog .dialog-body p{font-size:16px}

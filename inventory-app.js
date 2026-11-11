@@ -566,7 +566,7 @@ function renderSalesBalance(){
     const completeCell=document.createElement('td');completeCell.append(salesOrderCompleteCheckbox(order));row.append(completeCell);
     const statusCell=document.createElement('td');statusCell.append(salesOrderStatusSelect(order));row.append(statusCell);
     [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
-      money(order.amount),String(order.due_date).slice(0,10),order.delivery_method,order.address,order.notes]
+      money(order.amount),String(order.due_date).slice(0,10),order.delivery_method,salesAddressDisplay(order),order.notes]
       .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
     const action=document.createElement('td'),button=document.createElement('button');
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
@@ -611,7 +611,7 @@ function renderSalesStatus(view='status'){
     }
     const statusCell=document.createElement('td');statusCell.textContent=salesOrderStatus(order);row.append(statusCell);
     [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
-      money(order.amount),String(order.due_date).slice(0,10),order.delivery_method,order.address,order.notes]
+      money(order.amount),String(order.due_date).slice(0,10),order.delivery_method,salesAddressDisplay(order),order.notes]
       .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
     const action=document.createElement('td'),button=document.createElement('button');
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
@@ -650,7 +650,7 @@ function renderSalesRegister(){
     const statusCell=document.createElement('td'),status=salesOrderStatusSelect(order);
     status.disabled=true;statusCell.append(status);row.append(statusCell);
     [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
-      money(order.amount),String(order.due_date||'').slice(0,10),order.delivery_method,order.address]
+      money(order.amount),String(order.due_date||'').slice(0,10),order.delivery_method,salesAddressDisplay(order)]
       .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
     body.append(row);
   });
@@ -3002,7 +3002,7 @@ function exportSalesStatusExcel(view='status'){
   return downloadDataWorkbook(button,'매출현황','매출현황',headers,rows.map(order=>[
     Number(order.sequence_id),String(order.order_date||'').slice(0,10),order.order_number,order.order_type,order.vendor_name||'',order.vendor_contact||'',String(order.shipped_date||'').slice(0,10),salesOrderStatus(order),
     order.product_name,order.specification,order.unit,Number(order.quantity||0),Number(order.unit_price||0),
-    Number(order.amount||0),String(order.due_date||'').slice(0,10),order.delivery_method,order.address,order.notes
+    Number(order.amount||0),String(order.due_date||'').slice(0,10),order.delivery_method,salesAddressDisplay(order),order.notes
   ]),[0,11,12,13],'내보낼 수주 내역이 없습니다.');
 }
 async function exportExcel() {

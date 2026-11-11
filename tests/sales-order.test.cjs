@@ -355,7 +355,7 @@ test('sales registration table has no 관리 column and lists completed orders b
       vendor_name:'업체',vendor_contact:'010',shipped_date:'',sales_progress_status:'진행',product_name:'품목',specification:'규격',
       unit:'EA',quantity:2,unit_price:5,amount:10,due_date:'2026-11-10',delivery_method:'택배',address:'주소',notes:'비고'},
     {id:'line-2',sequence_id:2,order_date:'2026-11-03',order_number:'SO-1',order_type:'온라인 수주',
-      vendor_name:'업체',vendor_contact:'010',shipped_date:'2026-11-04',sales_progress_status:'완료',product_name:'품목2',specification:'규격',
+      vendor_name:'업체',vendor_contact:'010',shipped_date:'2026-11-04',sales_progress_status:'진행',sales_status:'매출완료',product_name:'품목2',specification:'규격',
       unit:'EA',quantity:1,unit_price:5,amount:5,due_date:'2026-11-10',delivery_method:'택배',address:'주소',notes:'비고'}];
     salesRegisterSearched=true;salesRegisterQuery='SO-1';salesStatusUpdating=false;renderSalesRegister()`,context);
   assert.equal(body.children.length,1,'completed orders are removed from the registration table');

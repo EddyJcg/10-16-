@@ -642,8 +642,8 @@ function renderSalesRegister(){
   const body=$('sales-register-items'),completedBody=$('sales-register-completed-items');
   body.replaceChildren();completedBody.replaceChildren();
   const matchedOrders=salesRegisterSearched?filterSalesOrders(salesOrders,{query:salesRegisterQuery}):[];
-  const visibleOrders=matchedOrders.filter(order=>salesOrderStatus(order)!=='완료');
-  const completedOrders=salesOrders.filter(order=>salesOrderStatus(order)==='완료');
+  const visibleOrders=matchedOrders.filter(order=>!salesRegistrationDone(order));
+  const completedOrders=salesOrders.filter(order=>salesRegistrationDone(order));
   salesRegisterVisibleOrders=visibleOrders;
   const shipment=salesRegisterShipmentInput();
   $('bulk-sales-register').disabled=salesStatusUpdating||!visibleOrders.some(order=>salesRegistrationCandidate(order,shipment));
@@ -658,9 +658,12 @@ function renderSalesRegister(){
   if(!completedOrders.length)emptyRow(completedBody,16,'매출 등록이 완료된 수주가 없습니다.');
   completedOrders.forEach(order=>completedBody.append(appendSalesRegisterCells(document.createElement('tr'),order)));
 }
+function salesRegistrationDone(order){
+  return salesOrderStatus(order)==='완료'||order.sales_status==='매출완료';
+}
 function salesRegistrationEligible(order){
   const shipped=Number(order.shipped_quantity||0),quantity=Number(order.quantity||0);
-  return Boolean(String(order.shipped_date||'').trim())&&salesOrderStatus(order)!=='완료'&&!(shipped>0&&shipped<quantity);
+  return Boolean(String(order.shipped_date||'').trim())&&!salesRegistrationDone(order)&&!(shipped>0&&shipped<quantity);
 }
 function salesRegisterShipmentInput(){
   const dateValue=$('sales-register-ship-date').value,quantityValue=$('sales-register-ship-quantity').value.trim();
@@ -670,7 +673,7 @@ function salesRegisterShipmentInput(){
   return {date:dateValue,quantity};
 }
 function salesRegistrationCandidate(order,shipment){
-  if(salesOrderStatus(order)==='완료')return false;
+  if(salesRegistrationDone(order))return false;
   if(shipment&&!shipment.invalid)return Number(order.shipped_quantity||0)<Number(order.quantity||0);
   return salesRegistrationEligible(order);
 }

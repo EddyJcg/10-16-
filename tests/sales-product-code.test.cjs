@@ -30,6 +30,49 @@ test('품번 입력은 배송방법 다음에 위치하고 품목별 가수주�
   assert.equal(vm.runInContext('salesDraftLines[0].product_code',context),'SKU-2');
 });
 
+test('등록된 품번 입력과 선택으로 품목정보를 채우고 다른 값에는 기존 자동입력을 해제한다',()=>{
+  const elements=new Map();
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',textContent:'',children:[],
+      replaceChildren(){this.children=[];},append(child){this.children.push(child);}});
+    return elements.get(id);
+  };
+  const context=vm.createContext({document:{getElementById:element,createElement:()=>({})}});
+  vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`items=[
+    {product_code:'SKU-1',product_name:'품목 1',specification:'규격 1',unit:'Box'},
+    {product_code:'SKU-2',product_name:'품목 2',specification:'',unit:'EA(개)',quantity_management_disabled:true}
+  ];populateSalesProductCodes()`,context);
+  assert.deepEqual(element('sales-product-codes').children.map(option=>option.value),['SKU-1','SKU-2']);
+  element('sales_product_code').value=' sku-1 ';
+  vm.runInContext('populateSalesProductDetails()',context);
+  assert.equal(element('sales_product_name').value,'품목 1');
+  assert.equal(element('sales_specification').value,'규격 1');
+  assert.equal(element('sales_unit').value,'Box');
+  element('sales_specification').value='직접 수정';
+  element('sales_product_code').value='UNKNOWN';
+  vm.runInContext('populateSalesProductDetails(true)',context);
+  assert.equal(element('sales_product_name').value,'');
+  assert.equal(element('sales_specification').value,'직접 수정');
+  assert.equal(element('sales_unit').value,'');
+  assert.match(element('sales-product-code-message').textContent,/등록된 품번이 아닙니다/);
+  element('sales_product_code').value='sku-2';
+  vm.runInContext('populateSalesProductDetails(true)',context);
+  assert.equal(element('sales_product_code').value,'SKU-2');
+  assert.equal(element('sales_product_name').value,'품목 2');
+  assert.equal(element('sales_specification').value,'');
+  assert.equal(element('sales_unit').value,'EA(개)');
+  assert.equal(element('sales-product-code-message').textContent,'');
+  element('sales_product_code').value='';
+  vm.runInContext('populateSalesProductDetails()',context);
+  assert.equal(element('sales_product_name').value,'');
+  assert.equal(element('sales_unit').value,'');
+  const html=fs.readFileSync('inventory.html','utf8'),app=fs.readFileSync('inventory-app.js','utf8');
+  assert.match(html,/id="sales_product_code"[^>]*list="sales-product-codes"/);
+  assert.match(app,/sales_product_code'\)\.addEventListener\('input',\(\)=>populateSalesProductDetails\(\)\)/);
+  assert.match(app,/sales_product_code'\)\.addEventListener\('change',\(\)=>populateSalesProductDetails\(true\)\)/);
+});
+
 test('품번 저장 설정이 없으면 수주 저장 전에 오류를 알린다',async()=>{
   const context=vm.createContext({document:{getElementById:()=>({})}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);

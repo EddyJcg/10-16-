@@ -1070,7 +1070,7 @@ async function editSalesOrderFromStatus(id){
   const blockedReason=salesOrderDownstreamReason(id);
   if(blockedReason){alertBlocked(blockedReason);return;}
   $('sales-status-dialog').close();$('sales-status-query-dialog').close();
-  resetSalesOrderForm();$('sales-order-status').textContent='';
+  resetSalesOrderForm();populateSalesProductCodes();$('sales-order-status').textContent='';
   $('sales-order-dialog').showModal();
   editSalesOrder(id);
 }
@@ -1120,6 +1120,35 @@ function updateSalesAmount(){
   $('sales_amount').value=$('sales_quantity').value&&$('sales_unit_price').value&&Number.isSafeInteger(quantity)&&quantity>0&&Number.isFinite(price)&&price>=0
     ? money(quantity*price)+'원':'';
 }
+let salesProductAutofill=null;
+function populateSalesProductCodes(){
+  const list=$('sales-product-codes');
+  list.replaceChildren();
+  items.forEach(item=>{
+    const option=document.createElement('option');
+    option.value=item.product_code;option.label=item.product_name;list.append(option);
+  });
+}
+function populateSalesProductDetails(showMissing=false){
+  const code=$('sales_product_code').value.trim();
+  const item=productForLookup('product_code',code);
+  const fields=[['sales_product_name','product_name'],['sales_specification','specification'],['sales_unit','unit']];
+  if(item){
+    if(showMissing)$('sales_product_code').value=item.product_code;
+    salesProductAutofill={};
+    fields.forEach(([id,key])=>{
+      const value=item[key]??(key==='unit'?'EA(개)':'');
+      $(id).value=value;salesProductAutofill[id]=$(id).value;
+    });
+  }else if(salesProductAutofill){
+    fields.forEach(([id])=>{
+      if($(id).value===salesProductAutofill[id])$(id).value='';
+    });
+    salesProductAutofill=null;
+  }
+  $('sales-product-code-message').textContent=showMissing&&code&&!item
+    ?'등록된 품번이 아닙니다. 품목정보를 확인하거나 품명·규격·단위를 직접 입력하세요.':'';
+}
 function addSalesOrderLine(){
   const quantity=Number($('sales_quantity').value),unitPrice=Number($('sales_unit_price').value);
   const dueDate=$('sales_due_date').value;
@@ -1137,6 +1166,7 @@ function addSalesOrderLine(){
   });
   ['sales_product_code','sales_product_name','sales_specification','sales_unit','sales_quantity','sales_unit_price','sales_amount','sales_due_date']
     .forEach(id=>$(id).value='');
+  salesProductAutofill=null;$('sales-product-code-message').textContent='';
   renderSalesDraftLines();$('sales-order-status').textContent='';
 }
 function showDuplicateSalesOrderNotice(){
@@ -1170,6 +1200,7 @@ async function ensureSalesOrderProductCodeReady(lines){
 }
 function resetSalesOrderForm(){
   editingSalesOrderId='';salesDraftGroupId='';$('sales-order-form').reset();$('sales_order_date').value=todayDate();
+  salesProductAutofill=null;$('sales-product-code-message').textContent='';
   salesDraftLines=[];renderSalesDraftLines();
   $('sales-order-title').textContent='수주 입력';$('save-sales-order').textContent='수주 일괄저장';
 }
@@ -1202,7 +1233,7 @@ function editSalesOrder(id){
 }
 async function showSalesOrder(){
   if(!currentUser||busy||salesOrderSaving)return;
-  resetSalesOrderForm();$('sales-order-status').textContent='';renderSalesOrders();
+  resetSalesOrderForm();populateSalesProductCodes();$('sales-order-status').textContent='';renderSalesOrders();
   $('sales-order-dialog').showModal();
   await loadSalesOrders();
 }
@@ -1455,6 +1486,7 @@ function loadStock() {
       ]);
       if (generation!==authGeneration || !currentUser) return;
       items = summary;agedStock=aging;updateSupplierOptions();render();refreshStockRowColors();
+      if($('sales-order-dialog').open)populateSalesProductCodes();
       if ($('movement-dialog').open && mode==='issue') loadSelectedLots();
     } while (reloadQueued);
   })().finally(()=>{loadPromise=null;});
@@ -2958,6 +2990,8 @@ async function startApp(){
   $('close-sales-order').addEventListener('click',()=>$('sales-order-dialog').close());
   $('cancel-sales-order').addEventListener('click',cancelSalesOrder);
   $('sales-order-form').addEventListener('submit',saveSalesOrder);
+  $('sales_product_code').addEventListener('input',()=>populateSalesProductDetails());
+  $('sales_product_code').addEventListener('change',()=>populateSalesProductDetails(true));
   $('import-sales-order-button').addEventListener('click',openSalesOrderFilePicker);
   $('sales-order-import-file').addEventListener('change',importSalesOrderFile);
   $('save-sales-order-draft').addEventListener('click',addSalesOrderLine);

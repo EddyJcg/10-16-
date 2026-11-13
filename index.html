@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Isummery - 모두의 비서</title>
+  <title>Isummery - isummerly 비서</title>
   <style>
     * { box-sizing: border-box; }
 
@@ -307,8 +307,8 @@
       <div>
         <div class="company-name">Isummery</div>
         <div class="profile">
-          <span class="profile-icon">비</span>
-          <span>모두의 비서</span>
+          <span class="profile-icon">i</span>
+          <span>isummerly 비서</span>
         </div>
       </div>
     </div>
@@ -338,8 +338,8 @@
       <div class="message ai">
         <div class="avatar">AI</div>
         <div>
-          <div class="bubble">안녕하세요! 저는 모두의 비서입니다. 무엇을 도와드릴까요?</div>
-          <div class="message-meta">모두의 비서</div>
+          <div class="bubble">안녕하세요!           저는 isummerly 비서입니다. 무엇을 도와드릴까요?</div>
+                    <div class="message-meta">isummerly 비서</div>
         </div>
       </div>
     </section>
@@ -383,7 +383,7 @@
 
         const meta = document.createElement('div');
         meta.className = 'message-meta';
-        meta.textContent = (role === 'user' ? '나' : '모두의 비서') + ' · ' + currentTime();
+        meta.textContent = (role === 'user' ? '나' : 'isummerly 비서') + ' · ' + currentTime();
 
         content.appendChild(bubble);
         content.appendChild(meta);

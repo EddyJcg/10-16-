@@ -39,13 +39,12 @@ function boot(signIn=async()=>({data:{session:{user:{id:'test-user'}}},error:nul
   element('password').value='test-password';
   element('workspace').hidden=true;
   const submit=()=>element('login-form').handlers.submit({preventDefault(){}});
-  const loaded=()=>element('login-welcome-frame').handlers.load();
   const encourage=()=>context.window.handlers.message({source:element('login-welcome-frame').contentWindow,data:{type:'login-welcome-confirm'}});
   const advance=async milliseconds=>{
     now+=milliseconds;
     for(const [id,timer] of [...timers])if(timer.at<=now){timers.delete(id);await timer.callback();}
   };
-  return {element,context,calls,notices,submit,loaded,encourage,advance};
+  return {element,context,calls,notices,submit,encourage,advance};
 }
 
 test('welcome stays open until encouragement is clicked, then signs in once',async()=>{
@@ -54,12 +53,10 @@ test('welcome stays open until encouragement is clicked, then signs in once',asy
   app.submit();
   assert.equal(app.element('login-welcome-dialog').open,true);
   assert.match(app.element('login-welcome-frame').src,/mode=login/);
-  app.loaded();
   await app.advance(10000);
   assert.equal(app.element('login-welcome-dialog').open,true);
   assert.equal(app.element('workspace').hidden,true);
   assert.equal(app.calls.length,0);
-  app.loaded();
   app.submit();
   const login=app.encourage();
   assert.equal(app.calls.length,1);
@@ -81,15 +78,13 @@ test('welcome stays open until encouragement is clicked, then signs in once',asy
 test('cancelling the welcome does not sign in and a retry waits for a click',async()=>{
   const app=boot();
   app.submit();
-  app.loaded();
-  app.element('close-login-welcome').handlers.click();
+  app.element('login-welcome-dialog').close();
   await app.advance(10000);
   assert.equal(app.calls.length,0);
   assert.equal(app.element('login-button').disabled,false);
   assert.equal(app.element('login-panel').hidden,false);
   assert.equal(app.element('workspace').hidden,true);
   app.submit();
-  app.loaded();
   await app.advance(10000);
   assert.equal(app.calls.length,0);
   await app.encourage();
@@ -105,7 +100,6 @@ test('invalid credentials, network errors, and missing sessions return to the lo
   ]){
     const app=boot(signIn);
     app.submit();
-    app.loaded();
     await app.encourage();
     assert.equal(app.element('login-welcome-dialog').open,false);
     assert.equal(app.element('login-panel').hidden,false);

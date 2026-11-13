@@ -3204,19 +3204,13 @@ function installLoginWelcome(){
     event.preventDefault();
     if(dialog.open||signingIn)return;
     $('login-button').disabled=true;
-    $('login-welcome-status').textContent='환영 화면을 불러오는 중…';
-    frame.src='로그인 환영인사.html?mode=login&v=20261114-popup';
+    frame.src='로그인 환영인사.html?mode=login&v=20261113-card';
     dialog.showModal();
-  });
-  frame.addEventListener('load',()=>{
-    if(!dialog.open)return;
-    $('login-welcome-status').textContent='격려 문구를 확인한 후 격려 받기를 눌러주세요.';
   });
   window.addEventListener('message',event=>{
     if(event.source!==frame.contentWindow||event.data?.type!=='login-welcome-confirm')return;
     return loginAfterWelcome();
   });
-  $('close-login-welcome').addEventListener('click',()=>{if(!signingIn)dialog.close();});
   dialog.addEventListener('close',()=>{
     frame.src='about:blank';
     $('login-button').disabled=signingIn;
@@ -3224,7 +3218,6 @@ function installLoginWelcome(){
   async function loginAfterWelcome(){
     if(!dialog.open||signingIn)return;
     signingIn=true;
-    $('close-login-welcome').disabled=true;
     dialog.close();
     notify('로그인 중…');
     try{
@@ -3241,7 +3234,6 @@ function installLoginWelcome(){
       if(dialog.open)dialog.close();
       $('password').value='';
       $('login-button').disabled=false;
-      $('close-login-welcome').disabled=false;
     }
   }
 }
@@ -3362,8 +3354,8 @@ async function startApp(){
   });
   $('close-sales-status').addEventListener('click',()=>$('sales-status-dialog').close());
   $('close-sales-query').addEventListener('click',()=>$('sales-status-query-dialog').close());
-  $('sales-register-submit').addEventListener('click',openBulkSalesRegisterConfirmation);
   $('close-sales-register').addEventListener('click',()=>$('sales-register-dialog').close());
+  $('sales-register-submit').addEventListener('click',openBulkSalesRegisterConfirmation);
   $('search-sales-register').addEventListener('click',applySalesRegisterSearch);
   $('add-sales-register').addEventListener('click',resetSalesRegisterSearch);
   $('bulk-sales-register').addEventListener('click',openBulkSalesRegisterConfirmation);

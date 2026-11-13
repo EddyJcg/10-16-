@@ -158,6 +158,7 @@ function installDialogInteractions(){
     });
   };
   const installDialog=dialog=>{
+    if(dialog.id==='login-welcome-dialog')return;
     installWindowControls(dialog);
     const header=dialog.querySelector('.dialog-header,.calendar-title');
     const sizeStorageKey=dialog.id?'inventory-dialog-size-'+dialog.id:null;
@@ -3196,16 +3197,57 @@ async function recordUserAuthActivity(eventType,session){
   try{result=await response.json();}catch{throw new Error('로그인 이력 서버에 연결하지 못했습니다.');}
   if(!response.ok)throw new Error(result.error||'로그인 이력을 저장하지 못했습니다.');
 }
+function installLoginWelcome(){
+  const dialog=$('login-welcome-dialog'),frame=$('login-welcome-frame');
+  let signingIn=false;
+  $('login-form').addEventListener('submit',event=>{
+    event.preventDefault();
+    if(dialog.open||signingIn)return;
+    if(!client){notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}
+    $('login-button').disabled=true;
+    frame.src='로그인 환영인사.html?mode=login&v=20261113-card';
+    dialog.showModal();
+  });
+  window.addEventListener('message',event=>{
+    if(event.source!==frame.contentWindow||event.data?.type!=='login-welcome-confirm')return;
+    return loginAfterWelcome();
+  });
+  dialog.addEventListener('close',()=>{
+    frame.src='about:blank';
+    $('login-button').disabled=signingIn;
+  });
+  async function loginAfterWelcome(){
+    if(!dialog.open||signingIn)return;
+    signingIn=true;
+    dialog.close();
+    notify('로그인 중…');
+    try{
+      const {data,error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+      if(error){notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);return;}
+      if(!data.session){notify('로그인 세션을 확인할 수 없습니다. 다시 로그인하세요.',true);return;}
+      await updateSession(data.session);
+      try{await recordUserAuthActivity('login',data.session);}
+      catch(activityError){notify('로그인은 완료했지만 이력을 저장하지 못했습니다: '+activityError.message,true);}
+    }catch{
+      notify('로그인 서버에 연결하지 못했습니다.',true);
+    }finally{
+      signingIn=false;
+      if(dialog.open)dialog.close();
+      $('password').value='';
+      $('login-button').disabled=false;
+    }
+  }
+}
 async function startApp(){
   installDialogInteractions();
   installPopupTableTools();
   if(typeof startVendorManagement==='function')startVendorManagement();
   $('message').textContent='로그인 상태를 확인하고 있습니다…';
   $('today').textContent=new Date().toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'long',day:'numeric',weekday:'long'});renderHeaders();render();
+  installLoginWelcome();
   if(!window.supabase){$('login-panel').hidden=false;notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}
   client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,storage:window.sessionStorage,storageKey:'inventory-note-stock-session',autoRefreshToken:true,detectSessionInUrl:false}});
   client.auth.onAuthStateChange((event,session)=>{if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event))setTimeout(()=>updateSession(session),0);});
-  $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {data,error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);else try{await recordUserAuthActivity('login',data.session);}catch(activityError){notify('로그인은 완료했지만 이력을 저장하지 못했습니다: '+activityError.message,true);}}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
   $('logout').addEventListener('click',async()=>{closeProfileMenu();if(busy)return;let activityError;try{await recordUserAuthActivity('logout');}catch(error){activityError=error;}const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);else if(activityError)notify('로그아웃했지만 이력을 저장하지 못했습니다: '+activityError.message,true);});
   const profileButton=$('profile-menu-toggle'),profileMenu=$('profile-menu');
   const closeProfileMenu=()=>{profileMenu.hidden=true;profileButton.setAttribute('aria-expanded','false');};
@@ -3313,8 +3355,8 @@ async function startApp(){
   });
   $('close-sales-status').addEventListener('click',()=>$('sales-status-dialog').close());
   $('close-sales-query').addEventListener('click',()=>$('sales-status-query-dialog').close());
-  $('sales-register-submit').addEventListener('click',openBulkSalesRegisterConfirmation);
   $('close-sales-register').addEventListener('click',()=>$('sales-register-dialog').close());
+  $('sales-register-submit').addEventListener('click',openBulkSalesRegisterConfirmation);
   $('search-sales-register').addEventListener('click',applySalesRegisterSearch);
   $('add-sales-register').addEventListener('click',resetSalesRegisterSearch);
   $('bulk-sales-register').addEventListener('click',openBulkSalesRegisterConfirmation);

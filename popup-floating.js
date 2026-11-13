@@ -1,7 +1,7 @@
 'use strict';
 (function(){
   // 확인·상세·달력처럼 상위 팝업 위에 겹쳐 뜨는 창은 기존처럼 모달로 유지합니다.
-  const modalIds=new Set(['sales-register-confirm-dialog','receipt-import-missing-dialog','receipt-details-dialog','detail-dialog','vendor-option-dialog','print-settings-dialog']);
+  const modalIds=new Set(['login-welcome-dialog','sales-register-confirm-dialog','receipt-import-missing-dialog','receipt-details-dialog','detail-dialog','vendor-option-dialog','print-settings-dialog']);
   let stack=4;
   const viewW=()=>typeof innerWidth==='number'?innerWidth:Infinity;
   const viewH=()=>typeof innerHeight==='number'?innerHeight:Infinity;

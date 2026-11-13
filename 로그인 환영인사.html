@@ -66,7 +66,7 @@
       padding: 8px;
       background: transparent;
     }
-    body.popup-only .card {
+    body.popup-large .card {
       zoom: 2;
     }
     .heart {
@@ -126,6 +126,7 @@
     const loginMode = window.parent !== window && new URLSearchParams(window.location.search).get("mode") === "login";
     if (loginMode) {
       document.body.classList.add("popup-only");
+      if (window.parent.matchMedia("(min-width: 768px)").matches) document.body.classList.add("popup-large");
       msgEl.textContent = messages[order[index++]];
       countEl.textContent = "환영합니다!";
     }

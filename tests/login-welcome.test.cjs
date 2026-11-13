@@ -165,7 +165,9 @@ test('after encouragement the dashboard shows five hearts one after another',asy
   const login=app.encourage();
   await login;
   assert.equal(app.hearts.length,0);
-  await app.advance(1600);
+  await app.advance(499);
+  assert.equal(app.hearts.length,0);
+  await app.advance(1601);
   assert.equal(app.hearts.length,5);
   assert.ok(app.hearts.every(heart=>heart.className==='login-heart'));
 });

@@ -30,9 +30,15 @@ function startSidebar() {
     updatePopupArea();
   }
   function placeIcon(){
+    if(window.innerWidth<=700){
+      const rect=toggle.getBoundingClientRect(),size=icon.offsetWidth||56;
+      icon.style.left=(rect.left-size-8)+'px';
+      icon.style.top=(rect.top+rect.height/2-size/2)+'px';
+      return;
+    }
     const headerBottom=header?header.getBoundingClientRect().bottom:0;
-    const headingTop=window.innerWidth<=700?80:Math.max(headerBottom,16);
-    icon.style.top=(headingTop+32)+'px';
+    icon.style.left='';
+    icon.style.top=(Math.max(headerBottom,16)+32)+'px';
   }
   const savedWidth=read('inventory-sidebar-width');setWidth(savedWidth===null?250:Number(savedWidth));
   setOpen(window.innerWidth>700);

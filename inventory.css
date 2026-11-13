@@ -15,6 +15,9 @@
 .sidebar-icon-toggle{position:fixed;left:16px;top:112px;z-index:6;display:none;width:28px;height:28px;padding:0;border:0;background:transparent}
 .app-layout.signed-in .sidebar-icon-toggle{display:block}
 .sidebar-icon-toggle img{display:block;width:100%;height:100%;object-fit:contain}
+@media (max-width:700px){
+  .sidebar-icon-toggle{width:56px;height:56px}
+}
 .sidebar-heading span{display:block;font-size:13px;font-weight:400;color:#819488;margin-top:6px}
 .menu-folder{margin-bottom:8px}
 .menu-folder summary{display:flex;gap:9px;align-items:center;list-style:none;cursor:pointer;padding:12px;border-radius:8px;font-size:17px;font-weight:650;color:#355f4b;user-select:none}

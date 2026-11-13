@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Isummery - 모두의 비서</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      font-size: 15px;
+      color: #1d1c1d;
+      background: #ffffff;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* 왼쪽 사이드바 */
+    .sidebar {
+      width: 260px;
+      min-width: 260px;
+      background: #3f0e40;
+      color: #d1c4d1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .workspace-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .company-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+    }
+
+    .profile {
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #d1c4d1;
+    }
+
+    .profile-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #36c5f0, #2eb67d);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .menu-section {
+      padding: 16px 10px 8px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .menu-title {
+      padding: 0 10px 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #b9a9b9;
+    }
+
+    .menu-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #d1c4d1;
+      font-size: 15px;
+      user-select: none;
+    }
+
+    .menu-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .menu-item.active {
+      background: #1164a3;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .menu-item .hash {
+      opacity: 0.7;
+    }
+
+    .sidebar-footer {
+      padding: 12px 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 오른쪽 메인 영역 */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: #ffffff;
+    }
+
+    .chat-header {
+      padding: 14px 24px;
+      border-bottom: 1px solid #e8e8e8;
+      background: #ffffff;
+    }
+
+    .chat-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .chat-desc {
+      margin: 2px 0 0;
+      font-size: 13px;
+      color: #616061;
+    }
+
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .message {
+      display: flex;
+      gap: 10px;
+      max-width: 72%;
+    }
+
+    .message.ai {
+      align-self: flex-start;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .message.ai .avatar {
+      background: linear-gradient(135deg, #36c5f0, #2eb67d);
+    }
+
+    .message.user .avatar {
+      background: #e01e5a;
+    }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 16px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .message.ai .bubble {
+      background: #f4f4f4;
+      border-top-left-radius: 4px;
+    }
+
+    .message.user .bubble {
+      background: #1164a3;
+      color: #ffffff;
+      border-top-right-radius: 4px;
+    }
+
+    .message-meta {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #868686;
+    }
+
+    .message.user .message-meta {
+      text-align: right;
+    }
+
+    /* 하단 입력 영역 */
+    .chat-input {
+      padding: 16px 24px 20px;
+      border-top: 1px solid #e8e8e8;
+      background: #ffffff;
+    }
+
+    .input-box {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      border: 1px solid #c8c8c8;
+      border-radius: 12px;
+      padding: 8px 10px;
+      background: #ffffff;
+    }
+
+    .input-box:focus-within {
+      border-color: #1164a3;
+      box-shadow: 0 0 0 1px #1164a3;
+    }
+
+    .input-box textarea {
+      flex: 1;
+      border: none;
+      outline: none;
+      resize: none;
+      font: inherit;
+      font-size: 15px;
+      line-height: 1.5;
+      max-height: 160px;
+      min-height: 24px;
+      padding: 4px 2px;
+    }
+
+    .send-btn {
+      border: none;
+      border-radius: 8px;
+      background: #007a5a;
+      color: #ffffff;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 8px 16px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover {
+      background: #006a4e;
+    }
+
+    .hint {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #868686;
+    }
+
+    /* 사이드바 하단 버튼 (추후 설정·저장 버튼 자리) */
+    .sidebar-btn {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 6px;
+      background: transparent;
+      color: #ffffff;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .sidebar-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body>
+  <!-- 왼쪽: 메뉴 목록 -->
+  <aside class="sidebar">
+    <div class="workspace-header">
+      <div>
+        <div class="company-name">Isummery</div>
+        <div class="profile">
+          <span class="profile-icon">비</span>
+          <span>모두의 비서</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="menu-section">
+      <div class="menu-title">메뉴</div>
+      <ul class="menu-list">
+        <li class="menu-item active" data-menu="general">
+          <span class="hash">#</span>
+          <span>일반 대화</span>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- 왼쪽 아래: 설정·저장 버튼이 들어갈 자리 -->
+    <div class="sidebar-footer" id="sidebarFooter"></div>
+  </aside>
+
+  <!-- 오른쪽: 머리글 · 대화창 · 입력창 -->
+  <main class="main">
+    <header class="chat-header">
+      <h1 class="chat-title" id="menuTitle">일반 대화</h1>
+      <p class="chat-desc" id="menuDesc">무엇이든 편하게 물어보세요. 업무에 필요한 내용을 도와드립니다.</p>
+    </header>
+
+    <section class="chat-body" id="chatBody">
+      <div class="message ai">
+        <div class="avatar">AI</div>
+        <div>
+          <div class="bubble">안녕하세요! 저는 모두의 비서입니다. 무엇을 도와드릴까요?</div>
+          <div class="message-meta">모두의 비서</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="chat-input">
+      <div class="input-box">
+        <textarea id="messageInput" rows="1" placeholder="메시지를 입력하세요 (Enter 전송, Shift+Enter 줄바꿈)"></textarea>
+        <button class="send-btn" id="sendBtn" type="button">보내기</button>
+      </div>
+      <div class="hint">Enter로 전송하고, Shift + Enter로 줄을 바꿀 수 있습니다.</div>
+    </footer>
+  </main>
+
+  <script>
+    (function () {
+      const chatBody = document.getElementById('chatBody');
+      const input = document.getElementById('messageInput');
+      const sendBtn = document.getElementById('sendBtn');
+
+      function pad(n) {
+        return String(n).padStart(2, '0');
+      }
+
+      function currentTime() {
+        const now = new Date();
+        return pad(now.getHours()) + ':' + pad(now.getMinutes());
+      }
+
+      function appendMessage(role, text) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message ' + role;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.textContent = role === 'user' ? '나' : 'AI';
+
+        const content = document.createElement('div');
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.textContent = text;
+
+        const meta = document.createElement('div');
+        meta.className = 'message-meta';
+        meta.textContent = (role === 'user' ? '나' : '모두의 비서') + ' · ' + currentTime();
+
+        content.appendChild(bubble);
+        content.appendChild(meta);
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(content);
+        chatBody.appendChild(wrapper);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }
+
+      function sendMessage() {
+        const text = input.value.trim();
+        if (!text) return;
+        appendMessage('user', text);
+        input.value = '';
+        input.style.height = 'auto';
+        input.focus();
+      }
+
+      sendBtn.addEventListener('click', sendMessage);
+
+      input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+          event.preventDefault();
+          sendMessage();
+        }
+      });
+
+      input.addEventListener('input', function () {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -16,9 +16,21 @@
       font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
       font-size: 15px;
       color: #1d1c1d;
-      background: #ffffff;
+      background: #e5e5e5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* 화면 전체 높이에 맞춘 9:16 비율 프레임 */
+    .app-frame {
+      width: min(100vw, calc(100vh * 9 / 16));
+      height: min(100vh, calc(100vw * 16 / 9));
       display: flex;
       overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 0 24px rgba(0, 0, 0, 0.2);
     }
 
     /* 왼쪽 사이드바 */
@@ -301,6 +313,7 @@
   </style>
 </head>
 <body>
+  <div class="app-frame">
   <!-- 왼쪽: 메뉴 목록 -->
   <aside class="sidebar">
     <div class="workspace-header">
@@ -352,6 +365,7 @@
       <div class="hint">Enter로 전송하고, Shift + Enter로 줄을 바꿀 수 있습니다.</div>
     </footer>
   </main>
+  </div>
 
   <script>
     (function () {

@@ -38,6 +38,36 @@
     setRect(clamp(r.left, 0, vw - w), clamp(r.top, 0, vh - h), w, h);
   }
 
+  // 로그인 사용자마다 마지막으로 조정한 위치와 크기를 따로 저장합니다.
+  function storageKey() {
+    const uid = typeof currentUser !== 'undefined' && currentUser ? currentUser.id : 'guest';
+    return 'chatbot-window-rect:' + uid;
+  }
+
+  function saveRect() {
+    const r = currentRect();
+    try {
+      localStorage.setItem(storageKey(), JSON.stringify({ left: r.left, top: r.top, width: r.width, height: r.height }));
+    } catch (e) {
+      // 저장이 막혀 있어도 창은 그대로 사용할 수 있습니다.
+    }
+  }
+
+  function restoreRect() {
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(storageKey()) || 'null');
+    } catch (e) {
+      return;
+    }
+    if (!saved || ![saved.left, saved.top, saved.width, saved.height].every(Number.isFinite)) return;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const w = clamp(saved.width, MIN_W, vw);
+    const h = clamp(saved.height, MIN_H, vh);
+    setRect(clamp(saved.left, 0, vw - w), clamp(saved.top, 0, vh - h), w, h);
+  }
+
   function startDrag(event, mode) {
     event.preventDefault();
     const target = event.currentTarget;
@@ -87,6 +117,7 @@
       target.removeEventListener('pointermove', onMove);
       target.removeEventListener('pointerup', onUp);
       target.removeEventListener('pointercancel', onUp);
+      saveRect();
     }
 
     target.addEventListener('pointermove', onMove);
@@ -113,7 +144,10 @@
 
   launcher.addEventListener('click', function () {
     if (!frame.getAttribute('src')) frame.src = encodeURI('/챗봇.html');
-    if (!dialog.open) dialog.show();
+    if (!dialog.open) {
+      restoreRect();
+      dialog.show();
+    }
   });
   closeBtn.addEventListener('click', function () {
     dialog.close();

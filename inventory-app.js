@@ -3203,6 +3203,8 @@ function spawnLoginHearts(){
       const heart=document.createElement('div');
       heart.className='login-heart';
       heart.textContent='❤';
+      heart.style.left=(10+Math.random()*80)+'%';
+      heart.style.top=(10+Math.random()*80)+'%';
       heart.style.setProperty('--dx',(Math.random()-0.5)*window.innerWidth*0.8+'px');
       heart.style.setProperty('--dy',(Math.random()-0.5)*window.innerHeight*0.8+'px');
       heart.style.setProperty('--rot',(Math.random()-0.5)*360+'deg');

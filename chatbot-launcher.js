@@ -22,6 +22,7 @@
     style.setProperty('bottom', 'auto', 'important');
     style.setProperty('width', width + 'px', 'important');
     style.setProperty('height', height + 'px', 'important');
+    syncDragBar();
   }
 
   function currentRect() {
@@ -102,6 +103,21 @@
   });
   dialog.appendChild(dragBar);
 
+  // 드래그 바가 헤더의 모델 선택 박스를 덮으면 클릭이 가로채여 드롭다운이 열리지 않으므로, 바의 오른쪽 끝을 선택 박스 왼쪽 앞까지로 맞춥니다.
+  function syncDragBar() {
+    const doc = frame.contentDocument;
+    const select = doc && doc.getElementById('modelSelect');
+    let right = 48;
+    if (select) {
+      const selectLeft = select.getBoundingClientRect().left;
+      right = Math.max(48, dialog.getBoundingClientRect().right - selectLeft + 8);
+    }
+    dragBar.style.right = right + 'px';
+  }
+  frame.addEventListener('load', function () {
+    requestAnimationFrame(syncDragBar);
+  });
+
   DIRS.forEach(function (dir) {
     const handle = document.createElement('div');
     handle.className = 'chatbot-resize rh-' + dir;
@@ -114,6 +130,7 @@
   launcher.addEventListener('click', function () {
     if (!frame.getAttribute('src')) frame.src = encodeURI('/챗봇.html');
     if (!dialog.open) dialog.show();
+    requestAnimationFrame(syncDragBar);
   });
   closeBtn.addEventListener('click', function () {
     dialog.close();

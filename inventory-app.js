@@ -3203,6 +3203,7 @@ function installLoginWelcome(){
   $('login-form').addEventListener('submit',event=>{
     event.preventDefault();
     if(dialog.open||signingIn)return;
+    if(!client){notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}
     $('login-button').disabled=true;
     frame.src='로그인 환영인사.html?mode=login&v=20261113-card';
     dialog.showModal();
@@ -3243,10 +3244,10 @@ async function startApp(){
   if(typeof startVendorManagement==='function')startVendorManagement();
   $('message').textContent='로그인 상태를 확인하고 있습니다…';
   $('today').textContent=new Date().toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'long',day:'numeric',weekday:'long'});renderHeaders();render();
+  installLoginWelcome();
   if(!window.supabase){$('login-panel').hidden=false;notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}
   client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,storage:window.sessionStorage,storageKey:'inventory-note-stock-session',autoRefreshToken:true,detectSessionInUrl:false}});
   client.auth.onAuthStateChange((event,session)=>{if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event))setTimeout(()=>updateSession(session),0);});
-  installLoginWelcome();
   $('logout').addEventListener('click',async()=>{closeProfileMenu();if(busy)return;let activityError;try{await recordUserAuthActivity('logout');}catch(error){activityError=error;}const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);else if(activityError)notify('로그아웃했지만 이력을 저장하지 못했습니다: '+activityError.message,true);});
   const profileButton=$('profile-menu-toggle'),profileMenu=$('profile-menu');
   const closeProfileMenu=()=>{profileMenu.hidden=true;profileButton.setAttribute('aria-expanded','false');};

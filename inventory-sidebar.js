@@ -31,8 +31,14 @@ function startSidebar() {
   }
   function placeIcon(){
     const headerBottom=header?header.getBoundingClientRect().bottom:0;
-    const headingTop=window.innerWidth<=700?80:Math.max(headerBottom,16);
-    icon.style.top=(headingTop+32)+'px';
+    if(window.innerWidth<=700){
+      // 모바일 메뉴는 헤더(로고·메뉴 숨기기 버튼) 아래부터 표시해 헤더 버튼을 덮지 않습니다.
+      const sidebarTop=Math.max(Math.round(headerBottom),0);
+      layout.style.setProperty('--sidebar-top',sidebarTop+'px');
+      icon.style.top=(sidebarTop+18)+'px';
+      return;
+    }
+    icon.style.top=(Math.max(headerBottom,16)+32)+'px';
   }
   const savedWidth=read('inventory-sidebar-width');setWidth(savedWidth===null?250:Number(savedWidth));
   setOpen(window.innerWidth>700);

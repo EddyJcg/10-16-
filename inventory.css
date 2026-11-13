@@ -534,3 +534,22 @@ body .popup-table-export-actions button.primary{
   .intro,.toolbar,.session,.dialog-header,.dialog-footer{flex-wrap:wrap}
   .sidebar .sidebar-action,.sidebar .menu-folder summary{white-space:normal;overflow-wrap:anywhere}
 }
+
+/* 모바일 사이드 메뉴: 상단 헤더 아래부터 표시하고 박스·글자·아이콘을 30% 축소 */
+@media screen and (max-width:700px){
+  .app-layout .sidebar{top:var(--sidebar-top,80px);width:min(210px,60.2vw);padding:18.2px 11.2px}
+  .sidebar .sidebar-heading{font-size:19.2178px;padding:0 8.4px 15.4px 36px}
+  .sidebar .sidebar-heading span{font-size:11.8264px;margin-top:4.2px}
+  .sidebar .menu-folder summary{font-size:15.4652px;gap:6.3px;padding-left:8.4px;padding-right:8.4px}
+  .sidebar .menu-folder summary::before{font-size:11.9px}
+  .sidebar .menu-folder>summary::after{font-size:17.29px}
+  .sidebar .sidebar-action{font-size:14.5555px;padding:7px 5.6px}
+  .sidebar #opening-status-folder>summary{font-size:14.5555px;padding-left:5.6px}
+  .sidebar .folder-children{margin-left:15.4px;padding-left:8.4px}
+  .sidebar #basic-info-folder>summary::before{flex-basis:18.837px;width:18.837px;height:18.837px}
+  .sidebar #product-info-folder>summary::before,.sidebar #asset-classification-folder>summary::before{flex-basis:20.02px;width:20.02px;height:20.02px}
+  .sidebar #sales-folder>summary::before{flex-basis:23.023px;width:23.023px;height:23.023px}
+  .sidebar #inventory-folder>summary::before,.sidebar #admin-folder>summary::before,.sidebar #purchase-folder>summary::before{flex-basis:20.93px;width:20.93px;height:20.93px}
+  .sidebar #receipt-folder>summary::before,.sidebar #issue-folder>summary::before,.sidebar #opening-folder>summary::before,.sidebar #stock-folder>summary::before{flex-basis:18.2px;width:18.2px;height:18.2px}
+  .sidebar #product-info-button::before,.sidebar #product-info-status-button::before,.sidebar #sales-order-button::before,.sidebar #sales-status-button::before,.sidebar #asset-classification-button::before{width:18.48px;height:18.48px}
+}

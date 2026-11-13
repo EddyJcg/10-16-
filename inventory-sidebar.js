@@ -32,7 +32,7 @@ function startSidebar() {
   function placeIcon(){
     const headerBottom=header?header.getBoundingClientRect().bottom:0;
     const headingTop=window.innerWidth<=700?80:Math.max(headerBottom,16);
-    icon.style.top=(headingTop+32)+'px';
+    icon.style.top=(headingTop+4)+'px';
   }
   const savedWidth=read('inventory-sidebar-width');setWidth(savedWidth===null?250:Number(savedWidth));
   setOpen(window.innerWidth>700);

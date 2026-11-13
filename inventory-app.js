@@ -3205,7 +3205,7 @@ function installLoginWelcome(){
     if(dialog.open||signingIn)return;
     if(!client){notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}
     $('login-button').disabled=true;
-    frame.src='로그인 환영인사.html?mode=login&v=20261113-card2x';
+    frame.src='로그인 환영인사.html?mode=login&v=20261113-mobile-size';
     dialog.showModal();
   });
   window.addEventListener('message',event=>{

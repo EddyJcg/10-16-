@@ -131,7 +131,7 @@ test('welcome HTML shows only the message card in login mode',()=>{
   };
   const context=vm.createContext({
     document:{getElementById:element,body:{classList:{add(name){bodyClasses.push(name);}}}},
-    window:{location:{search:'?mode=login',origin:'http://localhost'},parent:{postMessage(message){posted.push(message);}}},
+    window:{location:{search:'?mode=login',origin:'http://localhost'},parent:{postMessage(message){posted.push(message);},matchMedia:()=>({matches:false})}},
     URLSearchParams
   });
   const html=readFileSync('로그인 환영인사.html','utf8');
@@ -144,4 +144,17 @@ test('welcome HTML shows only the message card in login mode',()=>{
   element('btn').click();
   assert.equal(posted.length,1);
   assert.equal(posted[0].type,'login-welcome-confirm');
+});
+
+test('welcome card is enlarged only on wide screens',()=>{
+  const bodyClasses=[];
+  const element=()=>({textContent:'',hidden:false,addEventListener(){}});
+  const context=vm.createContext({
+    document:{getElementById:element,body:{classList:{add(name){bodyClasses.push(name);}}}},
+    window:{location:{search:'?mode=login',origin:'http://localhost'},parent:{postMessage(){},matchMedia:()=>({matches:true})}},
+    URLSearchParams
+  });
+  const html=readFileSync('로그인 환영인사.html','utf8');
+  vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
+  assert.deepEqual(bodyClasses,['popup-only','popup-large']);
 });

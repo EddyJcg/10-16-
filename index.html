@@ -327,6 +327,12 @@
       background: rgba(255, 255, 255, 0.08);
     }
 
+    .chat-header {
+      cursor: move;
+      user-select: none;
+      touch-action: none;
+    }
+
     .chat-title-row {
       display: flex;
       align-items: center;
@@ -802,6 +808,35 @@
         });
         frame.appendChild(handle);
       });
+
+      function startMove(event) {
+        event.preventDefault();
+        const header = event.currentTarget;
+        const start = frame.getBoundingClientRect();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        header.setPointerCapture(event.pointerId);
+
+        function onMove(e) {
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          const left = clamp(start.left + e.clientX - startX, 0, vw - start.width);
+          const top = clamp(start.top + e.clientY - startY, 0, vh - start.height);
+          setRect(left, top, start.width, start.height);
+        }
+
+        function onUp() {
+          header.removeEventListener('pointermove', onMove);
+          header.removeEventListener('pointerup', onUp);
+          header.removeEventListener('pointercancel', onUp);
+        }
+
+        header.addEventListener('pointermove', onMove);
+        header.addEventListener('pointerup', onUp);
+        header.addEventListener('pointercancel', onUp);
+      }
+
+      document.querySelector('.chat-header').addEventListener('pointerdown', startMove);
 
       initFrame();
       window.addEventListener('resize', keepInViewport);

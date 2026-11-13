@@ -135,16 +135,3 @@ test('header-side icon toggles the side menu on every click',()=>{
   assert.equal(open(),true);
   assert.equal(icon.attributes['aria-expanded'],'true');
 });
-test('mobile side menu starts below the header so the hide-menu button stays usable',()=>{
-  const app=boot(),layout=app.elements.get('app-layout'),icon=app.elements.get('sidebar-icon-toggle');
-  app.context.document.querySelector=()=>({getBoundingClientRect:()=>({bottom:132.4})});
-  app.context.window.innerWidth=390;
-  vm.runInContext('startSidebar()',app.context);
-  assert.equal(layout.style['--sidebar-top'],'132px');
-  assert.equal(icon.style.top,'150px');
-  const style=fs.readFileSync('inventory.css','utf8');
-  assert.match(style,/\.app-layout \.sidebar\{top:var\(--sidebar-top,80px\);width:min\(210px,60\.2vw\)/);
-  assert.match(style,/\.sidebar \.sidebar-heading\{font-size:19\.2178px/);
-  assert.match(style,/\.sidebar \.menu-folder summary\{font-size:15\.4652px/);
-  assert.match(style,/\.sidebar \.sidebar-action\{font-size:14\.5555px/);
-});

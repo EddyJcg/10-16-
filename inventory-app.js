@@ -1835,6 +1835,7 @@ async function updateSession(session) {
   currentIsAdmin = false;
 
   $('header-account').hidden = !currentUser;
+  $('sidebar-toggle').hidden = !currentUser;
   $('profile-menu').hidden=true;
   $('profile-menu-toggle').setAttribute('aria-expanded','false');
   $('profile-details').hidden=true;

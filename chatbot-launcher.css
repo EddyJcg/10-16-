@@ -23,7 +23,7 @@ dialog.chatbot-dialog[open]{display:block}
 dialog.chatbot-dialog::backdrop{background:transparent}
 .chatbot-frame{position:absolute;top:56px;left:0;right:0;bottom:0;width:100%;height:calc(100% - 56px);border:0;border-radius:0 0 14px 14px;background:#fff}
 /* 창 상단 타이틀 바(드래그 이동 전용)와 8방향 크기 조절 핸들. 헤더 위에 아무것도 덮지 않도록 iframe 아래 영역에서만 드래그를 받습니다. */
-.chatbot-titlebar{position:absolute;top:0;left:0;right:0;height:56px;z-index:1;cursor:move;touch-action:none;background:#1a1d29;border-radius:14px 14px 0 0}
+.chatbot-titlebar{position:absolute;top:0;left:0;right:0;height:56px;z-index:1;cursor:move;touch-action:none;background:#1e3a8a;border-radius:14px 14px 0 0}
 .chatbot-resize{position:absolute;z-index:3;touch-action:none}
 .chatbot-resize.rh-n,.chatbot-resize.rh-s{left:12px;right:12px;height:8px;cursor:ns-resize}
 .chatbot-resize.rh-n{top:0}
@@ -41,4 +41,5 @@ dialog.chatbot-dialog::backdrop{background:transparent}
   width:48px;height:48px;padding:0;border:0;border-radius:50%;
   background:rgba(255,255,255,.18);color:#fff;font-size:32px;line-height:1;cursor:pointer;
 }
+body dialog.chatbot-dialog .chatbot-close{color:#fff!important;font-size:18px!important;line-height:1!important}
 .chatbot-close:hover{background:rgba(255,255,255,.35)}

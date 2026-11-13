@@ -158,7 +158,7 @@ function installDialogInteractions(){
     });
   };
   const installDialog=dialog=>{
-    if(dialog.id==='login-welcome-dialog')return;
+    if(dialog.id==='login-welcome-dialog'||dialog.id==='chatbot-dialog')return;
     installWindowControls(dialog);
     const header=dialog.querySelector('.dialog-header,.calendar-title');
     const sizeStorageKey=dialog.id?'inventory-dialog-size-'+dialog.id:null;

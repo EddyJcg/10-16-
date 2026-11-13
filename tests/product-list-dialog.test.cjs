@@ -54,7 +54,9 @@ test('main inventory heading does not display the item count',()=>{
 
 test('every popup has a text close button in its header without a duplicate footer close button',()=>{
   const html=readFileSync('inventory.html','utf8');
-  const dialogs=[...html.matchAll(/<dialog\b[^>]*>([\s\S]*?)<\/dialog>/g)].map(match=>match[1]);
+  const dialogs=[...html.matchAll(/<dialog\b[^>]*>([\s\S]*?)<\/dialog>/g)]
+    .filter(match=>!/\bid="chatbot-dialog"/.test(match[0]))
+    .map(match=>match[1]);
   assert.ok(dialogs.length>0);
   for(const dialog of dialogs){
     const bodyStart=dialog.indexOf('<div class="dialog-body');

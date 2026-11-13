@@ -1831,7 +1831,7 @@ async function updateSession(session) {
   appliedDateProductIds=null;appliedSupplier='';salesRegisterQuery='';salesRegisterSearched=false;salesRegisterVisibleOrders=[];salesRegisterTargetOrderIds=[];$('movement-start-date').value='';$('movement-end-date').value='';$('movement-kind-filter').value='';$('supplier-filter').value='';$('supplier-filter-wrap').hidden=true;
   $('admin-link').hidden = true;
   $('admin-folder').hidden = true;
-  $('sidebar-toggle').hidden = !currentUser;
+  $('sidebar-toggle').disabled = !currentUser;
   $('asset-classification-folder').hidden = true;
   currentIsAdmin = false;
 

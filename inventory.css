@@ -71,6 +71,7 @@
 .sidebar-resizer:hover,.sidebar-resizer:focus-visible,.sidebar-dragging .sidebar-resizer{background:#cde2d3}
 .sidebar-dragging{cursor:col-resize;user-select:none}
 #sidebar-toggle{border:1px solid #6d9481;background:#285442;color:#fff;border-radius:7px;padding:8px 12px;font-size:12px;white-space:nowrap}
+#sidebar-toggle:disabled{opacity:.45;cursor:not-allowed}
 #product-list,#sales-balance{scroll-margin-top:20px}
 #workspace{display:flex;flex-direction:column;gap:16px}
 #workspace>.session,#workspace>.stats,#workspace>.panel{margin:0}

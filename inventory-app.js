@@ -158,6 +158,7 @@ function installDialogInteractions(){
     });
   };
   const installDialog=dialog=>{
+    if(dialog.id==='login-welcome-dialog')return;
     installWindowControls(dialog);
     const header=dialog.querySelector('.dialog-header,.calendar-title');
     const sizeStorageKey=dialog.id?'inventory-dialog-size-'+dialog.id:null;
@@ -3196,6 +3197,57 @@ async function recordUserAuthActivity(eventType,session){
   try{result=await response.json();}catch{throw new Error('로그인 이력 서버에 연결하지 못했습니다.');}
   if(!response.ok)throw new Error(result.error||'로그인 이력을 저장하지 못했습니다.');
 }
+function installLoginWelcome(){
+  const dialog=$('login-welcome-dialog'),frame=$('login-welcome-frame');
+  let signingIn=false;
+  $('login-form').addEventListener('submit',event=>{
+    event.preventDefault();
+    if(dialog.open||signingIn)return;
+    $('login-button').disabled=true;
+    $('login-welcome-status').textContent='환영 화면을 불러오는 중…';
+    frame.src='로그인 환영인사.html?mode=login';
+    dialog.showModal();
+  });
+  frame.addEventListener('load',()=>{
+    if(!dialog.open||frame.contentDocument?.URL==='about:blank')return;
+    if(!frame.contentDocument?.getElementById('btn')){
+      dialog.close();
+      notify('환영 화면을 불러오지 못했습니다. 잠시 후 다시 로그인하세요.',true);
+      return;
+    }
+    $('login-welcome-status').textContent='환영 화면의 로그인하기 버튼을 눌러 주세요.';
+  });
+  $('close-login-welcome').addEventListener('click',()=>{if(!signingIn)dialog.close();});
+  dialog.addEventListener('cancel',event=>{if(signingIn)event.preventDefault();});
+  dialog.addEventListener('close',()=>{
+    frame.src='about:blank';
+    $('login-button').disabled=signingIn;
+  });
+  window.addEventListener('message',async event=>{
+    if(event.origin!==window.location.origin||event.source!==frame.contentWindow
+      ||event.data?.type!=='inventory-login-welcome-confirm'||!dialog.open||signingIn)return;
+    signingIn=true;
+    $('close-login-welcome').disabled=true;
+    $('login-welcome-status').textContent='로그인 중…';
+    try{
+      const {data,error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+      if(error){notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);return;}
+      if(!data.session){notify('로그인 세션을 확인할 수 없습니다. 다시 로그인하세요.',true);return;}
+      dialog.close();
+      await updateSession(data.session);
+      try{await recordUserAuthActivity('login',data.session);}
+      catch(activityError){notify('로그인은 완료했지만 이력을 저장하지 못했습니다: '+activityError.message,true);}
+    }catch{
+      notify('로그인 서버에 연결하지 못했습니다.',true);
+    }finally{
+      signingIn=false;
+      if(dialog.open)dialog.close();
+      $('password').value='';
+      $('login-button').disabled=false;
+      $('close-login-welcome').disabled=false;
+    }
+  });
+}
 async function startApp(){
   installDialogInteractions();
   installPopupTableTools();
@@ -3205,7 +3257,7 @@ async function startApp(){
   if(!window.supabase){$('login-panel').hidden=false;notify('로그인 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.',true);return;}
   client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,storage:window.sessionStorage,storageKey:'inventory-note-stock-session',autoRefreshToken:true,detectSessionInUrl:false}});
   client.auth.onAuthStateChange((event,session)=>{if(['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event))setTimeout(()=>updateSession(session),0);});
-  $('login-form').addEventListener('submit',async event=>{event.preventDefault();$('login-button').disabled=true;try{const {data,error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);else try{await recordUserAuthActivity('login',data.session);}catch(activityError){notify('로그인은 완료했지만 이력을 저장하지 못했습니다: '+activityError.message,true);}}catch{notify('로그인 서버에 연결하지 못했습니다.',true);}finally{$('password').value='';$('login-button').disabled=false;}});
+  installLoginWelcome();
   $('logout').addEventListener('click',async()=>{closeProfileMenu();if(busy)return;let activityError;try{await recordUserAuthActivity('logout');}catch(error){activityError=error;}const {error}=await client.auth.signOut({scope:'local'});if(error)notify('로그아웃에 실패했습니다.',true);else if(activityError)notify('로그아웃했지만 이력을 저장하지 못했습니다: '+activityError.message,true);});
   const profileButton=$('profile-menu-toggle'),profileMenu=$('profile-menu');
   const closeProfileMenu=()=>{profileMenu.hidden=true;profileButton.setAttribute('aria-expanded','false');};

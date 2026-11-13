@@ -6,10 +6,10 @@ const vm=require('node:vm');
 function boot(saved={}){
   const values=new Map(Object.entries(saved)),elements=new Map(),classes=new Set();
   const make=id=>({id,style:{setProperty(key,value){this[key]=value;}},attributes:{},handlers:{},classList:{contains:key=>classes.has(key),toggle(key,force){const on=force??!classes.has(key);on?classes.add(key):classes.delete(key);return on;}},setAttribute(key,value){this.attributes[key]=String(value);},addEventListener(event,handler){this.handlers[event]=handler;},getBoundingClientRect(){return {left:0};},setPointerCapture(){},releasePointerCapture(){},hasPointerCapture(){return true;}});
-  for(const id of ['app-layout','sidebar','sidebar-resizer','sidebar-toggle'])elements.set(id,make(id));
+  for(const id of ['app-layout','sidebar','sidebar-resizer','sidebar-toggle','sidebar-icon-toggle'])elements.set(id,make(id));
   const folder=Object.assign(make('opening-folder'),{open:false});
   const storage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};
-  const context=vm.createContext({document:{getElementById:id=>elements.get(id),querySelectorAll:selector=>selector==='[data-sidebar-folder]'?[folder]:[]},window:{innerWidth:1280,localStorage:storage,addEventListener(){}},JSON,Number,Math});
+  const context=vm.createContext({document:{getElementById:id=>elements.get(id),querySelector:()=>null,querySelectorAll:selector=>selector==='[data-sidebar-folder]'?[folder]:[]},window:{innerWidth:1280,localStorage:storage,addEventListener(){}},JSON,Number,Math});
   vm.runInContext(fs.readFileSync('inventory-sidebar.js','utf8'),context);
   vm.runInContext('startSidebar()',context);
   return {context,elements,folder,values};
@@ -123,4 +123,15 @@ test('pointer resize persists width and folders remember their open state',()=>{
 test('sidebar still works when browser preference storage is unavailable',()=>{
   const app=boot();app.context.window.localStorage={getItem(){throw Error('blocked');},setItem(){throw Error('blocked');}};
   assert.doesNotThrow(()=>vm.runInContext('startSidebar()',app.context));
+});
+test('header-side icon toggles the side menu on every click',()=>{
+  const app=boot(),icon=app.elements.get('sidebar-icon-toggle'),layout=app.elements.get('app-layout');
+  const open=()=>layout.classList.contains('sidebar-open');
+  assert.equal(open(),true);
+  icon.handlers.click();
+  assert.equal(open(),false);
+  assert.equal(icon.attributes['aria-expanded'],'false');
+  icon.handlers.click();
+  assert.equal(open(),true);
+  assert.equal(icon.attributes['aria-expanded'],'true');
 });

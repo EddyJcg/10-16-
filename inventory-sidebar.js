@@ -2,6 +2,7 @@
 function startSidebar() {
   const layout=document.getElementById('app-layout'),sidebar=document.getElementById('sidebar');
   const handle=document.getElementById('sidebar-resizer'),toggle=document.getElementById('sidebar-toggle');
+  const icon=document.getElementById('sidebar-icon-toggle'),header=document.querySelector('header');
   const read=key=>{try{return window.localStorage.getItem(key);}catch{return null;}};
   const save=(key,value)=>{try{window.localStorage.setItem(key,value);}catch{/* 설정 저장이 제한되어도 메뉴를 사용할 수 있습니다. */}};
   const maxWidth=546;
@@ -25,11 +26,19 @@ function startSidebar() {
   function setOpen(open){
     layout.classList.toggle('sidebar-open',open);toggle.setAttribute('aria-expanded',open);
     toggle.textContent=open?'☰ 메뉴 숨기기':'☰ 메뉴 열기';
+    icon.setAttribute('aria-expanded',open);placeIcon();
     updatePopupArea();
+  }
+  function placeIcon(){
+    const headerBottom=header?header.getBoundingClientRect().bottom:0;
+    const headingTop=window.innerWidth<=700?80:Math.max(headerBottom,16);
+    icon.style.top=(headingTop+32)+'px';
   }
   const savedWidth=read('inventory-sidebar-width');setWidth(savedWidth===null?250:Number(savedWidth));
   setOpen(window.innerWidth>700);
   toggle.addEventListener('click',()=>setOpen(!layout.classList.contains('sidebar-open')));
+  icon.addEventListener('click',()=>setOpen(!layout.classList.contains('sidebar-open')));
+  window.addEventListener('scroll',placeIcon,{passive:true});
   handle.addEventListener('pointerdown',event=>{
     if(event.button!==0)return;
     event.preventDefault();dragging=event.pointerId;handle.setPointerCapture(event.pointerId);layout.classList.toggle('sidebar-dragging',true);
@@ -52,5 +61,5 @@ function startSidebar() {
     folder.addEventListener('toggle',()=>save(key,String(folder.open)));
   });
   document.querySelectorAll('.sidebar-action').forEach(action=>action.addEventListener('click',()=>{if(window.innerWidth<=700)setOpen(false);}));
-  window.addEventListener('resize',()=>{setWidth(width);if(window.innerWidth<=700)setOpen(false);});
+  window.addEventListener('resize',()=>{setWidth(width);placeIcon();if(window.innerWidth<=700)setOpen(false);});
 }

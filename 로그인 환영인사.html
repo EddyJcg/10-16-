@@ -117,8 +117,7 @@
     const loginMode = window.parent !== window && new URLSearchParams(window.location.search).get("mode") === "login";
     if (loginMode) {
       msgEl.textContent = messages[order[index++]];
-      btn.hidden = true;
-      countEl.textContent = "환영합니다! 3초 후 자동으로 로그인합니다.";
+      countEl.textContent = "환영합니다!";
     }
 
     // 버튼을 누를 때마다 빨간 하트 1개가 흩날림

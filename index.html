@@ -23,15 +23,31 @@
       overflow: hidden;
     }
 
-    /* 화면 전체 높이에 맞춘 9:16 비율 프레임 */
+    /* 화면 틀: 처음에는 9:16 비율이며, 가장자리를 드래그해 크기를 조절 */
     .app-frame {
-      width: min(100vw, calc(100vh * 9 / 16));
-      height: min(100vh, calc(100vw * 16 / 9));
+      position: absolute;
       display: flex;
       overflow: hidden;
       background: #ffffff;
       box-shadow: 0 0 24px rgba(0, 0, 0, 0.2);
     }
+
+    .resize-handle {
+      position: absolute;
+      z-index: 10;
+    }
+
+    .rh-n, .rh-s { left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+    .rh-n { top: 0; }
+    .rh-s { bottom: 0; }
+    .rh-e, .rh-w { top: 12px; bottom: 12px; width: 6px; cursor: ew-resize; }
+    .rh-e { right: 0; }
+    .rh-w { left: 0; }
+    .rh-ne, .rh-sw, .rh-nw, .rh-se { width: 12px; height: 12px; }
+    .rh-ne { top: 0; right: 0; cursor: nesw-resize; }
+    .rh-sw { bottom: 0; left: 0; cursor: nesw-resize; }
+    .rh-nw { top: 0; left: 0; cursor: nwse-resize; }
+    .rh-se { bottom: 0; right: 0; cursor: nwse-resize; }
 
     /* 왼쪽 사이드바 */
     .sidebar {
@@ -429,6 +445,97 @@
         input.style.height = 'auto';
         input.style.height = Math.min(input.scrollHeight, 160) + 'px';
       });
+    })();
+
+    (function () {
+      const frame = document.querySelector('.app-frame');
+      const MIN_W = 300;
+      const MIN_H = 420;
+      const DIRS = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function setRect(left, top, width, height) {
+        frame.style.left = left + 'px';
+        frame.style.top = top + 'px';
+        frame.style.width = width + 'px';
+        frame.style.height = height + 'px';
+      }
+
+      function initFrame() {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const w = Math.min(vw, vh * 9 / 16);
+        const h = w * 16 / 9;
+        setRect((vw - w) / 2, (vh - h) / 2, w, h);
+      }
+
+      function keepInViewport() {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const r = frame.getBoundingClientRect();
+        const w = Math.min(r.width, vw);
+        const h = Math.min(r.height, vh);
+        setRect(clamp(r.left, 0, vw - w), clamp(r.top, 0, vh - h), w, h);
+      }
+
+      function startResize(event, dir) {
+        event.preventDefault();
+        const handle = event.currentTarget;
+        const start = frame.getBoundingClientRect();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        handle.setPointerCapture(event.pointerId);
+
+        function onMove(e) {
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          let left = start.left;
+          let top = start.top;
+          let width = start.width;
+          let height = start.height;
+
+          if (dir.includes('e')) {
+            width = clamp(start.width + dx, MIN_W, window.innerWidth - start.left);
+          }
+          if (dir.includes('w')) {
+            left = clamp(start.left + dx, 0, start.right - MIN_W);
+            width = start.right - left;
+          }
+          if (dir.includes('s')) {
+            height = clamp(start.height + dy, MIN_H, window.innerHeight - start.top);
+          }
+          if (dir.includes('n')) {
+            top = clamp(start.top + dy, 0, start.bottom - MIN_H);
+            height = start.bottom - top;
+          }
+          setRect(left, top, width, height);
+        }
+
+        function onUp() {
+          handle.removeEventListener('pointermove', onMove);
+          handle.removeEventListener('pointerup', onUp);
+          handle.removeEventListener('pointercancel', onUp);
+        }
+
+        handle.addEventListener('pointermove', onMove);
+        handle.addEventListener('pointerup', onUp);
+        handle.addEventListener('pointercancel', onUp);
+      }
+
+      DIRS.forEach(function (dir) {
+        const handle = document.createElement('div');
+        handle.className = 'resize-handle rh-' + dir;
+        handle.addEventListener('pointerdown', function (event) {
+          startResize(event, dir);
+        });
+        frame.appendChild(handle);
+      });
+
+      initFrame();
+      window.addEventListener('resize', keepInViewport);
     })();
   </script>
 </body>

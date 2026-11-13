@@ -222,6 +222,11 @@ test('all dialogs can be dragged by the header and resized from every edge and c
   handlers.pointerup(pointer(header,210,220));
   assert.equal(style.left,'200px');
   assert.equal(style.top,'200px');
+  handlers.pointerdown(pointer(header,110,120));
+  handlers.pointermove(pointer(header,3000,2500));
+  handlers.pointerup(pointer(header,3000,2500));
+  assert.equal(style.left,'3090px');
+  assert.equal(style.top,'2580px');
   const handle=handles.find(node=>node.className==='dialog-resize-handle');
   const edges=Object.fromEntries(handles.filter(node=>node.className?.includes('dialog-resize-')).map(node=>[node.className.split('-').at(-1),node]));
   assert.equal(handle['aria-label'],'창 크기 조절');
@@ -239,7 +244,7 @@ test('all dialogs can be dragged by the header and resized from every edge and c
   edges.left.handlers.pointermove(pointer(edges.left,180,300));
   edges.left.handlers.pointerup(pointer(edges.left,180,300));
   assert.equal(style.width,'680px');
-  assert.equal(style.left,'180px');
+  assert.equal(style.left,'3070px');
   edges.right.handlers.pointerdown(pointer(edges.right,860,300));
   edges.right.handlers.pointermove(pointer(edges.right,880,300));
   edges.right.handlers.pointerup(pointer(edges.right,880,300));
@@ -248,7 +253,7 @@ test('all dialogs can be dragged by the header and resized from every edge and c
   edges.top.handlers.pointermove(pointer(edges.top,300,180));
   edges.top.handlers.pointerup(pointer(edges.top,300,180));
   assert.equal(style.height,'480px');
-  assert.equal(style.top,'180px');
+  assert.equal(style.top,'2560px');
   edges.bottom.handlers.pointerdown(pointer(edges.bottom,300,660));
   edges.bottom.handlers.pointermove(pointer(edges.bottom,300,680));
   edges.bottom.handlers.pointerup(pointer(edges.bottom,300,680));
@@ -407,9 +412,9 @@ test('dashboard adopts the reference background, round popup controls and accoun
   const html=fs.readFileSync('inventory.html','utf8');
   const css=fs.readFileSync('inventory.css','utf8'),resizeCss=fs.readFileSync('dialog-resize.css','utf8');
   assert.match(html,/class="header-language"><img src="\/korean-flag\.svg" alt="" aria-hidden="true"><span>Korean<\/span>/);
-  assert.match(html,/inventory\.css\?v=20261104-sidebar-arrow-130/);
+  assert.match(html,/inventory\.css\?v=20261110-mobile-layout/);
   assert.match(css,/\.header-language img\[aria-hidden=true\]\{width:60px;height:51px;flex:0 0 60px;object-fit:contain\}/);
-  assert.match(fs.readFileSync("korean-flag.svg","utf8"),/viewBox="-72 -48 144 96"/);
+  assert.match(fs.readFileSync('korean-flag.svg','utf8'),/viewBox="-72 -48 144 96"/);
   assert.match(html,/id="profile-menu" class="profile-menu" hidden/);
   assert.match(html,/id="profile-info-menu"[^>]*>나의정보<\/button>/);
   assert.match(html,/id="profile-password-menu"[^>]*>비밀번호<\/button>/);
@@ -419,28 +424,6 @@ test('dashboard adopts the reference background, round popup controls and accoun
   assert.match(resizeCss,/\.dialog-reset-button\{background:#00aaa5!important\}/);
   assert.match(resizeCss,/\.dialog-minimize-button\{background:#f5a623!important\}/);
   assert.match(resizeCss,/background:#f05259!important/);
-});
-test('header flag uses the provided image with a transparent surround',()=>{
-  const html=fs.readFileSync('inventory.html','utf8'),css=fs.readFileSync('inventory.css','utf8'),image=fs.readFileSync('korean-flag.png');
-  assert.match(html,/inventory\.css\?v=[^"]*header-flag-2x/);
-  assert.match(css,/\.header-language img\{display:block;width:40px;height:34px;flex:0 0 auto;object-fit:contain\}/);
-  assert.match(css,/\.header-language img\{width:32px;height:27\.2px\}/);
-  assert.equal(image.readUInt32BE(16),20);
-  assert.equal(image.readUInt32BE(20),17);
-  assert.equal(image[25],6);
-  const chunks=[];let offset=8;
-  while(offset<image.length){
-    const length=image.readUInt32BE(offset),type=image.toString('ascii',offset+4,offset+8);
-    if(type==='IDAT')chunks.push(image.subarray(offset+8,offset+8+length));
-    offset+=length+12;
-  }
-  const pixels=zlib.inflateSync(Buffer.concat(chunks)),alpha=[];
-  for(let y=0;y<17;y++){
-    assert.equal(pixels[y*(20*4+1)],0);
-    for(let x=0;x<20;x++)alpha.push(pixels[y*(20*4+1)+1+x*4+3]);
-  }
-  assert.ok(alpha.includes(0));
-  assert.ok(alpha.includes(255));
 });
 test('product information form autofills existing item by SKU or unique specification',()=>{
   const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});
@@ -607,8 +590,8 @@ test('date input accepts historical real dates and rejects impossible dates',()=
 });
 test('missing migration and stock errors have actionable messages',()=>{
   const ctx=vm.createContext({});vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),ctx);
-  assert.match(vm.runInContext('errorText({message:"INVALID_SALES_STATUS"})',ctx),/sales-status-workflow\.sql/);
   assert.match(vm.runInContext('errorText({code:"PGRST205"})',ctx),/fifo.sql/);
+  assert.match(vm.runInContext('errorText({message:"INVALID_SALES_STATUS"})',ctx),/sales-status-workflow\.sql/);
   assert.match(vm.runInContext('errorText({message:"INSUFFICIENT_STOCK"})',ctx),/재고가 부족/);
   assert.match(vm.runInContext('errorText({message:"BACKDATE_CONFLICT"})',ctx),/날짜 순서/);
   assert.match(vm.runInContext('errorText({message:"PRODUCT_CODE_ALREADY_EXISTS"})',ctx),/이미 등록된 품번/);

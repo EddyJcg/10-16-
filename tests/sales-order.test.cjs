@@ -432,8 +432,8 @@ test('bulk sales registration registers only the orders checked in the register 
   assert.equal(element('sales-register-message').textContent,'매출등록할 수주를 체크하세요.');
   vm.runInContext("salesRegisterCheckedIds=new Set(['checked']);openBulkSalesRegisterConfirmation()",context);
   assert.equal(element('sales-register-confirm-message').textContent,'1건의 매출등록을 진행하시겠습니까?');
-  assert.deepEqual(calls,['checked']);
   await vm.runInContext('completeSalesRegistration()',context);
+  assert.deepEqual(calls,['checked']);
   vm.runInContext("salesRegisterCheckedIds=new Set(['unshipped']);openBulkSalesRegisterConfirmation()",context);
   assert.match(element('sales-register-message').textContent,/출고일자가 있는 전량 출고 품목만/);
 });
@@ -868,7 +868,7 @@ test('sales order dialog is connected to the authenticated database save flow',(
   assert.match(script,/p_lines:\[\.\.\.existingGroupLines,\.\.\.salesDraftLines\.map/);
   assert.match(script,/client\.rpc\('set_sales_order_status'/);
   assert.match(script,/sales-order-form'\)\.addEventListener\('submit',saveSalesOrder\)/);
-  assert.match(script,/\$('sales-register-submit'\)\.addEventListener\('click',openBulkSalesRegisterConfirmation\)/);
+  assert.match(script,/\$\('sales-register-submit'\)\.addEventListener\('click',openBulkSalesRegisterConfirmation\)/);
   assert.match(script,/\$\('cancel-sales-order'\)\.addEventListener\('click',cancelSalesOrder\)/);
   assert.match(sql,/create table if not exists public\.sales_orders/);
   assert.match(sql,/create or replace function public\.register_sales_order/);

@@ -3210,7 +3210,7 @@ function spawnLoginHearts(){
       heart.style.setProperty('--rot',(Math.random()-0.5)*360+'deg');
       heart.addEventListener('animationend',()=>heart.remove());
       document.body.appendChild(heart);
-    },500+i*400);
+    },i*400);
   }
 }
 function installLoginWelcome(){

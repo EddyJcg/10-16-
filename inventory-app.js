@@ -3197,6 +3197,20 @@ async function recordUserAuthActivity(eventType,session){
   try{result=await response.json();}catch{throw new Error('로그인 이력 서버에 연결하지 못했습니다.');}
   if(!response.ok)throw new Error(result.error||'로그인 이력을 저장하지 못했습니다.');
 }
+function spawnLoginHearts(){
+  for(let i=0;i<5;i++){
+    setTimeout(()=>{
+      const heart=document.createElement('div');
+      heart.className='login-heart';
+      heart.textContent='❤';
+      heart.style.setProperty('--dx',(Math.random()-0.5)*window.innerWidth*0.8+'px');
+      heart.style.setProperty('--dy',(Math.random()-0.5)*window.innerHeight*0.8+'px');
+      heart.style.setProperty('--rot',(Math.random()-0.5)*360+'deg');
+      heart.addEventListener('animationend',()=>heart.remove());
+      document.body.appendChild(heart);
+    },i*400);
+  }
+}
 function installLoginWelcome(){
   const dialog=$('login-welcome-dialog'),frame=$('login-welcome-frame');
   let signingIn=false;
@@ -3226,6 +3240,7 @@ function installLoginWelcome(){
       if(error){notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);return;}
       if(!data.session){notify('로그인 세션을 확인할 수 없습니다. 다시 로그인하세요.',true);return;}
       await updateSession(data.session);
+      spawnLoginHearts();
       try{await recordUserAuthActivity('login',data.session);}
       catch(activityError){notify('로그인은 완료했지만 이력을 저장하지 못했습니다: '+activityError.message,true);}
     }catch{

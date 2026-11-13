@@ -4,7 +4,7 @@ const {readFileSync}=require('node:fs');
 const vm=require('node:vm');
 
 function boot(signIn=async()=>({data:{session:{user:{id:'test-user'}}},error:null})){
-  const nodes=new Map(),calls=[],notices=[],timers=new Map();
+  const nodes=new Map(),calls=[],notices=[],timers=new Map(),hearts=[];
   let now=0,nextTimer=0;
   const element=id=>{
     if(!nodes.has(id))nodes.set(id,{
@@ -18,7 +18,7 @@ function boot(signIn=async()=>({data:{session:{user:{id:'test-user'}}},error:nul
   };
   element('login-welcome-frame').contentWindow={};
   const context=vm.createContext({
-    document:{getElementById:element},
+    document:{getElementById:element,createElement:()=>({style:{setProperty(){}},addEventListener(){}}),body:{appendChild(node){hearts.push(node);}}},
     window:{handlers:{},addEventListener(type,handler){this.handlers[type]=handler;}},
     testClient:{auth:{signInWithPassword:async credentials=>{
       calls.push({...credentials,welcomeOpen:element('login-welcome-dialog').open});return signIn();
@@ -44,7 +44,7 @@ function boot(signIn=async()=>({data:{session:{user:{id:'test-user'}}},error:nul
     now+=milliseconds;
     for(const [id,timer] of [...timers])if(timer.at<=now){timers.delete(id);await timer.callback();}
   };
-  return {element,context,calls,notices,submit,encourage,advance};
+  return {element,context,calls,notices,hearts,submit,encourage,advance};
 }
 
 test('welcome stays open until encouragement is clicked, then signs in once',async()=>{
@@ -157,4 +157,15 @@ test('welcome card is enlarged only on wide screens',()=>{
   const html=readFileSync('로그인 환영인사.html','utf8');
   vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
   assert.deepEqual(bodyClasses,['popup-only','popup-large']);
+});
+
+test('after encouragement the dashboard shows five hearts one after another',async()=>{
+  const app=boot();
+  app.submit();
+  const login=app.encourage();
+  await login;
+  assert.equal(app.hearts.length,0);
+  await app.advance(1600);
+  assert.equal(app.hearts.length,5);
+  assert.ok(app.hearts.every(heart=>heart.className==='login-heart'));
 });

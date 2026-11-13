@@ -352,6 +352,24 @@
       gap: 8px;
     }
 
+    .model-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .model-select {
+      max-width: 170px;
+      font: inherit;
+      font-size: 11px;
+      color: #1164a3;
+      background: #fff;
+      border: 1px solid #bcd6ee;
+      border-radius: 6px;
+      padding: 2px 4px;
+    }
+
     .model-badge {
       flex-shrink: 0;
       font-size: 11px;
@@ -416,7 +434,21 @@
     <header class="chat-header">
       <div class="chat-title-row">
         <h1 class="chat-title" id="menuTitle">일반 대화</h1>
-        <span class="model-badge" id="modelBadge"></span>
+        <div class="model-controls">
+          <select class="model-select" id="modelSelect" aria-label="AI 모델 선택">
+            <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+            <option value="gemini-4-hydrogen">gemini-4-hydrogen</option>
+            <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+            <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+            <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+            <option value="gemma-4-31b-it">gemma-4-31b-it</option>
+            <option value="gemma-4-26b-a4b-it">gemma-4-26b-a4b-it</option>
+          </select>
+          <span class="model-badge" id="modelBadge"></span>
+        </div>
       </div>
       <p class="chat-desc" id="menuDesc">무엇이든 편하게 물어보세요. 업무에 필요한 내용을 도와드립니다.</p>
     </header>
@@ -483,11 +515,12 @@
         return { bubble: bubble, meta: meta };
       }
 
-      const MODEL = 'gemini-3.5-flash-lite';
+      const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
       // API 키는 서버(Vercel 환경변수)에만 있고, 브라우저는 대시보드 로그인 토큰으로 프록시를 호출합니다.
       const API_URL = '/api/gemini-chat';
       const SESSION_KEY = 'inventory-note-stock-session';
       const authStatus = document.getElementById('authStatus');
+      const modelSelect = document.getElementById('modelSelect');
       const modelBadge = document.getElementById('modelBadge');
 
       // 대화 기록: 요청마다 전체를 보내 이전 대화를 기억하게 함
@@ -520,7 +553,7 @@
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + token
           },
-          body: JSON.stringify({ contents: conversation })
+          body: JSON.stringify({ model: modelSelect.value, contents: conversation })
         });
         const data = await response.json().catch(function () { return {}; });
         if (!response.ok) {
@@ -568,7 +601,11 @@
 
       sendBtn.addEventListener('click', sendMessage);
 
-      modelBadge.textContent = MODEL;
+      modelSelect.value = DEFAULT_MODEL;
+      modelBadge.textContent = modelSelect.value;
+      modelSelect.addEventListener('change', function () {
+        modelBadge.textContent = modelSelect.value;
+      });
       if (!accessToken()) {
         authStatus.textContent = '대시보드에서 로그인하면 자동으로 연결됩니다.';
       }

@@ -1,5 +1,16 @@
-const GEMINI_MODEL = 'gemini-3.5-flash-lite';
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent';
+const GEMINI_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-4-hydrogen',
+  'gemini-3.8-flash',
+  'gemini-3.6-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-pro',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemma-4-31b-it',
+  'gemma-4-26b-a4b-it'
+];
+const DEFAULT_MODEL = GEMINI_MODELS[0];
 const SYSTEM_PROMPT = '당신은 업무를 돕는 AI 비서 isummerly입니다. 모든 답변은 항상 한국어로 작성하세요.';
 const MAX_TURNS = 20;
 const MAX_TEXT_LENGTH = 4000;
@@ -42,6 +53,8 @@ export function createGeminiChatHandler({fetchImpl = fetch, createClient, env = 
     catch { return reply(400, '잘못된 요청입니다.'); }
     const contents = parseContents(body?.contents);
     if (!contents) return reply(400, '대화 내용이 올바르지 않습니다.');
+    const model = body?.model ?? DEFAULT_MODEL;
+    if (!GEMINI_MODELS.includes(model)) return reply(400, '지원하지 않는 AI 모델입니다.');
 
     try {
       const client = createClient(url, secret, {auth: {persistSession: false, autoRefreshToken: false}});
@@ -52,7 +65,7 @@ export function createGeminiChatHandler({fetchImpl = fetch, createClient, env = 
         return reply(403, '사용할 수 없는 계정입니다.');
       }
 
-      const geminiResponse = await fetchImpl(GEMINI_URL, {
+      const geminiResponse = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'x-goog-api-key': geminiKey},
         body: JSON.stringify({

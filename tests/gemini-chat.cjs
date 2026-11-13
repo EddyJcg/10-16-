@@ -62,6 +62,25 @@ test('gemini chat sends the key in a header, keeps Korean instructions, and retu
   assert.match(JSON.parse(sent.options.body).systemInstruction.parts[0].text, /한국어/);
 });
 
+test('gemini chat uses only allowlisted models and rejects others', async () => {
+  const {createGeminiChatHandler} = await import('../server/gemini-chat.mjs');
+  const env = {GEMINI_API_KEY: 'server-key', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SECRET_KEY: 'secret'};
+  let sentUrl;
+  const fetchImpl = async url => {
+    sentUrl = url;
+    return {ok: true, json: async () => ({candidates: [{content: {parts: [{text: '답변'}]}}]})};
+  };
+  const handler = createGeminiChatHandler({env, createClient: fakeClient(), fetchImpl});
+  const chosen = fakeRes();
+  await handler({...request, body: {model: 'gemma-4-31b-it', contents: request.body.contents}}, chosen);
+  assert.equal(chosen.statusCode, 200);
+  assert.match(sentUrl, /\/models\/gemma-4-31b-it:generateContent$/);
+
+  const rejected = fakeRes();
+  await handler({...request, body: {model: 'gemini-evil-model', contents: request.body.contents}}, rejected);
+  assert.equal(rejected.statusCode, 400);
+});
+
 test('gemini chat rejects banned accounts and malformed conversation history', async () => {
   const {createGeminiChatHandler} = await import('../server/gemini-chat.mjs');
   const env = {GEMINI_API_KEY: 'server-key', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SECRET_KEY: 'secret'};

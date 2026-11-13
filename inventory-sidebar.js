@@ -8,8 +8,10 @@ function startSidebar() {
   const maxWidth=546;
   let width=250,dragging=null;
   function updatePopupArea(){
-    const headerHeight=header?header.offsetHeight:80;
-    document.documentElement?.style.setProperty('--mobile-sidebar-top',headerHeight+'px');
+    const intro=document.querySelector('.intro'),message=document.getElementById('message');
+    const belowIntro=intro?intro.getBoundingClientRect().bottom:0,belowMessage=message?message.getBoundingClientRect().bottom:0;
+    const menuTop=Math.max(0,belowIntro,belowMessage)+12;
+    document.documentElement?.style.setProperty('--mobile-sidebar-top',menuTop+'px');
     const offset=window.innerWidth>700&&layout.classList.contains('sidebar-open')?width+8:0;
     const availableWidth=Math.max(0,window.innerWidth-offset-32),availableHeight=Math.max(0,window.innerHeight-32);
     const popupWidth=Math.min(availableWidth,availableHeight*16/9);
@@ -46,7 +48,7 @@ function startSidebar() {
   setOpen(window.innerWidth>700);
   toggle.addEventListener('click',()=>setOpen(!layout.classList.contains('sidebar-open')));
   icon.addEventListener('click',()=>setOpen(!layout.classList.contains('sidebar-open')));
-  window.addEventListener('scroll',placeIcon,{passive:true});
+  window.addEventListener('scroll',()=>{placeIcon();updatePopupArea();},{passive:true});
   handle.addEventListener('pointerdown',event=>{
     if(event.button!==0)return;
     event.preventDefault();dragging=event.pointerId;handle.setPointerCapture(event.pointerId);layout.classList.toggle('sidebar-dragging',true);

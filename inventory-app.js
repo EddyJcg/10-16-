@@ -3199,13 +3199,13 @@ async function recordUserAuthActivity(eventType,session){
 }
 function installLoginWelcome(){
   const dialog=$('login-welcome-dialog'),frame=$('login-welcome-frame');
-  let signingIn=false;
+  let signingIn=false,welcomeTimer=null;
   $('login-form').addEventListener('submit',event=>{
     event.preventDefault();
     if(dialog.open||signingIn)return;
     $('login-button').disabled=true;
     $('login-welcome-status').textContent='환영 화면을 불러오는 중…';
-    frame.src='로그인 환영인사.html?mode=login';
+    frame.src='로그인 환영인사.html?mode=login&v=20261113-auto';
     dialog.showModal();
   });
   frame.addEventListener('load',()=>{
@@ -3215,25 +3215,25 @@ function installLoginWelcome(){
       notify('환영 화면을 불러오지 못했습니다. 잠시 후 다시 로그인하세요.',true);
       return;
     }
-    $('login-welcome-status').textContent='환영 화면의 로그인하기 버튼을 눌러 주세요.';
+    $('login-welcome-status').textContent='3초 후 환영 화면이 닫히고 자동으로 로그인합니다.';
+    if(welcomeTimer===null)welcomeTimer=setTimeout(loginAfterWelcome,3000);
   });
   $('close-login-welcome').addEventListener('click',()=>{if(!signingIn)dialog.close();});
-  dialog.addEventListener('cancel',event=>{if(signingIn)event.preventDefault();});
   dialog.addEventListener('close',()=>{
+    clearTimeout(welcomeTimer);welcomeTimer=null;
     frame.src='about:blank';
     $('login-button').disabled=signingIn;
   });
-  window.addEventListener('message',async event=>{
-    if(event.origin!==window.location.origin||event.source!==frame.contentWindow
-      ||event.data?.type!=='inventory-login-welcome-confirm'||!dialog.open||signingIn)return;
+  async function loginAfterWelcome(){
+    if(!dialog.open||signingIn)return;
     signingIn=true;
     $('close-login-welcome').disabled=true;
-    $('login-welcome-status').textContent='로그인 중…';
+    dialog.close();
+    notify('로그인 중…');
     try{
       const {data,error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
       if(error){notify('아이디, 비밀번호와 계정 상태를 확인하세요.',true);return;}
       if(!data.session){notify('로그인 세션을 확인할 수 없습니다. 다시 로그인하세요.',true);return;}
-      dialog.close();
       await updateSession(data.session);
       try{await recordUserAuthActivity('login',data.session);}
       catch(activityError){notify('로그인은 완료했지만 이력을 저장하지 못했습니다: '+activityError.message,true);}
@@ -3246,7 +3246,7 @@ function installLoginWelcome(){
       $('login-button').disabled=false;
       $('close-login-welcome').disabled=false;
     }
-  });
+  }
 }
 async function startApp(){
   installDialogInteractions();

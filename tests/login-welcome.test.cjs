@@ -4,7 +4,8 @@ const {readFileSync}=require('node:fs');
 const vm=require('node:vm');
 
 function boot(signIn=async()=>({data:{session:{user:{id:'test-user'}}},error:null})){
-  const nodes=new Map(),handlers={},calls=[],notices=[];
+  const nodes=new Map(),calls=[],notices=[],timers=new Map();
+  let now=0,nextTimer=0;
   const element=id=>{
     if(!nodes.has(id))nodes.set(id,{
       value:'',disabled:false,open:false,hidden:false,handlers:{},contentWindow:{},
@@ -18,10 +19,13 @@ function boot(signIn=async()=>({data:{session:{user:{id:'test-user'}}},error:nul
   };
   const context=vm.createContext({
     document:{getElementById:element},
-    window:{location:{origin:'http://localhost'},addEventListener:(type,handler)=>{handlers[type]=handler;}},
-    testClient:{auth:{signInWithPassword:async credentials=>{calls.push(credentials);return signIn();}},
+    testClient:{auth:{signInWithPassword:async credentials=>{
+      calls.push({...credentials,welcomeOpen:element('login-welcome-dialog').open});return signIn();
+    }},
       removeAllChannels(){}},
-    notices,activities:[],clearTimeout(){}
+    notices,activities:[],
+    setTimeout(callback,delay){const id=++nextTimer;timers.set(id,{callback,at:now+delay});return id;},
+    clearTimeout(id){timers.delete(id);}
   });
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`client=testClient;notify=(message,error)=>notices.push({message,error});
@@ -34,14 +38,15 @@ function boot(signIn=async()=>({data:{session:{user:{id:'test-user'}}},error:nul
   element('password').value='test-password';
   element('workspace').hidden=true;
   const submit=()=>element('login-form').handlers.submit({preventDefault(){}});
-  const confirm=(overrides={})=>handlers.message({
-    origin:'http://localhost',source:element('login-welcome-frame').contentWindow,
-    data:{type:'inventory-login-welcome-confirm'},...overrides
-  });
-  return {element,context,calls,notices,submit,confirm};
+  const loaded=()=>element('login-welcome-frame').handlers.load();
+  const advance=async milliseconds=>{
+    now+=milliseconds;
+    for(const [id,timer] of [...timers])if(timer.at<=now){timers.delete(id);await timer.callback();}
+  };
+  return {element,context,calls,notices,submit,loaded,advance};
 }
 
-test('form submission waits for one welcome click before signing in and closes both screens',async()=>{
+test('one login click displays the loaded welcome for 3000ms and closes it before signing in',async()=>{
   let finish;
   const app=boot(()=>new Promise(resolve=>{finish=resolve;}));
   app.submit();
@@ -49,13 +54,19 @@ test('form submission waits for one welcome click before signing in and closes b
   assert.match(app.element('login-welcome-frame').src,/mode=login/);
   assert.equal(app.calls.length,0);
   assert.equal(app.element('workspace').hidden,true);
-  const login=app.confirm();
-  await app.confirm();
-  app.element('close-login-welcome').handlers.click();
-  let prevented=false;
-  app.element('login-welcome-dialog').handlers.cancel({preventDefault(){prevented=true;}});
-  assert.equal(prevented,true);
+  await app.advance(3000);
+  assert.equal(app.calls.length,0,'loading time must not count toward the welcome display');
+  app.loaded();
+  await app.advance(2999);
   assert.equal(app.element('login-welcome-dialog').open,true);
+  assert.equal(app.calls.length,0);
+  app.loaded();
+  app.submit();
+  const login=app.advance(1);
+  assert.equal(app.calls.length,1);
+  assert.equal(app.calls[0].welcomeOpen,false,'welcome must close before the authentication request');
+  assert.equal(app.element('login-button').disabled,true);
+  app.submit();
   assert.equal(app.calls.length,1);
   assert.equal(app.calls[0].email,'test@example.test');
   assert.equal(app.calls[0].password,'test-password');
@@ -68,21 +79,26 @@ test('form submission waits for one welcome click before signing in and closes b
   assert.equal(vm.runInContext('activities[0].type',app.context),'login');
 });
 
-test('cancellation and messages from other frames or origins never sign in',async()=>{
+test('cancellation clears the countdown and a retry starts a fresh three-second display',async()=>{
   const app=boot();
   app.submit();
-  await app.confirm({origin:'https://other.example'});
-  await app.confirm({source:{}});
-  await app.confirm({data:{type:'other'}});
+  app.loaded();
+  await app.advance(2000);
   assert.equal(app.calls.length,0);
   app.element('close-login-welcome').handlers.click();
-  await app.confirm();
+  await app.advance(3000);
   assert.equal(app.calls.length,0);
   assert.equal(app.element('login-button').disabled,false);
   assert.equal(app.element('login-panel').hidden,false);
   assert.equal(app.element('workspace').hidden,true);
   app.submit();
+  app.loaded();
+  await app.advance(2999);
   assert.equal(app.element('login-welcome-dialog').open,true);
+  assert.equal(app.calls.length,0);
+  await app.advance(1);
+  assert.equal(app.calls.length,1);
+  assert.equal(app.element('workspace').hidden,false);
 });
 
 test('invalid credentials, network errors, and missing sessions return to the login screen',async()=>{
@@ -93,7 +109,8 @@ test('invalid credentials, network errors, and missing sessions return to the lo
   ]){
     const app=boot(signIn);
     app.submit();
-    await app.confirm();
+    app.loaded();
+    await app.advance(3000);
     assert.equal(app.element('login-welcome-dialog').open,false);
     assert.equal(app.element('login-panel').hidden,false);
     assert.equal(app.element('workspace').hidden,true);
@@ -105,7 +122,7 @@ test('invalid credentials, network errors, and missing sessions return to the lo
   }
 });
 
-test('failed welcome loading reports an error without submitting credentials',()=>{
+test('failed welcome loading reports an error without scheduling authentication',async()=>{
   const app=boot();
   app.submit();
   const frame=app.element('login-welcome-frame');
@@ -118,10 +135,12 @@ test('failed welcome loading reports an error without submitting credentials',()
   assert.equal(app.element('login-button').disabled,false);
   assert.equal(app.calls.length,0);
   assert.equal(app.notices.at(-1).error,true);
+  await app.advance(3000);
+  assert.equal(app.calls.length,0);
 });
 
-test('welcome HTML greets immediately in login mode and sends confirmation only once',()=>{
-  const nodes=new Map(),sent=[];
+test('welcome HTML greets immediately in login mode without requiring a button click',()=>{
+  const nodes=new Map();
   const element=id=>{
     if(!nodes.has(id))nodes.set(id,{textContent:'',disabled:false,
       addEventListener(type,handler){this[type]=handler;}});
@@ -130,16 +149,13 @@ test('welcome HTML greets immediately in login mode and sends confirmation only 
   const context=vm.createContext({
     document:{getElementById:element},
     window:{location:{search:'?mode=login',origin:'http://localhost'},
-      parent:{postMessage:(data,origin)=>sent.push({data,origin})}},
+      parent:{}},
     URLSearchParams
   });
   const html=readFileSync('로그인 환영인사.html','utf8');
   vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
-  assert.equal(element('btn').textContent,'로그인하기');
+  assert.equal(element('btn').hidden,true);
   assert.ok(element('message').textContent);
+  assert.match(element('count').textContent,/3초 후 자동으로 로그인/);
   element('btn').click();
-  element('btn').click();
-  assert.equal(sent.length,1);
-  assert.equal(sent[0].data.type,'inventory-login-welcome-confirm');
-  assert.equal(sent[0].origin,'http://localhost');
 });

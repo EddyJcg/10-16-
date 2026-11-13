@@ -117,8 +117,8 @@
     const loginMode = window.parent !== window && new URLSearchParams(window.location.search).get("mode") === "login";
     if (loginMode) {
       msgEl.textContent = messages[order[index++]];
-      btn.textContent = "로그인하기";
-      countEl.textContent = "환영합니다! 버튼을 한 번 누르면 메인 화면으로 이동합니다.";
+      btn.hidden = true;
+      countEl.textContent = "환영합니다! 3초 후 자동으로 로그인합니다.";
     }
 
     // 버튼을 누를 때마다 빨간 하트 1개가 흩날림
@@ -138,13 +138,7 @@
     }
 
     btn.addEventListener("click", () => {
-      if (loginMode) {
-        if (btn.disabled) return;
-        btn.disabled = true;
-        btn.textContent = "로그인 중…";
-        window.parent.postMessage({ type: "inventory-login-welcome-confirm" }, window.location.origin);
-        return;
-      }
+      if (loginMode) return;
       spawnHeart();
       if (index >= order.length) shuffle();
       const text = messages[order[index]];

@@ -326,6 +326,132 @@
     .sidebar-btn:hover {
       background: rgba(255, 255, 255, 0.08);
     }
+
+    .chat-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .model-badge {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      color: #1164a3;
+      background: #e8f1fa;
+      border: 1px solid #bcd6ee;
+      border-radius: 999px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+
+    .bubble.typing {
+      color: #868686;
+      font-style: italic;
+    }
+
+    .bubble.error {
+      color: #c62828;
+    }
+
+    /* API 키 설정 창 */
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop[hidden] {
+      display: none;
+    }
+
+    .modal {
+      width: 100%;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-title {
+      margin: 0 0 8px;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .modal-desc {
+      margin: 0 0 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #616061;
+    }
+
+    .modal-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .modal-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #c8c8c8;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 15px;
+    }
+
+    .modal-input:focus {
+      outline: none;
+      border-color: #1164a3;
+      box-shadow: 0 0 0 1px #1164a3;
+    }
+
+    .modal-status {
+      min-height: 20px;
+      margin: 8px 0 12px;
+      font-size: 13px;
+      color: #616061;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .modal-btn {
+      padding: 9px 12px;
+      border: 1px solid #c8c8c8;
+      border-radius: 8px;
+      background: #ffffff;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .modal-btn:hover {
+      filter: brightness(0.96);
+    }
+
+    .modal-btn.primary {
+      background: #007a5a;
+      border-color: #007a5a;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .modal-btn.danger {
+      color: #c62828;
+      border-color: #e8b4b4;
+    }
   </style>
 </head>
 <body>
@@ -353,13 +479,18 @@
     </nav>
 
     <!-- 왼쪽 아래: 설정·저장 버튼이 들어갈 자리 -->
-    <div class="sidebar-footer" id="sidebarFooter"></div>
+    <div class="sidebar-footer" id="sidebarFooter">
+      <button class="sidebar-btn" id="openSettingsBtn" type="button">⚙️ API 키 설정</button>
+    </div>
   </aside>
 
   <!-- 오른쪽: 머리글 · 대화창 · 입력창 -->
   <main class="main">
     <header class="chat-header">
-      <h1 class="chat-title" id="menuTitle">일반 대화</h1>
+      <div class="chat-title-row">
+        <h1 class="chat-title" id="menuTitle">일반 대화</h1>
+        <span class="model-badge" id="modelBadge"></span>
+      </div>
       <p class="chat-desc" id="menuDesc">무엇이든 편하게 물어보세요. 업무에 필요한 내용을 도와드립니다.</p>
     </header>
 
@@ -381,6 +512,22 @@
       <div class="hint">Enter로 전송하고, Shift + Enter로 줄을 바꿀 수 있습니다.</div>
     </footer>
   </main>
+
+    <!-- Gemini API 키 설정 창 -->
+    <div class="modal-backdrop" id="settingsModal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <h2 class="modal-title" id="modalTitle">Gemini API 키 설정</h2>
+        <p class="modal-desc">키는 이 브라우저의 localStorage에만 저장되며, 요청 헤더 x-goog-api-key로만 전송됩니다.</p>
+        <label class="modal-label" for="apiKeyInput">API 키</label>
+        <input type="password" id="apiKeyInput" class="modal-input" autocomplete="off" spellcheck="false" placeholder="Gemini API 키를 입력하세요">
+        <p class="modal-status" id="keyStatus"></p>
+        <div class="modal-actions">
+          <button type="button" class="modal-btn primary" id="saveKeyBtn">저장하고 연결</button>
+          <button type="button" class="modal-btn danger" id="clearKeyBtn">이 브라우저에서 지우기</button>
+          <button type="button" class="modal-btn" id="closeModalBtn">닫기</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -421,18 +568,140 @@
         wrapper.appendChild(content);
         chatBody.appendChild(wrapper);
         chatBody.scrollTop = chatBody.scrollHeight;
+        return { bubble: bubble, meta: meta };
       }
 
-      function sendMessage() {
+      const MODEL = 'gemini-3.5-flash-lite';
+      const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent';
+      const STORAGE_KEY = 'isummerly.geminiApiKey';
+      const SYSTEM_PROMPT = '당신은 업무를 돕는 AI 비서 isummerly입니다. 모든 답변은 항상 한국어로 작성하세요.';
+
+      const settingsBtn = document.getElementById('openSettingsBtn');
+      const modal = document.getElementById('settingsModal');
+      const keyInput = document.getElementById('apiKeyInput');
+      const keyStatus = document.getElementById('keyStatus');
+      const saveKeyBtn = document.getElementById('saveKeyBtn');
+      const clearKeyBtn = document.getElementById('clearKeyBtn');
+      const closeModalBtn = document.getElementById('closeModalBtn');
+      const modelBadge = document.getElementById('modelBadge');
+
+      // 대화 기록: 요청마다 전체를 보내 이전 대화를 기억하게 함
+      const conversation = [];
+      let pending = false;
+      let apiKey = localStorage.getItem(STORAGE_KEY) || '';
+
+      function updateSettingsButton() {
+        settingsBtn.textContent = apiKey ? '⚙️ API 키 설정 ✓' : '⚙️ API 키 설정';
+      }
+
+      function openModal() {
+        keyInput.value = apiKey;
+        keyStatus.textContent = apiKey ? '키가 이 브라우저에 저장되어 있습니다.' : '키가 아직 없습니다.';
+        modal.hidden = false;
+        keyInput.focus();
+      }
+
+      function closeModal() {
+        modal.hidden = true;
+      }
+
+      settingsBtn.addEventListener('click', openModal);
+      closeModalBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', function (event) {
+        if (event.target === modal) closeModal();
+      });
+
+      saveKeyBtn.addEventListener('click', function () {
+        const key = keyInput.value.trim();
+        if (!key) {
+          keyStatus.textContent = 'API 키를 입력하세요.';
+          keyInput.focus();
+          return;
+        }
+        apiKey = key;
+        localStorage.setItem(STORAGE_KEY, key);
+        updateSettingsButton();
+        closeModal();
+      });
+
+      clearKeyBtn.addEventListener('click', function () {
+        apiKey = '';
+        localStorage.removeItem(STORAGE_KEY);
+        keyInput.value = '';
+        keyStatus.textContent = '이 브라우저에서 키를 지웠습니다.';
+        updateSettingsButton();
+      });
+
+      function extractReply(data) {
+        const candidate = data.candidates && data.candidates[0];
+        const parts = candidate && candidate.content && candidate.content.parts;
+        if (!parts) return '';
+        return parts.map(function (part) { return part.text || ''; }).join('').trim();
+      }
+
+      async function requestReply() {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey
+          },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: conversation
+          })
+        });
+        const data = await response.json().catch(function () { return {}; });
+        if (!response.ok) {
+          const message = (data.error && data.error.message) || ('요청 실패 (HTTP ' + response.status + ')');
+          throw new Error(message);
+        }
+        return extractReply(data);
+      }
+
+      async function sendMessage() {
         const text = input.value.trim();
-        if (!text) return;
+        if (!text || pending) return;
+        if (!apiKey) {
+          openModal();
+          keyStatus.textContent = '먼저 Gemini API 키를 저장하세요.';
+          return;
+        }
+
         appendMessage('user', text);
+        conversation.push({ role: 'user', parts: [{ text: text }] });
         input.value = '';
         input.style.height = 'auto';
-        input.focus();
+
+        pending = true;
+        sendBtn.disabled = true;
+        const reply = appendMessage('ai', '입력 중...');
+        reply.bubble.classList.add('typing');
+
+        try {
+          const answer = await requestReply();
+          if (!answer) throw new Error('응답을 받지 못했습니다. 다시 시도해 주세요.');
+          conversation.push({ role: 'model', parts: [{ text: answer }] });
+          reply.bubble.classList.remove('typing');
+          reply.bubble.textContent = answer;
+        } catch (error) {
+          conversation.pop();
+          reply.bubble.classList.remove('typing');
+          reply.bubble.classList.add('error');
+          reply.bubble.textContent = '오류: ' + error.message;
+        } finally {
+          reply.meta.textContent = 'isummerly 비서 · ' + currentTime();
+          pending = false;
+          sendBtn.disabled = false;
+          input.focus();
+        }
       }
 
       sendBtn.addEventListener('click', sendMessage);
+
+      modelBadge.textContent = MODEL;
+      updateSettingsButton();
+      if (!apiKey) openModal();
 
       input.addEventListener('keydown', function (event) {
         if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {

@@ -8,6 +8,8 @@ function startSidebar() {
   const maxWidth=546;
   let width=250,dragging=null;
   function updatePopupArea(){
+    const headerHeight=header?header.offsetHeight:80;
+    document.documentElement?.style.setProperty('--mobile-sidebar-top',headerHeight+'px');
     const offset=window.innerWidth>700&&layout.classList.contains('sidebar-open')?width+8:0;
     const availableWidth=Math.max(0,window.innerWidth-offset-32),availableHeight=Math.max(0,window.innerHeight-32);
     const popupWidth=Math.min(availableWidth,availableHeight*16/9);
@@ -66,6 +68,5 @@ function startSidebar() {
     if(saved!==null)folder.open=saved==='true';
     folder.addEventListener('toggle',()=>save(key,String(folder.open)));
   });
-  document.querySelectorAll('.sidebar-action').forEach(action=>action.addEventListener('click',()=>{if(window.innerWidth<=700)setOpen(false);}));
-  window.addEventListener('resize',()=>{setWidth(width);placeIcon();if(window.innerWidth<=700)setOpen(false);});
+  window.addEventListener('resize',()=>{setWidth(width);placeIcon();});
 }

@@ -42,7 +42,7 @@ function startSidebar() {
     }
     const headerBottom=header?header.getBoundingClientRect().bottom:0;
     icon.style.left='';
-    icon.style.top=(Math.max(headerBottom,16)+32)+'px';
+    icon.style.top=(Math.max(headerBottom,16)+4)+'px';
   }
   const savedWidth=read('inventory-sidebar-width');setWidth(savedWidth===null?250:Number(savedWidth));
   setOpen(window.innerWidth>700);

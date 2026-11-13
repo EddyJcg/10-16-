@@ -12,8 +12,11 @@
 .app-layout.signed-in.sidebar-open{display:grid;grid-template-columns:var(--sidebar-width) 8px minmax(0,1fr);align-items:start}
 .sidebar{position:sticky;top:16px;align-self:start;height:calc(100dvh - 110px);min-height:300px;overflow-y:auto;padding:26px 16px;background:#fff;border-right:1px solid #dfe7df}
 .sidebar-heading{padding:0 12px 22px 36px;font-weight:750;font-size:23.4px;color:#244c3b}
-.sidebar-icon-toggle{position:fixed;left:16px;top:112px;z-index:6;display:none;width:28px;height:28px;padding:0;border:0;background:transparent}
+.sidebar-icon-toggle{position:fixed;left:16px;top:112px;z-index:6;display:none;width:84px;height:84px;padding:0;border:0;background:transparent}
 .app-layout.signed-in .sidebar-icon-toggle{display:block}
+@media (min-width:701px){
+  .app-layout.signed-in .sidebar-heading{padding-left:92px}
+}
 .sidebar-icon-toggle img{display:block;width:100%;height:100%;object-fit:contain}
 @media (max-width:700px){
   .sidebar-icon-toggle{width:56px;height:56px}

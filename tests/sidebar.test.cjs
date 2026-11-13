@@ -135,3 +135,17 @@ test('header-side icon toggles the side menu on every click',()=>{
   assert.equal(open(),true);
   assert.equal(icon.attributes['aria-expanded'],'true');
 });
+test('mobile side menu starts at the bottom of the dashboard title box and is 30 percent smaller',()=>{
+  const app=boot();
+  let property=null;
+  app.context.document.documentElement={style:{setProperty(key,value){if(key==='--mobile-sidebar-top')property=value;}}};
+  app.context.document.querySelector=selector=>selector==='main>.intro'?{getBoundingClientRect:()=>({bottom:218.4})}:null;
+  app.context.window.innerWidth=390;
+  vm.runInContext('startSidebar()',app.context);
+  assert.equal(property,'218px');
+  const style=fs.readFileSync('inventory.css','utf8');
+  assert.match(style,/\.app-layout \.sidebar\{top:var\(--mobile-sidebar-top,80px\);bottom:0;height:auto;align-self:auto;width:min\(210px,60\.2vw\)/);
+  assert.match(style,/\.sidebar \.sidebar-heading\{font-size:19\.2178px/);
+  assert.match(style,/\.sidebar \.menu-folder summary\{font-size:15\.4652px/);
+  assert.match(style,/\.sidebar \.sidebar-action\{font-size:14\.5555px/);
+});

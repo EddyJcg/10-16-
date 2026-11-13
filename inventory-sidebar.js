@@ -8,9 +8,9 @@ function startSidebar() {
   const maxWidth=546;
   let width=250,dragging=null;
   function updatePopupArea(){
-    const intro=document.querySelector('.intro'),message=document.getElementById('message');
-    const belowIntro=intro?intro.getBoundingClientRect().bottom:0,belowMessage=message?message.getBoundingClientRect().bottom:0;
-    const menuTop=Math.max(0,belowIntro,belowMessage)+12;
+    // 모바일 메뉴 상단은 'Isummerly 대시보드' 검정 박스 하단에 맞춰 헤더와 메뉴 숨기기 버튼을 덮지 않습니다.
+    const intro=document.querySelector('main>.intro')||document.querySelector('.intro');
+    const menuTop=Math.max(0,Math.round(intro?intro.getBoundingClientRect().bottom:0));
     document.documentElement?.style.setProperty('--mobile-sidebar-top',menuTop+'px');
     const offset=window.innerWidth>700&&layout.classList.contains('sidebar-open')?width+8:0;
     const availableWidth=Math.max(0,window.innerWidth-offset-32),availableHeight=Math.max(0,window.innerHeight-32);

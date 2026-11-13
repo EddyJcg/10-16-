@@ -14,7 +14,7 @@
 
     body {
       font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      font-size: 15px;
+      font-size: 18px;
       color: #1d1c1d;
       background: #e5e5e5;
       display: flex;
@@ -41,7 +41,7 @@
 
     /* 팝업의 닫기 버튼(×)이 모델 배지를 가리지 않도록 헤더 오른쪽 여백을 늘립니다. */
     html.embedded .chat-header {
-      padding-right: 48px;
+      padding-right: 24px;
     }
 
     .resize-handle {
@@ -79,7 +79,7 @@
     }
 
     .company-name {
-      font-size: 14px;
+      font-size: 16.8px;
       font-weight: 700;
       color: #ffffff;
       letter-spacing: -0.2px;
@@ -92,7 +92,7 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 6px;
-      font-size: 12px;
+      font-size: 14.4px;
       color: #d1c4d1;
     }
 
@@ -106,7 +106,7 @@
       justify-content: center;
       color: #ffffff;
       font-weight: 700;
-      font-size: 14px;
+      font-size: 16.8px;
       flex-shrink: 0;
     }
 
@@ -118,7 +118,7 @@
 
     .menu-title {
       padding: 0 10px 6px;
-      font-size: 12px;
+      font-size: 14.4px;
       font-weight: 700;
       color: #b9a9b9;
     }
@@ -136,7 +136,7 @@
       padding: 6px 8px;
       cursor: pointer;
       color: #d1c4d1;
-      font-size: 15px;
+      font-size: 18px;
       user-select: none;
     }
 
@@ -185,7 +185,7 @@
 
     .chat-desc {
       margin: 2px 0 0;
-      font-size: 13px;
+      font-size: 15.6px;
       color: #616061;
     }
 
@@ -221,7 +221,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 16.8px;
       font-weight: 700;
       color: #ffffff;
     }
@@ -255,7 +255,7 @@
 
     .message-meta {
       margin-top: 4px;
-      font-size: 12px;
+      font-size: 14.4px;
       color: #868686;
     }
 
@@ -291,7 +291,7 @@
       outline: none;
       resize: none;
       font: inherit;
-      font-size: 15px;
+      font-size: 18px;
       line-height: 1.5;
       max-height: 160px;
       min-height: 24px;
@@ -304,7 +304,7 @@
       background: #007a5a;
       color: #ffffff;
       font: inherit;
-      font-size: 15px;
+      font-size: 18px;
       font-weight: 700;
       padding: 8px 16px;
       cursor: pointer;
@@ -317,7 +317,7 @@
 
     .hint {
       margin-top: 6px;
-      font-size: 12px;
+      font-size: 14.4px;
       color: #868686;
     }
 
@@ -330,7 +330,7 @@
       background: transparent;
       color: #ffffff;
       font: inherit;
-      font-size: 14px;
+      font-size: 16.8px;
       cursor: pointer;
       text-align: left;
     }
@@ -347,6 +347,7 @@
 
     .chat-title-row {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
@@ -360,10 +361,12 @@
     }
 
     .model-select {
-      height: 25.92px;
+      height: 33.7px;
+      min-width: 0;
       max-width: 170px;
       font: inherit;
-      font-size: 11px;
+      font-size: 13.2px;
+      cursor: pointer;
       color: #1164a3;
       background: #fff;
       border: 1px solid #bcd6ee;
@@ -382,7 +385,7 @@
 
     .auth-status {
       margin: 0;
-      font-size: 12px;
+      font-size: 14.4px;
       line-height: 1.5;
       color: rgba(255, 255, 255, 0.75);
     }

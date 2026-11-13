@@ -60,6 +60,12 @@
     button:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(255, 122, 89, 0.4); }
     button:active { transform: translateY(0); }
     #count { margin-top: 8px; font-size: 0.75rem; color: #888; }
+    body.popup-only {
+      min-height: 0;
+      height: 100vh;
+      padding: 8px;
+      background: transparent;
+    }
     .heart {
       position: fixed;
       pointer-events: none;
@@ -116,6 +122,7 @@
     shuffle();
     const loginMode = window.parent !== window && new URLSearchParams(window.location.search).get("mode") === "login";
     if (loginMode) {
+      document.body.classList.add("popup-only");
       msgEl.textContent = messages[order[index++]];
       countEl.textContent = "환영합니다!";
     }
@@ -137,7 +144,10 @@
     }
 
     btn.addEventListener("click", () => {
-      if (loginMode) return;
+      if (loginMode) {
+        window.parent.postMessage({ type: "login-welcome-confirm" }, "*");
+        return;
+      }
       spawnHeart();
       if (index >= order.length) shuffle();
       const text = messages[order[index]];

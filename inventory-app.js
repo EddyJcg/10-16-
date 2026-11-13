@@ -3199,31 +3199,25 @@ async function recordUserAuthActivity(eventType,session){
 }
 function installLoginWelcome(){
   const dialog=$('login-welcome-dialog'),frame=$('login-welcome-frame');
-  let signingIn=false,welcomeReady=false;
+  let signingIn=false;
   $('login-form').addEventListener('submit',event=>{
     event.preventDefault();
     if(dialog.open||signingIn)return;
     $('login-button').disabled=true;
     $('login-welcome-status').textContent='환영 화면을 불러오는 중…';
-    frame.src='로그인 환영인사.html?mode=login&v=20261113-click';
+    frame.src='로그인 환영인사.html?mode=login&v=20261114-popup';
     dialog.showModal();
   });
   frame.addEventListener('load',()=>{
-    if(!dialog.open||frame.contentDocument?.URL==='about:blank')return;
-    const button=frame.contentDocument?.getElementById('btn');
-    if(!button||!frame.contentDocument?.getElementById('message')){
-      dialog.close();
-      notify('환영 화면을 불러오지 못했습니다. 잠시 후 다시 로그인하세요.',true);
-      return;
-    }
-    if(welcomeReady)return;
-    welcomeReady=true;
+    if(!dialog.open)return;
     $('login-welcome-status').textContent='격려 문구를 확인한 후 격려 받기를 눌러주세요.';
-    button.addEventListener('click',loginAfterWelcome,{once:true});
+  });
+  window.addEventListener('message',event=>{
+    if(event.source!==frame.contentWindow||event.data?.type!=='login-welcome-confirm')return;
+    return loginAfterWelcome();
   });
   $('close-login-welcome').addEventListener('click',()=>{if(!signingIn)dialog.close();});
   dialog.addEventListener('close',()=>{
-    welcomeReady=false;
     frame.src='about:blank';
     $('login-button').disabled=signingIn;
   });

@@ -616,6 +616,11 @@ function renderSalesStatus(view='status'){
     [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
       money(order.amount),String(order.due_date).slice(0,10),order.delivery_method,salesAddressDisplay(order),order.notes]
       .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
+    if(view!=='query'){
+      const removeButton=document.createElement('button');
+      removeButton.type='button';removeButton.className='secondary danger';removeButton.textContent='삭제';
+      removeButton.dataset.deleteSalesOrderId=order.id;row.lastElementChild.append(removeButton);
+    }
     const action=document.createElement('td'),button=document.createElement('button');
     action.className='sales-status-action';
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
@@ -3480,6 +3485,8 @@ async function startApp(){
   $('sales-status-items').addEventListener('click',event=>{
     const button=event.target.closest('[data-sales-order-id]');
     if(button)editSalesOrderFromStatus(button.dataset.salesOrderId);
+    const removeButton=event.target.closest('[data-delete-sales-order-id]');
+    if(removeButton){deleteSalesOrder(removeButton.dataset.deleteSalesOrderId,'sales-status-message');return;}
     const registerButton=event.target.closest('[data-sales-register-from-status]');
     if(registerButton)openSalesRegisterFromStatus(registerButton.dataset.salesRegisterFromStatus);
   });

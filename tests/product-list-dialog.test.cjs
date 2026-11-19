@@ -548,3 +548,43 @@ test('vendor lookup dialog shows a 32px title above the toolbar',()=>{
   assert.match(readFileSync('popup-typography.css','utf8'),/dialog \.vendor-list-title\{\s*font-size:32px!important/);
   assert.match(style,/#vendor-list-dialog \.vendor-list-title\{[^}]*font-size:32px[^}]*background:#41494e;color:#fff!important/);
 });
+
+test('staged product drafts return to the input form for editing without confirmation',async()=>{
+  const elements=new Map(),alerts=[],confirmations=[];
+  const element=id=>{
+    if(!elements.has(id)){
+      elements.set(id,{value:'',textContent:'',disabled:false,readOnly:false,hidden:false,options:[{value:'',textContent:''}],
+        close(){this.open=false;},showModal(){this.open=true;},focus(){},reset(){},
+        replaceChildren(){this.options=[];},append(option){this.options.push(option);}});
+    }
+    return elements.get(id);
+  };
+  const context=vm.createContext({
+    document:{getElementById:element,createElement:()=>({value:'',textContent:''})},
+    window:{confirm:message=>{confirmations.push(message);return true;},alert:message=>alerts.push(message)}
+  });
+  vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
+  vm.runInContext(`renderProductInfoItems=()=>{};busy=false;processedFlag=true;
+    assetClassifications=[{id:'c1',name:'원자재',inventory_asset_type:'원자재'}];
+    client={rpc:async()=>({data:processedFlag,error:null})};
+    productInfoDrafts=[
+      {draftId:'d1',classification_id:'c1',product_category:'원자재',product_code:'SKU-2',product_name:'신규부품',specification:'규격2',
+        material:'철',color:'',product_type:'',unit:'EA(개)',standard_stock_quantity:3,checked:true},
+      {draftId:'d2',productId:'p1',classification_id:'c1',product_category:'원자재',product_code:'SKU-1',product_name:'기존부품',specification:'규격1',
+        material:'',color:'',product_type:'',unit:'EA(개)',standard_stock_quantity:5,checked:true}];`,context);
+  await vm.runInContext(`editProductInfoDraft('d1')`,context);
+  assert.equal(vm.runInContext(`productInfoDrafts.map(draft=>draft.draftId).join()`,context),'d2');
+  assert.equal(element('info_product_code').value,'SKU-2');
+  assert.equal(element('info_product_category').value,'c1');
+  assert.equal(element('info_standard_stock_quantity').value,3);
+  assert.equal(element('cancel-product-info-edit').hidden,true);
+  assert.equal(vm.runInContext('productInfoNewMode',context),true);
+  assert.equal(element('info_product_code').readOnly,false);
+
+  await vm.runInContext(`editProductInfoDraft('d2')`,context);
+  assert.equal(vm.runInContext('editingProductInfoId',context),'p1');
+  assert.equal(element('cancel-product-info-edit').hidden,false);
+  assert.equal(element('info_product_code').readOnly,true);
+  assert.equal(element('info_material').readOnly,false);
+  assert.deepEqual([...alerts,...confirmations],[]);
+});

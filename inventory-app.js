@@ -3388,6 +3388,11 @@ async function startApp(){
   $('close-password-dialog').addEventListener('click',()=>$('password-dialog').close());
   $('password-dialog').addEventListener('close',()=>$('password-form').reset());
   document.addEventListener('click',event=>{if(!event.target.closest('.account-menu-wrap'))closeProfileMenu();});
+  document.addEventListener('paste',event=>{
+    const field=event.target;
+    if(!(field instanceof HTMLInputElement||field instanceof HTMLTextAreaElement)||field.readOnly||field.disabled)return;
+    setTimeout(()=>{field.scrollLeft=0;},0);
+  });
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!profileMenu.hidden){closeProfileMenu();profileButton.focus();}});
   $('product-info-button').addEventListener('click',showProductInfo);
   $('product-info-status-button').addEventListener('click',showProductInfoStatus);

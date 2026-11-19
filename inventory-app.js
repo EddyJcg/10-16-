@@ -1455,7 +1455,6 @@ function addSalesOrderLine(){
     ['sales_unit','단위',!!$('sales_unit').value],
     ['sales_quantity','수량 (1~1,000,000의 정수)',!!$('sales_quantity').value.trim()&&Number.isSafeInteger(quantity)&&quantity>=1&&quantity<=1000000],
     ['sales_unit_price','단가 (0~1,000,000,000, 소수 둘째 자리까지)',!!$('sales_unit_price').value.trim()&&Number.isFinite(unitPrice)&&unitPrice>=0&&unitPrice<=1000000000&&Math.abs(unitPrice*100-Math.round(unitPrice*100))<=0.0001],
-    ['sales_address','주소 (주소 입력창을 클릭해 검색)',!!$('sales_address').value.trim()],
     ['sales_due_date','납기일자 (1900-01-01 이상 날짜)',validOrderDueDate(dueDate)]
   ];
   const invalid=checks.filter(([, ,valid])=>!valid);

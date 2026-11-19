@@ -21,10 +21,10 @@ function setup(){
   return {context,element,values};
 }
 
-test('연락처·배송방법을 제외한 각 항목이 없으면 가수주가 등록되지 않는다',()=>{
+test('연락처·배송방법·주소를 제외한 각 항목이 없으면 가수주가 등록되지 않는다',()=>{
   const required={sales_order_date:'수주일자',sales_order_number:'수주번호',sales_order_type:'수주형태',sales_vendor_name:'거래처',
     sales_product_code:'품번',sales_product_name:'품명',sales_specification:'규격',sales_unit:'단위',
-    sales_quantity:'수량',sales_unit_price:'단가',sales_address:'주소',sales_due_date:'납기일자'};
+    sales_quantity:'수량',sales_unit_price:'단가',sales_due_date:'납기일자'};
   for(const [id,label] of Object.entries(required)){
     const {context,element}=setup();
     element(id).value='';

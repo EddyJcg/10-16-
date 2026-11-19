@@ -677,6 +677,7 @@ function appendSalesRegisterCells(row,order,editable=false){
   row.append(editable?salesRegisterDateCell(order):makeCell(String(order.shipped_date||'').slice(0,10)));
   const statusCell=document.createElement('td'),status=salesOrderStatusSelect(order);
   status.disabled=true;statusCell.append(status);row.append(statusCell);
+  row.append(makeCell(order.product_code||''));
   [order.product_name,order.specification,order.unit,number(order.quantity),money(order.unit_price),
     money(order.amount),String(order.due_date||'').slice(0,10),order.delivery_method,salesAddressDisplay(order)]
     .forEach((value,index)=>{
@@ -698,14 +699,14 @@ function renderSalesRegister(){
   $('bulk-sales-register').disabled=salesStatusUpdating||!visibleOrders.some(order=>salesRegisterCheckedIds.has(order.id)&&salesRegistrationCandidate(order,salesRegisterShipmentFor(order)));
   $('stop-sales-order').disabled=salesStatusUpdating||!visibleOrders.some(salesOrderStoppable);
   if(!salesRegisterSearched)emptyRow(body,17,'수주번호 또는 거래처(성명)를 검색하세요.');
-  else if(!visibleOrders.length)emptyRow(body,17,matchedOrders.length?'매출 등록 대상이 없습니다. 검색된 수주는 모두 매출 등록이 완료되었습니다.':'검색 결과가 없습니다.');
+  else   if(!visibleOrders.length)emptyRow(body,18,matchedOrders.length?'매출 등록 대상이 없습니다. 검색된 수주는 모두 매출 등록이 완료되었습니다.':'검색 결과가 없습니다.');
   visibleOrders.forEach(order=>{
     const row=document.createElement('tr');
     bindStockRow(row,order);
     body.append(appendSalesRegisterCells(row,order,true));
     row.append(salesRegisterCheckCell(order));
   });
-  if(!completedOrders.length)emptyRow(completedBody,16,'매출 등록이 완료된 수주가 없습니다.');
+  if(!completedOrders.length)emptyRow(completedBody,17,'매출 등록이 완료된 수주가 없습니다.');
   completedOrders.forEach(order=>completedBody.append(appendSalesRegisterCells(document.createElement('tr'),order)));
 }
 function salesRegisterCheckCell(order){
@@ -734,11 +735,11 @@ function salesRegisterShipmentFor(order){
   return {date,quantity};
 }
 function salesOrderProductCode(order){
-  if(order.product_code)return order.product_code;
-  return items.find(item=>stockLedgerManaged(item)&&item.product_name===order.product_name&&(item.specification||'')===(order.specification||'')&&item.unit===order.unit)?.product_code||'';
+  return order.product_code||'';
 }
 function salesRegistrationCandidate(order,shipment){
   if(salesRegistrationDone(order))return false;
+  if(!String(order.product_code||'').trim())return false;
   if(shipment)return !shipment.invalid&&Number(order.shipped_quantity||0)<Number(order.quantity||0);
   return salesRegistrationEligible(order);
 }
@@ -1083,6 +1084,10 @@ function openBulkSalesRegisterConfirmation(){
   const checkedOrders=salesRegisterVisibleOrders.filter(order=>salesRegisterCheckedIds.has(order.id));
   if(checkedOrders.some(order=>salesRegisterShipmentFor(order)?.invalid)){
     $('sales-register-message').textContent='출고일자와 수량을 확인하세요. 수량은 1 이상의 정수이며 잔여 수량을 넘을 수 없습니다.';
+    return;
+  }
+  if(checkedOrders.some(order=>!salesRegistrationDone(order)&&!String(order.product_code||'').trim())){
+    $('sales-register-message').textContent='품번이 없는 수주는 매출 등록할 수 없습니다. 수주 수정에서 품번을 입력한 후 다시 등록하세요.';
     return;
   }
   salesRegisterTargetOrderIds=checkedOrders.filter(order=>salesRegistrationCandidate(order,salesRegisterShipmentFor(order))).map(order=>order.id);

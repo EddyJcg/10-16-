@@ -211,4 +211,64 @@ $$;
 revoke all on function public.set_input_box_setting(text,text,boolean) from public,anon;
 grant execute on function public.set_input_box_setting(text,text,boolean) to authenticated;
 
+-- 처리 데이터(수불부·재고 로트·수주·발주 라인)에도 품번의 제품유형을 보관합니다.
+alter table public.stock_movements add column if not exists product_type text not null default ''
+  check (char_length(product_type)<=120);
+alter table public.stock_lots add column if not exists product_type text not null default ''
+  check (char_length(product_type)<=120);
+alter table public.sales_orders add column if not exists product_type text not null default ''
+  check (char_length(product_type)<=120);
+alter table public.purchase_order_lines add column if not exists product_type text not null default ''
+  check (char_length(product_type)<=120);
+
+update public.stock_movements t set product_type=p.product_type
+  from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
+update public.stock_lots t set product_type=p.product_type
+  from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
+update public.sales_orders t set product_type=p.product_type
+  from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
+update public.purchase_order_lines t set product_type=p.product_type
+  from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
+
+-- 새로 저장되는 처리 데이터는 연결된 품번의 제품유형을 자동으로 따릅니다.
+create or replace function public.sync_processed_product_type()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  new.product_type:=coalesce((select p.product_type from public.stock_products p where p.id=new.product_id),'');
+  return new;
+end;
+$$;
+revoke all on function public.sync_processed_product_type() from public,anon,authenticated;
+
+drop trigger if exists stock_movements_sync_product_type on public.stock_movements;
+create trigger stock_movements_sync_product_type before insert or update on public.stock_movements
+  for each row execute function public.sync_processed_product_type();
+drop trigger if exists stock_lots_sync_product_type on public.stock_lots;
+create trigger stock_lots_sync_product_type before insert or update on public.stock_lots
+  for each row execute function public.sync_processed_product_type();
+drop trigger if exists sales_orders_sync_product_type on public.sales_orders;
+create trigger sales_orders_sync_product_type before insert or update on public.sales_orders
+  for each row execute function public.sync_processed_product_type();
+drop trigger if exists purchase_order_lines_sync_product_type on public.purchase_order_lines;
+create trigger purchase_order_lines_sync_product_type before insert or update on public.purchase_order_lines
+  for each row execute function public.sync_processed_product_type();
+
+-- 품목 수정으로 제품유형이 바뀌면 같은 품번의 기존 처리 데이터에도 반영합니다.
+create or replace function public.propagate_stock_product_type()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  update public.stock_movements set product_type=new.product_type where product_id=new.id;
+  update public.stock_lots set product_type=new.product_type where product_id=new.id;
+  update public.sales_orders set product_type=new.product_type where product_id=new.id;
+  update public.purchase_order_lines set product_type=new.product_type where product_id=new.id;
+  return null;
+end;
+$$;
+revoke all on function public.propagate_stock_product_type() from public,anon,authenticated;
+
+drop trigger if exists stock_product_type_propagate on public.stock_products;
+create trigger stock_product_type_propagate after update of product_type on public.stock_products
+  for each row when (old.product_type is distinct from new.product_type)
+  execute function public.propagate_stock_product_type();
+
 commit;

@@ -354,20 +354,20 @@ test('sales registration table ends with a check column and lists completed orde
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`salesOrders=[
     {id:'line-1',sequence_id:1,order_date:'2026-11-03',order_number:'SO-1',order_type:'온라인 수주',
-      vendor_name:'업체',vendor_contact:'010',shipped_date:'',sales_progress_status:'진행',product_name:'품목',specification:'규격',
+      vendor_name:'업체',vendor_contact:'010',shipped_date:'',sales_progress_status:'진행',product_code:'P1',product_name:'품목',specification:'규격',
       unit:'EA',quantity:2,unit_price:5,amount:10,due_date:'2026-11-10',delivery_method:'택배',address:'주소',notes:'비고'},
     {id:'line-2',sequence_id:2,order_date:'2026-11-03',order_number:'SO-1',order_type:'온라인 수주',
       vendor_name:'업체',vendor_contact:'010',shipped_date:'2026-11-04',sales_progress_status:'진행',sales_status:'매출완료',product_name:'품목2',specification:'규격',
       unit:'EA',quantity:1,unit_price:5,amount:5,due_date:'2026-11-10',delivery_method:'택배',address:'주소',notes:'비고'}];
     salesRegisterSearched=true;salesRegisterQuery='SO-1';salesStatusUpdating=false;renderSalesRegister()`,context);
   assert.equal(body.children.length,1,'completed orders are removed from the registration table');
-  assert.equal(body.children[0].children.length,17);
-  const checkCell=body.children[0].children[16];
+  assert.equal(body.children[0].children.length,18);
+  const checkCell=body.children[0].children[17];
   assert.equal(checkCell.children[0].type,'checkbox');
   assert.equal(checkCell.children[0].checked,false);
   assert.equal(body.children[0].children.some(cell=>cell.textContent==='수정'||cell.textContent==='매출등록'),false);
   assert.equal(completedBody.children.length,1);
-  assert.equal(completedBody.children[0].children.length,16);
+  assert.equal(completedBody.children[0].children.length,17);
   assert.equal(vm.runInContext('salesRegisterVisibleOrders.map(order=>order.id)',context).join(),'line-1');
   const cells=body.children[0].children.map(cell=>cell.textContent);
   assert.ok(!cells.includes('010'));
@@ -391,9 +391,9 @@ test('bulk sales registration completes only eligible pending orders and keeps t
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`currentUser={id:'user'};
     salesOrders=[
-      {id:'line-1',order_number:'SO-1',product_name:'품목',quantity:1,shipped_quantity:1,shipped_date:'2026-11-03',sales_progress_status:'진행'},
-      {id:'line-2',order_number:'SO-2',product_name:'품목',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'},
-      {id:'line-3',order_number:'SO-3',product_name:'품목',quantity:1,shipped_quantity:1,shipped_date:'2026-11-03',sales_progress_status:'완료'}];
+      {id:'line-1',order_number:'SO-1',product_code:'P1',product_name:'품목',quantity:1,shipped_quantity:1,shipped_date:'2026-11-03',sales_progress_status:'진행'},
+      {id:'line-2',order_number:'SO-2',product_code:'P1',product_name:'품목',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'},
+      {id:'line-3',order_number:'SO-3',product_code:'P1',product_name:'품목',quantity:1,shipped_quantity:1,shipped_date:'2026-11-03',sales_progress_status:'완료'}];
     client=testClient;renderSalesOrders=()=>{};renderSalesStatus=()=>{};renderSalesRegister=()=>{};renderSalesBalance=()=>{};updateIssueSalesOrders=()=>{};
     salesRegisterCheckedIds=new Set(['line-1','line-2']);salesRegisterVisibleOrders=salesOrders.filter(order=>salesOrderStatus(order)!=='완료');
     $('sales-register-dialog').showModal();openBulkSalesRegisterConfirmation()`,context);
@@ -424,9 +424,9 @@ test('bulk sales registration registers only the orders checked in the register 
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`currentUser={id:'user'};client=testClient;
     salesOrders=[
-      {id:'checked',order_number:'SO-1',product_name:'품목1',quantity:1,shipped_quantity:1,shipped_date:'2026-11-01',sales_progress_status:'진행'},
-      {id:'unchecked',order_number:'SO-2',product_name:'품목2',quantity:1,shipped_quantity:1,shipped_date:'2026-11-02',sales_progress_status:'진행'},
-      {id:'unshipped',order_number:'SO-3',product_name:'품목3',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];
+      {id:'checked',order_number:'SO-1',product_code:'P1',product_name:'품목1',quantity:1,shipped_quantity:1,shipped_date:'2026-11-01',sales_progress_status:'진행'},
+      {id:'unchecked',order_number:'SO-2',product_code:'P2',product_name:'품목2',quantity:1,shipped_quantity:1,shipped_date:'2026-11-02',sales_progress_status:'진행'},
+      {id:'unshipped',order_number:'SO-3',product_code:'P3',product_name:'품목3',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];
     renderSalesOrders=()=>{};renderSalesStatus=()=>{};renderSalesRegister=()=>{};renderSalesBalance=()=>{};updateIssueSalesOrders=()=>{};
     salesRegisterVisibleOrders=salesOrders;salesRegisterCheckedIds=new Set();openBulkSalesRegisterConfirmation()`,context);
   assert.equal(element('sales-register-message').textContent,'매출등록할 수주를 체크하세요.');
@@ -474,11 +474,11 @@ test('bulk sales registration processes only unregistered eligible search result
   context.updateIssueSalesOrders=()=>{};
   vm.runInContext(`currentUser={id:'user'};client=testClient;
     salesOrders=[
-      {id:'eligible-1',order_number:'SO-1',product_name:'품목1',quantity:1,shipped_quantity:1,shipped_date:'2026-11-01',sales_progress_status:'진행'},
-      {id:'eligible-2',order_number:'SO-2',product_name:'품목2',quantity:1,shipped_quantity:1,shipped_date:'2026-11-02',sales_progress_status:'진행'},
-      {id:'unshipped',order_number:'SO-3',product_name:'품목3',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'},
-      {id:'completed',order_number:'SO-4',product_name:'품목4',quantity:1,shipped_quantity:1,shipped_date:'2026-11-03',sales_progress_status:'완료'},
-      {id:'partial',order_number:'SO-5',product_name:'품목5',quantity:2,shipped_quantity:1,shipped_date:'2026-11-04',sales_progress_status:'진행'}
+      {id:'eligible-1',order_number:'SO-1',product_code:'P1',product_name:'품목1',quantity:1,shipped_quantity:1,shipped_date:'2026-11-01',sales_progress_status:'진행'},
+      {id:'eligible-2',order_number:'SO-2',product_code:'P2',product_name:'품목2',quantity:1,shipped_quantity:1,shipped_date:'2026-11-02',sales_progress_status:'진행'},
+      {id:'unshipped',order_number:'SO-3',product_code:'P3',product_name:'품목3',quantity:1,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'},
+      {id:'completed',order_number:'SO-4',product_code:'P4',product_name:'품목4',quantity:1,shipped_quantity:1,shipped_date:'2026-11-03',sales_progress_status:'완료'},
+      {id:'partial',order_number:'SO-5',product_code:'P5',product_name:'품목5',quantity:2,shipped_quantity:1,shipped_date:'2026-11-04',sales_progress_status:'진행'}
     ];
     salesRegisterCheckedIds=new Set(salesOrders.map(order=>order.id));salesRegisterVisibleOrders=salesOrders;openBulkSalesRegisterConfirmation()`,context);
   assert.equal(element('sales-register-confirm-message').textContent,'2건의 매출등록을 진행하시겠습니까?');
@@ -537,7 +537,7 @@ test('sales registration with shipment inputs recognizes DB auto-completion afte
   assert.equal(fromCalls.length,1);
 });
 
-test('stock issue uses the matching stock product code when an older order has none',async()=>{
+test('sales registration rejects orders without a product code',async()=>{
   const rpcCalls=[];
   const testClient={
     rpc:async(name,args)=>{
@@ -559,10 +559,7 @@ test('stock issue uses the matching stock product code when an older order has n
     items=[{id:'item-8',product_code:'P8',product_name:'품목8',specification:'',unit:'EA'}];
     salesOrders=[{id:'order-8',order_number:'SO-8',product_name:'품목8',product_code:'',specification:'',unit:'EA',quantity:2,shipped_quantity:0,shipped_date:null,sales_progress_status:'진행'}];
     salesRegisterTargetOrderIds=['order-8'];salesRegisterRowInputs.set('order-8',{date:'2026-11-05',quantity:2});`,context);
-  await vm.runInContext('completeSalesRegistration()',context);
-  const issue=rpcCalls.find(([name])=>name==='post_stock_movement');
-  assert.ok(issue,'a stock issue is posted');
-  assert.equal(issue[1].p_details.product_code,'P8');
+  assert.equal(vm.runInContext('salesRegistrationCandidate(salesOrders[0])',context),false,'an order without 품번 cannot be registered');
 });
 
 test('per-order shipment inputs are rejected when they exceed the remaining quantity',()=>{

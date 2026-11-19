@@ -25,17 +25,17 @@ test('record editing preserves product, sales and FIFO ledger consistency',async
     }]);
     await db.exec(readFileSync('supabase/product-info-controls.sql','utf8'));
     await db.exec(readFileSync('supabase/procurement-schema.sql','utf8'));
-    await db.exec(readFileSync('supabase/product-type-and-edit-rules.sql','utf8'));
-    assert.equal((await db.query(`select created_by_name from public.stock_products where product_code='LEGACY-ITEM'`)).rows[0].created_by_name,'기존 등록자');
-    await db.query(`select set_config('request.jwt.claims',$1,false)`,[JSON.stringify({
-      sub:'00000000-0000-4000-8000-000000000001',email:'tester@example.com',user_metadata:{full_name:'테스트 등록자'}
-    })]);
     const vendorMigration=readFileSync('supabase/sales-order-vendor.sql','utf8');
     await db.exec(vendorMigration);
     await db.exec(vendorMigration);
     const salesGroupsMigration=readFileSync('supabase/sales-order-groups.sql','utf8');
     await db.exec(salesGroupsMigration);
     await db.exec(salesGroupsMigration);
+    await db.exec(readFileSync('supabase/product-type-and-edit-rules.sql','utf8'));
+    assert.equal((await db.query(`select created_by_name from public.stock_products where product_code='LEGACY-ITEM'`)).rows[0].created_by_name,'기존 등록자');
+    await db.query(`select set_config('request.jwt.claims',$1,false)`,[JSON.stringify({
+      sub:'00000000-0000-4000-8000-000000000001',email:'tester@example.com',user_metadata:{full_name:'테스트 등록자'}
+    })]);
     const salesStatusMigration=readFileSync('supabase/sales-status-workflow.sql','utf8');
     await db.exec(salesStatusMigration);
     await db.exec(salesStatusMigration);
@@ -166,6 +166,16 @@ test('record editing preserves product, sales and FIFO ledger consistency',async
     assert.equal(processedEdit.material,'Processed material');
     assert.equal(processedEdit.standard_stock_quantity,9);
     assert.equal(processedEdit.product_type,'의류');
+    const retyped=(await db.query(`select public.update_stock_product($1,$2) as result`,[product.id,{
+      ...productDetails,material:'Processed material',standard_stock_quantity:9,product_type:'신발'
+    }])).rows[0].result;
+    assert.equal(retyped.product_type,'신발');
+    await db.query(`update public.sales_orders set product_code='EDIT-ME' where id=$1`,[order.id]);
+    const ledgerTypes=(await db.query(`select
+        (select array_agg(distinct product_type) from public.stock_movements where product_id=$1) as movements,
+        (select array_agg(distinct product_type) from public.stock_lots where product_id=$1) as lots,
+        (select product_type from public.sales_orders where id=$2) as sales_order`,[product.id,order.id])).rows[0];
+    assert.deepEqual(ledgerTypes,{movements:['신발'],lots:['신발'],sales_order:'신발'});
     await assert.rejects(db.query(`select public.edit_stock_movement($1,$2,$3,$4,$5)`,
       [issue.id,'2026-01-05',11,0,order.id]),/INSUFFICIENT_STOCK|SALES_ORDER_QUANTITY_EXCEEDED/);
     const unchanged=(await db.query('select quantity from public.stock_movements where id=$1',[issue.id])).rows[0];

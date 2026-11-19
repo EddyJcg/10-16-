@@ -257,22 +257,43 @@ drop trigger if exists purchase_order_lines_sync_product_type on public.purchase
 create trigger purchase_order_lines_sync_product_type before insert or update on public.purchase_order_lines
   for each row execute function public.sync_processed_product_type();
 
--- 품목 수정으로 제품유형이 바뀌었을 때, 팝업에서 "예"를 선택한 경우에만 같은 품번의 기존 처리 데이터에 반영합니다.
-create or replace function public.product_type_applies_to_existing()
-returns boolean language sql stable security definer set search_path = '' as $$
-  select coalesce((select apply_to_existing from public.input_box_settings where box_key='product_type'),false);
-$$;
-revoke all on function public.product_type_applies_to_existing() from public,anon;
-grant execute on function public.product_type_applies_to_existing() to authenticated;
+-- 수불 배분(stock_allocations)은 로트를 통해 품번을 갖고, 제품유형을 함께 보관합니다.
+alter table public.stock_allocations add column if not exists product_id uuid references public.stock_products(id);
+alter table public.stock_allocations add column if not exists product_type text not null default ''
+  check (char_length(product_type)<=120);
+update public.stock_allocations a set product_id=l.product_id
+  from public.stock_lots l where l.id=a.lot_id and a.product_id is null;
+update public.stock_allocations a set product_type=p.product_type
+  from public.stock_products p where p.id=a.product_id and a.product_type is distinct from p.product_type;
+alter table public.stock_allocations alter column product_id set not null;
+create index if not exists stock_allocations_product_id on public.stock_allocations(product_id);
 
+create or replace function public.sync_stock_allocation_product()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if new.product_id is null then
+    select l.product_id into new.product_id from public.stock_lots l where l.id=new.lot_id;
+  end if;
+  new.product_type:=coalesce((select p.product_type from public.stock_products p where p.id=new.product_id),'');
+  return new;
+end;
+$$;
+revoke all on function public.sync_stock_allocation_product() from public,anon,authenticated;
+
+drop trigger if exists stock_allocations_sync_product on public.stock_allocations;
+create trigger stock_allocations_sync_product before insert or update on public.stock_allocations
+  for each row execute function public.sync_stock_allocation_product();
+
+-- 품목 수정으로 제품유형이 바뀌면 같은 품번의 기존 처리 데이터에 항상 반영합니다.
+-- 팝업의 "예/아니오"는 최초 일괄 적용(apply_product_type_to_existing) 여부만 결정합니다.
 create or replace function public.propagate_stock_product_type()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
-  if not public.product_type_applies_to_existing() then return null; end if;
   update public.stock_movements set product_type=new.product_type where product_id=new.id;
   update public.stock_lots set product_type=new.product_type where product_id=new.id;
   update public.sales_orders set product_type=new.product_type where product_id=new.id;
   update public.purchase_order_lines set product_type=new.product_type where product_id=new.id;
+  update public.stock_allocations set product_type=new.product_type where product_id=new.id;
   return null;
 end;
 $$;
@@ -301,6 +322,9 @@ begin
     from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
   get diagnostics v_rows = row_count; v_count:=v_count+v_rows;
   update public.purchase_order_lines t set product_type=p.product_type
+    from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
+  get diagnostics v_rows = row_count; v_count:=v_count+v_rows;
+  update public.stock_allocations t set product_type=p.product_type
     from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
   get diagnostics v_rows = row_count; v_count:=v_count+v_rows;
   return v_count;

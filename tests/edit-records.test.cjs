@@ -171,14 +171,19 @@ test('record editing preserves product, sales and FIFO ledger consistency',async
     }])).rows[0].result;
     assert.equal(retyped.product_type,'신발');
     await db.query(`update public.sales_orders set product_code='EDIT-ME' where id=$1`,[order.id]);
-    const movementTypesBeforeDecision=(await db.query(`select array_agg(distinct product_type) as types from public.stock_movements where product_id=$1`,[product.id])).rows[0].types;
-    assert.deepEqual(movementTypesBeforeDecision,['']);
+    const typesBeforeDecision=(await db.query(`select
+        (select array_agg(distinct product_type) from public.stock_movements where product_id=$1) as movements,
+        (select array_agg(distinct product_type) from public.stock_lots where product_id=$1) as lots`,[product.id])).rows[0];
+    assert.deepEqual(typesBeforeDecision,{movements:['신발'],lots:['신발']});
     await db.query(`select public.set_input_box_setting('product_type','제품유형',true)`);
     const ledgerTypes=(await db.query(`select
         (select array_agg(distinct product_type) from public.stock_movements where product_id=$1) as movements,
         (select array_agg(distinct product_type) from public.stock_lots where product_id=$1) as lots,
+        (select array_agg(distinct a.product_type) from public.stock_allocations a where a.product_id=$1) as allocations,
+        (select count(*)::int from public.stock_allocations a where a.product_id=$1) as allocation_count,
         (select product_type from public.sales_orders where id=$2) as sales_order`,[product.id,order.id])).rows[0];
-    assert.deepEqual(ledgerTypes,{movements:['신발'],lots:['신발'],sales_order:'신발'});
+    assert.deepEqual({movements:ledgerTypes.movements,lots:ledgerTypes.lots,allocations:ledgerTypes.allocations,sales_order:ledgerTypes.sales_order},{movements:['신발'],lots:['신발'],allocations:['신발'],sales_order:'신발'});
+    assert.ok(ledgerTypes.allocation_count>0);
     assert.equal((await db.query('select public.apply_product_type_to_existing() as n')).rows[0].n,0);
     await assert.rejects(db.query(`select public.edit_stock_movement($1,$2,$3,$4,$5)`,
       [issue.id,'2026-01-05',11,0,order.id]),/INSUFFICIENT_STOCK|SALES_ORDER_QUANTITY_EXCEEDED/);

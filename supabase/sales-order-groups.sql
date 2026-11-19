@@ -7,6 +7,40 @@ alter table public.sales_orders
   add column if not exists postal_code text not null default '';
 create index if not exists sales_orders_order_group_id on public.sales_orders(order_group_id);
 
+-- product_id links a sales order to the stock product whose 품번 it carries.
+alter table public.sales_orders add column if not exists product_id uuid references public.stock_products(id);
+create index if not exists sales_orders_product_id on public.sales_orders(product_id);
+
+create or replace function public.sales_order_resolve_product_id()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if tg_op='UPDATE' and new.product_code is not distinct from old.product_code then
+    return new;
+  end if;
+  new.product_id:=(select p.id from public.stock_products p where p.product_code=upper(trim(new.product_code)));
+  return new;
+end;
+$$;
+revoke all on function public.sales_order_resolve_product_id() from public,anon,authenticated;
+drop trigger if exists sales_orders_resolve_product_id on public.sales_orders;
+create trigger sales_orders_resolve_product_id before insert or update of product_code on public.sales_orders
+  for each row execute function public.sales_order_resolve_product_id();
+
+-- Existing orders: link by 품번 first; link by 품명/규격/단위 only when the order has no 품번 and exactly one product matches.
+update public.sales_orders so set product_id=p.id
+from public.stock_products p
+where so.product_id is null and trim(so.product_code)<>'' and upper(trim(so.product_code))=p.product_code;
+update public.sales_orders so set product_id=u.product_id
+from (
+  select so2.id as order_id,(array_agg(p.id))[1] as product_id
+  from public.sales_orders so2
+  join public.stock_products p on trim(p.product_name)=trim(so2.product_name)
+    and trim(p.specification)=trim(so2.specification) and p.unit=so2.unit
+  where so2.product_id is null and trim(so2.product_code)=''
+  group by so2.id having count(*)=1
+) u
+where so.id=u.order_id and so.product_id is null;
+
 create or replace function public.sales_order_product_code_ready()
 returns boolean language sql security definer set search_path = '' as $$
   select public.inventory_access_allowed();
@@ -140,6 +174,7 @@ begin
       if v_current.shipped_quantity>0 and (
         v_current.shipped_quantity>v_quantity or v_current.product_name<>v_name
         or v_current.specification<>v_specification or v_current.unit<>v_unit
+        or (v_line ? 'product_code' and v_current.product_code<>trim(coalesce(v_line->>'product_code','')))
       ) then raise exception 'SALES_ORDER_HAS_SHIPMENTS' using errcode='22023'; end if;
       update public.sales_orders set
         order_date=p_order_date,order_number=trim(p_order_number),order_type=p_order_type,

@@ -328,7 +328,9 @@ begin
   if v_sales_order_id is not null then
     select * into v_sales_order from public.sales_orders where id=v_sales_order_id for update;
     if not found then raise exception 'SALES_ORDER_NOT_FOUND' using errcode='P0002'; end if;
-    if trim(v_sales_order.product_name)<>trim(v_product.product_name)
+    if nullif(to_jsonb(v_sales_order)->>'product_id','') is not null then
+      if (to_jsonb(v_sales_order)->>'product_id')::uuid<>v_product.id then raise exception 'SALES_ORDER_PRODUCT_MISMATCH' using errcode='22023'; end if;
+    elsif trim(v_sales_order.product_name)<>trim(v_product.product_name)
       or trim(v_sales_order.specification)<>trim(v_product.specification)
       or v_sales_order.unit<>v_product.unit then raise exception 'SALES_ORDER_PRODUCT_MISMATCH' using errcode='22023'; end if;
     if v_sales_order.shipped_quantity+p_quantity>v_sales_order.quantity

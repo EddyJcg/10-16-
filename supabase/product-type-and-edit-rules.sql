@@ -23,20 +23,13 @@ revoke all on public.input_box_settings from public,anon,authenticated;
 grant select on public.input_box_settings to authenticated;
 
 -- A product counts as processed once it is used by stock movements, purchase
--- order lines, or a sales order with the same name/specification/unit.
+-- order lines, or a sales order linked to it by product_id.
 create or replace function public.stock_product_is_processed(p_product_id uuid)
 returns boolean language plpgsql stable security definer set search_path = '' as $$
 begin
   return exists(select 1 from public.stock_movements m where m.product_id=p_product_id)
     or exists(select 1 from public.purchase_order_lines l where l.product_id=p_product_id)
-    or exists(
-      select 1 from public.stock_products p
-      join public.sales_orders so
-        on trim(so.product_name)=trim(p.product_name)
-        and trim(so.specification)=trim(p.specification)
-        and so.unit=p.unit
-      where p.id=p_product_id
-    );
+    or exists(select 1 from public.sales_orders so where so.product_id=p_product_id);
 end;
 $$;
 revoke all on function public.stock_product_is_processed(uuid) from public,anon;

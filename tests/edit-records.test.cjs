@@ -171,5 +171,17 @@ test('record editing preserves product, sales and FIFO ledger consistency',async
     const unchanged=(await db.query('select quantity from public.stock_movements where id=$1',[issue.id])).rows[0];
     assert.equal(unchanged.quantity,8);
     assert.ok(opening.id);
+
+    const dupDetails={...productDetails,product_code:'DUP-A',product_name:'Dup item',specification:'Dup spec A',material:'',color:''};
+    await db.query('select public.register_stock_product($1)',[dupDetails]);
+    const dupB=(await db.query('select public.register_stock_product($1) as result',[{...dupDetails,product_code:'DUP-B',specification:'Dup spec B'}])).rows[0].result;
+    const dupA=(await db.query(`select id from public.stock_products where product_code='DUP-A'`)).rows[0];
+    await db.query('select public.register_sales_order_group($1,$2,$3,$4,$5,$6,$7)',['2026-03-01','SO-DUP','온라인 수주','고객','','',[
+      {product_code:'dup-a',product_name:'Dup item',specification:'Dup spec A',unit:'EA(개)',quantity:1,unit_price:1,due_date:'2026-03-10'}
+    ]]);
+    await assert.rejects(db.query('select public.update_stock_product($1,$2)',[dupA.id,{...dupDetails,product_name:'Dup item renamed'}]),/PRODUCT_INFO_ALREADY_ASSIGNED/,
+      '품번으로 연결된 수주가 있는 품목만 잠긴다');
+    const renamedB=(await db.query('select public.update_stock_product($1,$2) as result',[dupB.id,{...dupDetails,product_code:'DUP-B',specification:'Dup spec B',product_name:'Dup item B'}])).rows[0].result;
+    assert.equal(renamedB.product_name,'Dup item B');
   }finally{await db.close();}
 });

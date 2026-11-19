@@ -110,7 +110,11 @@ test('수주 DB는 품목별 품번을 저장하고 기존 호출과 수정 시 
         product_name text,specification text,unit text,quantity integer,unit_price numeric,amount numeric,due_date date,
         delivery_method text,address text,notes text,created_by uuid,shipped_quantity integer not null default 0
       );
-      create table public.stock_movements (sales_order_id uuid references public.sales_orders(id));`);
+      create table public.stock_movements (sales_order_id uuid references public.sales_orders(id));
+      create table public.stock_products (id uuid primary key default gen_random_uuid(), product_code text unique,
+        product_name text, specification text, unit text);
+      insert into public.stock_products(product_code,product_name,specification,unit) values
+        ('SKU-1','동명 품목','','EA(개)'),('SKU-2','동명 품목','','EA(개)');`);
     const sql=fs.readFileSync('supabase/sales-order-groups.sql','utf8');
     await db.exec(sql);await db.exec(sql);
     const line={product_code:' SKU-1 ',product_name:'품목',specification:'',unit:'EA(개)',quantity:2,unit_price:30,due_date:'2026-12-01'};
@@ -118,13 +122,18 @@ test('수주 DB는 품목별 품번을 저장하고 기존 호출과 수정 시 
     const registered=(await db.query('select public.register_sales_order_group($1,$2,$3,$4,$5,$6,$7) as result',args)).rows[0].result;
     assert.equal(registered.orders[0].product_code,'SKU-1');
     const id=registered.orders[0].id;
+    const productIdOf=async code=>(await db.query('select id from public.stock_products where product_code=$1',[code])).rows[0].id;
+    const linkedProductId=async orderId=>(await db.query('select product_id from public.sales_orders where id=$1',[orderId])).rows[0].product_id;
+    assert.equal(await linkedProductId(id),await productIdOf('SKU-1'),'품번으로 품목 ID가 연결된다');
     const changed={...line,line_id:id,product_code:'SKU-2'};
     const update=[registered.group_id,...args.slice(0,6),[changed]];
     let updated=(await db.query('select public.update_sales_order_group($1,$2,$3,$4,$5,$6,$7,$8) as result',update)).rows[0].result;
     assert.equal(updated.orders[0].product_code,'SKU-2');
+    assert.equal(await linkedProductId(id),await productIdOf('SKU-2'),'품번 변경 시 연결 품목도 바뀐다');
     delete changed.product_code;
     updated=(await db.query('select public.update_sales_order_group($1,$2,$3,$4,$5,$6,$7,$8) as result',update)).rows[0].result;
     assert.equal(updated.orders[0].product_code,'SKU-2');
+    assert.equal(await linkedProductId(id),await productIdOf('SKU-2'),'품번 없는 수정에서는 연결 품목이 유지된다');
     await assert.rejects(db.query('select public.register_sales_order_group($1,$2,$3,$4,$5,$6,$7)',
       [...args.slice(0,6),[{...line,product_code:'A'.repeat(81)}]]),/INVALID_SALES_ORDER_LINE/);
     const additional={...line,product_code:'SKU-3',product_name:'두번째'};

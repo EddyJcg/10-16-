@@ -6,3 +6,6 @@
 
 #product-info-dialog .product-info-draft-actions{display:flex;justify-content:flex-end;margin:8px 0}
 #product-info-dialog #product-info-items input[type=checkbox]{width:auto;margin-right:6px}
+#product-info-dialog{width:min(1200px,calc(100% - 32px))}
+#product-info-dialog .table-wrap th:last-child,#product-info-dialog .table-wrap td:last-child{position:sticky;right:0;background:#fff}
+#product-info-dialog .table-wrap th:last-child{background:#f2f6f1}

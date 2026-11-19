@@ -295,7 +295,7 @@ test('product information status title remains without the item count',()=>{
 test('product information registration text is enlarged without row edit buttons',()=>{
   const html=readFileSync('inventory.html','utf8');
   const style=readFileSync('product-info-dialog.css','utf8');
-  assert.match(html,/product-info-dialog\.css\?v=[^"]*product-info-edit-button-scale-12/);
+  assert.match(html,/product-info-dialog\.css\?v=[^"]*draft-edit-button-visible/);
   assert.match(style,/#product-info-dialog \.dialog-body \.field>label\{font-size:20\.52864px\}/);
   assert.match(style,/#product-info-dialog \.dialog-body input:not\(\[type=checkbox\]\):not\(\[type=radio\]\):not\(\[type=range\]\),[\s\S]*?#product-info-dialog \.dialog-body textarea\{font-size:20\.52864px\}/);
   assert.match(style,/#product-info-dialog table\{font-size:17\.1072px\}/);

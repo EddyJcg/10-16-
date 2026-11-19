@@ -184,7 +184,7 @@ test('stock risk card opens a printable list and its threshold uses standard sto
   const model=readFileSync('inventory-model.js','utf8');
   assert.match(html,/<button id="stock-risk-button" class="stat stat-action" type="button" aria-haspopup="dialog">/);
   assert.doesNotMatch(html,/<span>재고수량<\/span><strong id="total-qty">/);
-  assert.match(html,/<input id="info_standard_stock_quantity" type="number" required min="1" max="1000000" step="1"/);
+  assert.match(html,/<input id="info_standard_stock_quantity" type="number" required min="0" max="1000" step="1"/);
   assert.match(html,/<dialog id="stock-risk-dialog" aria-labelledby="stock-risk-title">/);
   assert.match(html,/data-print-settings="stock-risk"/);
   assert.match(html,/data-print="stock-risk"/);

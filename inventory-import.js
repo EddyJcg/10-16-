@@ -167,10 +167,10 @@ function parseProductImportWorkbook(workbook,classifications,existingItems,units
     else if(!allowedUnits.has(values.unit))rowErrors.push('지원하지 않는 단위');
     const stockQuantityText=values.standard_stock_quantity.replace(/,/g,'');
     if(!/^\d{1,7}$/.test(stockQuantityText)){
-      rowErrors.push('적정재고는 1~1,000,000의 정수여야 함');
+      rowErrors.push('적정재고는 0~1,000의 정수여야 함');
     }else{
       const quantity=Number(stockQuantityText);
-      if(quantity<1||quantity>1000000)rowErrors.push('적정재고는 1~1,000,000의 정수여야 함');
+      if(quantity<0||quantity>1000)rowErrors.push('적정재고는 0~1,000의 정수여야 함');
       values.standard_stock_quantity=quantity;
     }
 

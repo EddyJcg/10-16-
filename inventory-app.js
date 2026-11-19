@@ -2531,8 +2531,8 @@ function productInfoDraftError(details){
   if(!selectedClassification?.inventory_asset_type)
     return '선택한 품목자산분류의 재고자산종류가 설정되지 않았습니다. 분류 설정에서 종류를 지정한 뒤 품목정보를 저장하세요.';
   if(!details.product_code||!details.product_name||!details.unit)return '품번·품명·단위를 입력하세요.';
-  if(!Number.isSafeInteger(details.standard_stock_quantity)||details.standard_stock_quantity<1||details.standard_stock_quantity>1000000)
-    return '적정재고 수량은 1~1,000,000 사이의 정수로 입력하세요.';
+  if(!Number.isSafeInteger(details.standard_stock_quantity)||details.standard_stock_quantity<0||details.standard_stock_quantity>1000)
+    return '적정재고 수량은 0~1,000 사이의 정수로 입력하세요.';
   return '';
 }
 function duplicateProductInfoMessage(field){

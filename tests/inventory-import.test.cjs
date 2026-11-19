@@ -124,7 +124,7 @@ test('product import rejects every invalid row before registration',async()=>{
     ['없는 분류','원자재','SKU-002','분류 오류','','','','EA(개)',20],
     ['원자재','원자재','SKU-001','파일 중복','','','','EA(개)',10],
     ['원자재','원자재','EXISTING','이미 등록됨','','','','EA(개)',10],
-    ['원자재','원자재','SKU-005','잘못된 단위','','','','없음',0]
+    ['원자재','원자재','SKU-005','잘못된 단위','','','','없음',1001]
   ]);
   const result=parseProductImportWorkbook(workbook,classifications,[{product_code:'existing'}],units);
 
@@ -134,7 +134,7 @@ test('product import rejects every invalid row before registration',async()=>{
   assert.match(result.errors.join('\n'),/파일 안에 중복된 품번/);
   assert.match(result.errors.join('\n'),/이미 등록된 품번/);
   assert.match(result.errors.join('\n'),/지원하지 않는 단위/);
-  assert.match(result.errors.join('\n'),/적정재고는 1~1,000,000의 정수/);
+  assert.match(result.errors.join('\n'),/적정재고는 0~1,000의 정수/);
 });
 
 test('product import rejects specifications already in use or repeated in the workbook',async()=>{

@@ -90,7 +90,7 @@ begin
     or char_length(coalesce(p_details->>'color',''))>120
     or char_length(trim(coalesce(p_details->>'product_type','')))>120
     or coalesce(p_details->>'unit','') not in ('EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식')
-    or v_standard_stock_quantity is null or v_standard_stock_quantity not between 1 and 1000000 then
+    or v_standard_stock_quantity is null or v_standard_stock_quantity not between 0 and 1000 then
     raise exception 'INVALID_PRODUCT_DETAILS' using errcode='22023';
   end if;
   insert into public.stock_products
@@ -133,7 +133,7 @@ begin
     or char_length(coalesce(p_details->>'color',''))>120
     or char_length(trim(coalesce(p_details->>'product_type','')))>120
     or p_details->>'unit' not in ('EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식')
-    or v_standard_stock_quantity is null or v_standard_stock_quantity not between 1 and 1000000 then
+    or v_standard_stock_quantity is null or v_standard_stock_quantity not between 0 and 1000 then
     raise exception 'INVALID_PRODUCT_DETAILS' using errcode='22023';
   end if;
   select * into v_classification from public.stock_product_classifications

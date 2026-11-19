@@ -102,7 +102,7 @@ test('all inventory input forms use the selected master unit before quantity',()
   assert.deepEqual(optionValues('unit'),PRODUCT_UNITS);
   assert.ok(transaction.indexOf('for="unit"')<transaction.indexOf('for="movement_quantity"'));
   assert.match(html,/<label for="info_unit">단위<\/label><select id="info_unit" required>/);
-  assert.match(html,/<label for="info_standard_stock_quantity">적정재고 수량<\/label><input id="info_standard_stock_quantity" type="number" required min="1" max="1000000" step="1"/);
+  assert.match(html,/<label for="info_standard_stock_quantity">적정재고 수량<\/label><input id="info_standard_stock_quantity" type="number" required min="0" max="1000" step="1"/);
   assert.ok(STOCK_DISPLAY_FIELDS.findIndex(field=>field.key==='unit')<STOCK_DISPLAY_FIELDS.findIndex(field=>field.key==='opening_quantity'));
   assert.ok(CURRENT_STOCK_FIELDS.findIndex(field=>field.key==='unit')<CURRENT_STOCK_FIELDS.findIndex(field=>field.key==='stock_quantity'));
 });

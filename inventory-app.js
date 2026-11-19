@@ -619,6 +619,11 @@ function renderSalesStatus(view='status'){
     const action=document.createElement('td'),button=document.createElement('button');
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
     action.append(button);
+    if(view==='query'){
+      const removeButton=document.createElement('button');
+      removeButton.type='button';removeButton.className='secondary danger';removeButton.textContent='삭제';
+      removeButton.dataset.deleteSalesOrderId=order.id;action.append(removeButton);
+    }
     if(view==='query'&&salesOrderStatus(order)==='완료'&&Number(order.shipped_quantity||0)>0){
       const revertButton=document.createElement('button');
       revertButton.type='button';revertButton.className='secondary';revertButton.textContent='매출완료 취소';
@@ -1563,18 +1568,18 @@ function editSalesOrder(id){
   $('sales-order-title').textContent='수주 수정';$('save-sales-order').textContent='변경 사항 저장';$('save-sales-order').disabled=false;
   $('sales_order_number').focus();
 }
-async function deleteSalesOrder(id){
+async function deleteSalesOrder(id,messageId='sales-order-status'){
   if(!currentUser||busy||salesOrderSaving)return;
   const order=salesOrders.find(row=>row.id===id);
-  if(!order){$('sales-order-status').textContent='삭제할 수주를 찾을 수 없습니다.';return;}
+  if(!order){$(messageId).textContent='삭제할 수주를 찾을 수 없습니다.';return;}
   if(editingSalesOrderId||editingSalesDraftId){
-    $('sales-order-status').textContent='수정 중인 수주를 저장하거나 취소한 뒤 삭제하세요.';return;
+    $(messageId).textContent='수정 중인 수주를 저장하거나 취소한 뒤 삭제하세요.';return;
   }
   const blockedReason=salesOrderDownstreamReason(id);
   if(blockedReason){alertBlocked(blockedReason);return;}
   if(!window.confirm(`수주 '${order.order_number} · ${order.product_name}' 품목을 삭제하시겠습니까?`))return;
   const generation=authGeneration;
-  salesOrderSaving=true;$('sales-order-editor').disabled=true;$('sales-order-status').textContent='수주 품목을 삭제하는 중…';
+  salesOrderSaving=true;$('sales-order-editor').disabled=true;$(messageId).textContent='수주 품목을 삭제하는 중…';
   try{
     const {data,error}=await client.rpc('delete_sales_order_line',{p_order_id:id});
     if(error)throw error;
@@ -1583,9 +1588,9 @@ async function deleteSalesOrder(id){
     salesOrders=salesOrders.filter(row=>row.id!==id);
     if(salesDraftGroupId&&!salesOrders.some(row=>(row.order_group_id||row.id)===salesDraftGroupId))salesDraftGroupId='';
     renderSalesStatus();renderSalesStatus('query');renderSalesRegister();renderSalesBalance();updateIssueSalesOrders();
-    $('sales-order-status').textContent='수주 품목을 삭제했습니다.';
+    $(messageId).textContent='수주 품목을 삭제했습니다.';
   }catch(error){
-    if(generation===authGeneration)$('sales-order-status').textContent=error?.code==='PGRST202'||error?.code==='42883'
+    if(generation===authGeneration)$(messageId).textContent=error?.code==='PGRST202'||error?.code==='42883'
       ?'수주 삭제 DB 설정이 필요합니다. 최신 supabase/sales-order-groups.sql을 실행하세요.'
       :'수주 품목 삭제에 실패했습니다. '+errorText(error);
   }finally{
@@ -3482,6 +3487,8 @@ async function startApp(){
   $('sales-query-items').addEventListener('click',event=>{
     const revertButton=event.target.closest('[data-sales-revert-order-id]');
     if(revertButton){revertSalesOrderCompletion(revertButton.dataset.salesRevertOrderId);return;}
+    const removeButton=event.target.closest('[data-delete-sales-order-id]');
+    if(removeButton){deleteSalesOrder(removeButton.dataset.deleteSalesOrderId,'sales-query-message');return;}
     const button=event.target.closest('[data-sales-order-id]');
     if(button)editSalesOrderFromStatus(button.dataset.salesOrderId);
   });

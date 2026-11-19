@@ -171,11 +171,15 @@ test('record editing preserves product, sales and FIFO ledger consistency',async
     }])).rows[0].result;
     assert.equal(retyped.product_type,'신발');
     await db.query(`update public.sales_orders set product_code='EDIT-ME' where id=$1`,[order.id]);
+    const movementTypesBeforeDecision=(await db.query(`select array_agg(distinct product_type) as types from public.stock_movements where product_id=$1`,[product.id])).rows[0].types;
+    assert.deepEqual(movementTypesBeforeDecision,['']);
+    await db.query(`select public.set_input_box_setting('product_type','제품유형',true)`);
     const ledgerTypes=(await db.query(`select
         (select array_agg(distinct product_type) from public.stock_movements where product_id=$1) as movements,
         (select array_agg(distinct product_type) from public.stock_lots where product_id=$1) as lots,
         (select product_type from public.sales_orders where id=$2) as sales_order`,[product.id,order.id])).rows[0];
     assert.deepEqual(ledgerTypes,{movements:['신발'],lots:['신발'],sales_order:'신발'});
+    assert.equal((await db.query('select public.apply_product_type_to_existing() as n')).rows[0].n,0);
     await assert.rejects(db.query(`select public.edit_stock_movement($1,$2,$3,$4,$5)`,
       [issue.id,'2026-01-05',11,0,order.id]),/INSUFFICIENT_STOCK|SALES_ORDER_QUANTITY_EXCEEDED/);
     const unchanged=(await db.query('select quantity from public.stock_movements where id=$1',[issue.id])).rows[0];

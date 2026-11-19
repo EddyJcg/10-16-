@@ -2252,6 +2252,13 @@ async function confirmInputBoxSetting(boxKey,title){
   const {error:saveError}=await client.rpc('set_input_box_setting',{p_box_key:boxKey,p_title:title,p_apply_to_existing:applyToExisting});
   if(saveError)throw saveError;
 }
+async function applyProductTypeToExisting(){
+  if(!currentUser||busy)return;
+  if(!window.confirm('모든 품목의 현재 제품유형을 기존 처리 데이터(수불부·로트·수주·발주)에 반영합니다. 계속하시겠습니까?'))return;
+  const {data,error}=await client.rpc('apply_product_type_to_existing');
+  if(error){$('product-info-status').textContent='기존 처리 데이터 적용에 실패했습니다. '+errorText(error);return;}
+  $('product-info-status').textContent=`기존 처리 데이터 ${number(data||0)}건에 제품유형을 반영했습니다.`;
+}
 function showProductInfoStatus() {
   if(!currentUser||busy)return;
   ['product-info-status-code-query','product-info-status-name-query','product-info-status-specification-query'].forEach(id=>$(id).value='');
@@ -3437,6 +3444,7 @@ async function startApp(){
   $('import-product-info-button').addEventListener('click',openProductInfoFilePicker);
   $('add-product-info-draft').addEventListener('click',addProductInfoDraft);
   $('new-product-info').addEventListener('click',startNewProductInfo);
+  $('apply-product-type-existing').addEventListener('click',applyProductTypeToExisting);
   $('product-info-import-file').addEventListener('change',importProductInfoFile);
   $('close-product-info-status').addEventListener('click',()=>$('product-info-status-dialog').close());
   $('export-product-info-status').addEventListener('click',exportProductInfoStatusExcel);

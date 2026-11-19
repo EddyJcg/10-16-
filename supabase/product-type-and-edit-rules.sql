@@ -204,7 +204,11 @@ begin
   insert into public.input_box_settings(box_key,title,apply_to_existing,decided_by)
   values(p_box_key,trim(p_title),p_apply_to_existing,auth.uid())
   on conflict (box_key) do nothing returning * into v_row;
-  if not found then select * into v_row from public.input_box_settings where box_key=p_box_key; end if;
+  if found then
+    if p_box_key='product_type' and p_apply_to_existing then perform public.apply_product_type_to_existing(); end if;
+  else
+    select * into v_row from public.input_box_settings where box_key=p_box_key;
+  end if;
   return to_jsonb(v_row);
 end;
 $$;
@@ -253,10 +257,18 @@ drop trigger if exists purchase_order_lines_sync_product_type on public.purchase
 create trigger purchase_order_lines_sync_product_type before insert or update on public.purchase_order_lines
   for each row execute function public.sync_processed_product_type();
 
--- 품목 수정으로 제품유형이 바뀌면 같은 품번의 기존 처리 데이터에도 반영합니다.
+-- 품목 수정으로 제품유형이 바뀌었을 때, 팝업에서 "예"를 선택한 경우에만 같은 품번의 기존 처리 데이터에 반영합니다.
+create or replace function public.product_type_applies_to_existing()
+returns boolean language sql stable security definer set search_path = '' as $$
+  select coalesce((select apply_to_existing from public.input_box_settings where box_key='product_type'),false);
+$$;
+revoke all on function public.product_type_applies_to_existing() from public,anon;
+grant execute on function public.product_type_applies_to_existing() to authenticated;
+
 create or replace function public.propagate_stock_product_type()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
+  if not public.product_type_applies_to_existing() then return null; end if;
   update public.stock_movements set product_type=new.product_type where product_id=new.id;
   update public.stock_lots set product_type=new.product_type where product_id=new.id;
   update public.sales_orders set product_type=new.product_type where product_id=new.id;
@@ -270,5 +282,31 @@ drop trigger if exists stock_product_type_propagate on public.stock_products;
 create trigger stock_product_type_propagate after update of product_type on public.stock_products
   for each row when (old.product_type is distinct from new.product_type)
   execute function public.propagate_stock_product_type();
+
+-- 모든 품번의 현재 제품유형을 기존 처리 데이터(수불부·로트·수주·발주 라인)에 일괄 반영합니다. 변경된 행 수를 반환합니다.
+create or replace function public.apply_product_type_to_existing()
+returns integer language plpgsql security definer set search_path = '' as $$
+declare
+  v_count integer:=0;
+  v_rows integer;
+begin
+  if not public.inventory_access_allowed() then raise exception 'ACCOUNT_DISABLED' using errcode='42501'; end if;
+  update public.stock_movements t set product_type=p.product_type
+    from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
+  get diagnostics v_rows = row_count; v_count:=v_count+v_rows;
+  update public.stock_lots t set product_type=p.product_type
+    from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
+  get diagnostics v_rows = row_count; v_count:=v_count+v_rows;
+  update public.sales_orders t set product_type=p.product_type
+    from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
+  get diagnostics v_rows = row_count; v_count:=v_count+v_rows;
+  update public.purchase_order_lines t set product_type=p.product_type
+    from public.stock_products p where p.id=t.product_id and t.product_type is distinct from p.product_type;
+  get diagnostics v_rows = row_count; v_count:=v_count+v_rows;
+  return v_count;
+end;
+$$;
+revoke all on function public.apply_product_type_to_existing() from public,anon;
+grant execute on function public.apply_product_type_to_existing() to authenticated;
 
 commit;

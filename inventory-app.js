@@ -428,6 +428,8 @@ function errorText(error) {
     SALES_ORDER_NOT_FOUND:'연결할 수주를 찾을 수 없습니다. 수주 목록을 새로 확인하세요.',
     SALES_ORDER_PRODUCT_MISMATCH:'선택한 수주의 품명·규격·단위가 출고 품목과 다릅니다.',
     SHIPMENT_STATUS_LOCKED:'연결된 출고가 있는 수주는 누적 출고 수량에 따라 매출 상태가 자동 결정됩니다.',
+    SALES_ORDER_COMPLETION_REVERTED:'매출완료가 취소된 수주는 전량 출고 상태이므로 추가 출고를 등록할 수 없습니다. 연결된 출고를 먼저 삭제하세요.',
+    SALES_ORDER_NOT_COMPLETED:'매출완료 상태인 수주만 매출완료를 취소할 수 있습니다.',
     PRODUCT_CLASSIFICATION_REQUIRED:'품목 자산 분류를 선택하세요.',
     PRODUCT_CLASSIFICATION_TYPE_REQUIRED:'품목 자산 분류의 재고자산종류를 먼저 설정하세요.',
     QUANTITY_MANAGEMENT_DISABLED:'이 분류는 재고수량을 관리하지 않아 원자재 수불부에 등록할 수 없습니다.',
@@ -617,6 +619,11 @@ function renderSalesStatus(view='status'){
     const action=document.createElement('td'),button=document.createElement('button');
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
     action.append(button);
+    if(view==='query'&&salesOrderStatus(order)==='완료'&&Number(order.shipped_quantity||0)>0){
+      const revertButton=document.createElement('button');
+      revertButton.type='button';revertButton.className='secondary';revertButton.textContent='매출완료 취소';
+      revertButton.dataset.salesRevertOrderId=order.id;action.append(revertButton);
+    }
     if(view!=='query'){
       action.className='sales-status-action';
       const registerButton=document.createElement('button');
@@ -1281,6 +1288,22 @@ function applySalesStatusSearch(clear=false,view='status'){
     vendorName:view==='query'&&!clear?$('sales-query-vendor').value.trim():''};
   if(view==='query')appliedSalesQueryFilters=filters;else appliedSalesStatusFilters=filters;
   $(`${prefix}-message`).textContent='';renderSalesStatus(view);
+}
+async function revertSalesOrderCompletion(id){
+  const order=salesOrders.find(row=>row.id===id);
+  if(!order||!currentUser||salesStatusUpdating)return;
+  if(!window.confirm(`수주 '${order.order_number} · ${order.product_name}'의 매출완료를 취소하시겠습니까? 취소 후에는 연결된 출고를 먼저 삭제해야 수주를 삭제할 수 있으며, 추가 출고는 등록할 수 없습니다.`))return;
+  const generation=authGeneration;
+  salesStatusUpdating=true;renderSalesStatus('query');renderSalesBalance();$('sales-query-message').textContent='매출완료를 취소하는 중…';
+  try{
+    const {data,error}=await client.rpc('revert_sales_order_completion',{p_order_id:id});
+    if(error)throw error;
+    if(generation!==authGeneration)return;
+    salesOrders=salesOrders.map(row=>row.id===data.id?data:row);renderSalesOrders();renderSalesStatus();renderSalesStatus('query');renderSalesBalance();updateIssueSalesOrders();
+    $('sales-query-message').textContent='수주 '+order.order_number+' 품목의 매출완료를 취소했습니다. 연결된 출고를 삭제한 뒤 수주를 삭제할 수 있습니다.';
+  }catch(error){
+    if(generation===authGeneration)$('sales-query-message').textContent='매출완료 취소에 실패했습니다. '+errorText(error);
+  }finally{salesStatusUpdating=false;renderSalesStatus();renderSalesStatus('query');renderSalesBalance();}
 }
 async function changeSalesOrderStatus(event){
   const select=event.target,order=salesOrders.find(row=>row.id===select.dataset.orderId);
@@ -2295,7 +2318,7 @@ async function movementUsedDownstream(movement){
     if(!movement.sales_order_id)return '';
     const {data,error}=await client.from('sales_orders').select('*').eq('id',movement.sales_order_id).maybeSingle();
     if(error)throw error;
-    return data&&salesOrderStatus(data)==='완료'?'이 출고는 매출 등록이 완료된 수주에 연결되어 있습니다.':'';
+    return data&&salesOrderStatus(data)==='완료'?'이 출고는 매출 등록이 완료된 수주에 연결되어 있습니다. 매출 조회에서 해당 수주의 매출완료를 취소한 뒤 다시 시도하세요.':'';
   }
   const {data,error}=await client.from('stock_lots').select('quantity,remaining_quantity').eq('movement_id',movement.id);
   if(error)throw error;
@@ -3457,6 +3480,8 @@ async function startApp(){
   });
   $('sales-query-items').addEventListener('change',changeSalesOrderStatus);
   $('sales-query-items').addEventListener('click',event=>{
+    const revertButton=event.target.closest('[data-sales-revert-order-id]');
+    if(revertButton){revertSalesOrderCompletion(revertButton.dataset.salesRevertOrderId);return;}
     const button=event.target.closest('[data-sales-order-id]');
     if(button)editSalesOrderFromStatus(button.dataset.salesOrderId);
   });

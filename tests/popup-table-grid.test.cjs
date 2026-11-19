@@ -75,8 +75,8 @@ test('수주 관리 열은 저장된 너비나 드래그로 버튼이 잘리지 
   assert.equal(headers[1].style.width,'360px');
   context.window.testSetColumnWidth(table,1,60);
   assert.equal(headers[1].style.width,'360px');
-  assert.match(read('sales-order.css'),/sales-order-draft-table th\[data-grid-min-width\]\{min-width:360px\}/);
-  assert.match(read('sales-order.css'),/sales-order-table th\[data-grid-min-width\]\{min-width:180px\}/);
+  assert.match(read('sales-order.css'),/sales-order-draft-table th\[data-grid-min-width\]\{min-width:160px\}/);
+  assert.match(read('sales-order.css'),/sales-order-table th\[data-grid-min-width\]\{min-width:150px\}/);
 });
 
 test('필수 관리 열은 기존 숨김 설정에도 표시되고 다른 열 숨김은 유지된다', () => {

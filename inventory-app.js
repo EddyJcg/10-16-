@@ -3242,6 +3242,7 @@ function installLoginWelcome(){
     if(event.source!==frame.contentWindow||event.data?.type!=='login-welcome-confirm')return;
     return loginAfterWelcome();
   });
+  $('close-login-welcome').addEventListener('click',()=>{if(!signingIn)dialog.close();});
   dialog.addEventListener('close',()=>{
     frame.src='about:blank';
     $('login-button').disabled=signingIn;

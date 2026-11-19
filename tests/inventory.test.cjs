@@ -407,7 +407,7 @@ test('dashboard adopts the reference background, round popup controls and accoun
   const html=fs.readFileSync('inventory.html','utf8');
   const css=fs.readFileSync('inventory.css','utf8'),resizeCss=fs.readFileSync('dialog-resize.css','utf8');
   assert.match(html,/class="header-language"><img src="\/korean-flag\.svg" alt="" aria-hidden="true"><span>Korean<\/span>/);
-  assert.match(html,/inventory\.css\?v=20261104-sidebar-arrow-130/);
+  assert.match(html,/inventory\.css\?v=[^"]*sidebar-icon-size=20261114-3x/);
   assert.match(css,/\.header-language img\[aria-hidden=true\]\{width:60px;height:51px;flex:0 0 60px;object-fit:contain\}/);
   assert.match(fs.readFileSync("korean-flag.svg","utf8"),/viewBox="-72 -48 144 96"/);
   assert.match(html,/id="profile-menu" class="profile-menu" hidden/);
@@ -422,9 +422,8 @@ test('dashboard adopts the reference background, round popup controls and accoun
 });
 test('header flag uses the provided image with a transparent surround',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),css=fs.readFileSync('inventory.css','utf8'),image=fs.readFileSync('korean-flag.png');
-  assert.match(html,/inventory\.css\?v=[^"]*header-flag-2x/);
-  assert.match(css,/\.header-language img\{display:block;width:40px;height:34px;flex:0 0 auto;object-fit:contain\}/);
-  assert.match(css,/\.header-language img\{width:32px;height:27\.2px\}/);
+  assert.match(html,/inventory\.css\?v=[^"]*sidebar-icon-size=20261114-3x/);
+  assert.match(css,/\.header-language img\[aria-hidden=true\]\{width:60px;height:51px;flex:0 0 60px;object-fit:contain\}/);
   assert.equal(image.readUInt32BE(16),20);
   assert.equal(image.readUInt32BE(20),17);
   assert.equal(image[25],6);

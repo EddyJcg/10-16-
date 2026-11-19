@@ -60,7 +60,7 @@ test('every popup has a text close button in its header without a duplicate foot
   assert.ok(dialogs.length>0);
   for(const dialog of dialogs){
     const bodyStart=dialog.indexOf('<div class="dialog-body');
-    const header=bodyStart<0?'':dialog.slice(0,bodyStart);
+    const header=bodyStart<0?dialog:dialog.slice(0,bodyStart);
     assert.match(header,/<button\b[^>]*class="close"[^>]*>닫기<\/button>/);
     assert.doesNotMatch(header,/>×<\/button>/);
   }

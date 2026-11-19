@@ -617,6 +617,7 @@ function renderSalesStatus(view='status'){
       money(order.amount),String(order.due_date).slice(0,10),order.delivery_method,salesAddressDisplay(order),order.notes]
       .forEach((value,index)=>row.append(makeCell(value,index===3||index===4||index===5)));
     const action=document.createElement('td'),button=document.createElement('button');
+    action.className='sales-status-action';
     button.type='button';button.className='secondary';button.textContent='수정';button.dataset.salesOrderId=order.id;
     action.append(button);
     if(view==='query'){
@@ -630,7 +631,6 @@ function renderSalesStatus(view='status'){
       revertButton.dataset.salesRevertOrderId=order.id;action.append(revertButton);
     }
     if(view!=='query'){
-      action.className='sales-status-action';
       const registerButton=document.createElement('button');
       registerButton.type='button';registerButton.className='secondary';registerButton.textContent='매출등록';
       registerButton.dataset.salesRegisterFromStatus=order.id;action.append(registerButton);

@@ -2262,9 +2262,9 @@ async function deleteProductInfo(id){
 function exportProductInfoStatusExcel() {
   const rows=filteredProductInfoStatusItems();
   return downloadDataWorkbook('export-product-info-status','품목정보 현황','품목정보 현황',
-    ['품목분류','품번','품명','규격','재질','색상','제품유형','단위','적정재고','등록자명'],
-    rows.map(item=>[item.product_category||'',item.product_code||'',item.product_name||'',item.specification||'',item.material||'',item.color||'',item.product_type||'',item.unit||'',Number(item.standard_stock_quantity||0),item.created_by_name||'기존 등록자']),
-    [8],'내보낼 품목정보가 없습니다.');
+    ['품목분류','품번','품명','규격','재질','색상','제품유형','SIZE','단위','적정재고','등록자명'],
+    rows.map(item=>[item.product_category||'',item.product_code||'',item.product_name||'',item.specification||'',item.material||'',item.color||'',item.product_type||'',item.size||'',item.unit||'',Number(item.standard_stock_quantity||0),item.created_by_name||'기존 등록자']),
+    [9],'내보낼 품목정보가 없습니다.');
 }
 async function showProductInfo() {
   if(!currentUser||busy)return;
@@ -3238,7 +3238,7 @@ async function exportExcel() {
     const buffer=await workbook.xlsx.writeBuffer();
     if(generation!==authGeneration)return;
     const url=URL.createObjectURL(new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
-    const link=document.createElement('a');link.href=url;link.download='재고현황-'+todayDate()+'.xlsx';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('19개 필드의 재고현황을 Excel로 내보냈습니다.');
+    const link=document.createElement('a');link.href=url;link.download='재고현황-'+todayDate()+'.xlsx';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify(`${STOCK_EXPORT_FIELDS.length}개 필드의 재고현황을 Excel로 내보냈습니다.`);
   }catch{notify('Excel 파일을 만들지 못했습니다.',true);}finally{exporting=false;$('export').disabled=false;}
 }
 const popupMenuDraftRows=new Map();

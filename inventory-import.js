@@ -134,6 +134,8 @@ function parseProductImportWorkbook(workbook,classifications,existingItems,units
       const column=headerIndexes.get(normalizeProductImportHeader(field.label));
       return [field.key,productImportCellText(row.getCell(column))];
     }));
+    const sizeColumn=headerIndexes.get(normalizeProductImportHeader('SIZE'));
+    values.size=sizeColumn?productImportCellText(row.getCell(sizeColumn)):'';
     if(Object.values(values).every(value=>!value))return;
 
     const rowErrors=[];
@@ -163,6 +165,7 @@ function parseProductImportWorkbook(workbook,classifications,existingItems,units
     }
     if(values.material.length>120)rowErrors.push('재질은 120자 이하여야 함');
     if(values.color.length>120)rowErrors.push('색상은 120자 이하여야 함');
+    if(values.size.length>120)rowErrors.push('SIZE는 120자 이하여야 함');
     if(!values.unit)rowErrors.push('단위 누락');
     else if(!allowedUnits.has(values.unit))rowErrors.push('지원하지 않는 단위');
     const stockQuantityText=values.standard_stock_quantity.replace(/,/g,'');
@@ -182,6 +185,7 @@ function parseProductImportWorkbook(workbook,classifications,existingItems,units
       specification:values.specification,
       material:values.material,
       color:values.color,
+      size:values.size,
       unit:values.unit,
       standard_stock_quantity:values.standard_stock_quantity
     });

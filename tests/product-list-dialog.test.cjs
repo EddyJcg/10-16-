@@ -354,9 +354,9 @@ test('product information status searches each condition independently and allow
   queries['product-info-status-specification-query'].value='';
   const exported=vm.runInContext('exportProductInfoStatusExcel()',context);
   assert.equal(exported[0],'export-product-info-status');
-  assert.deepEqual(Array.from(exported[3]),['품목분류','품번','품명','규격','재질','색상','제품유형','단위','적정재고','등록자명']);
-  assert.deepEqual(Array.from(exported[4],row=>Array.from(row)),[['','SKU-2','Backpack Beta','Spec-3','','','','',0,'기존 등록자']]);
-  assert.deepEqual(Array.from(exported[5]),[8]);
+  assert.deepEqual(Array.from(exported[3]),['품목분류','품번','품명','규격','재질','색상','제품유형','SIZE','단위','적정재고','등록자명']);
+  assert.deepEqual(Array.from(exported[4],row=>Array.from(row)),[['','SKU-2','Backpack Beta','Spec-3','','','','','',0,'기존 등록자']]);
+  assert.deepEqual(Array.from(exported[5]),[9]);
   assert.match(html,/aria-label="등록된 품목정보"><thead><tr>[\s\S]*?<th>적정재고<\/th><th>관리<\/th><\/tr>/);
 });
 test('product delete is blocked after ordering and removes unordered products after confirmation',async()=>{

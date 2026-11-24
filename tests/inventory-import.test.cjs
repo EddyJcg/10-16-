@@ -54,8 +54,21 @@ test('product import accepts flexible header spacing and arbitrary column order'
   assert.deepEqual(result.errors,[]);
   assert.deepEqual(result.rows,[{
     product_category:'원자재',product_code:'SKU-001',product_name:'품목명',
-    specification:'규격',material:'재질',color:'검정',unit:'EA(개)',standard_stock_quantity:100
+    specification:'규격',material:'재질',color:'검정',size:'',unit:'EA(개)',standard_stock_quantity:100
   }]);
+});
+
+test('product import reads the optional SIZE column and rejects overlong SIZE values',async()=>{
+  const headers=['품목자산분류','재고자산종류','품번','품명','규격','재질','색상','SIZE','단위','적정재고'];
+  const workbook=await workbookWith(headers,[
+    ['원자재','원자재','SKU-001','품목명1','규격1','','','100x200','EA(개)',10],
+    ['원자재','원자재','SKU-002','품목명2','규격2','','','A'.repeat(121),'EA(개)',10]
+  ]);
+  const result=parseProductImportWorkbook(workbook,classifications,[],units);
+
+  assert.equal(result.rows.length,1);
+  assert.equal(result.rows[0].size,'100x200');
+  assert.match(result.errors.join('\n'),/SIZE는 120자 이하여야 함/);
 });
 
 test('product import reports missing required columns and duplicate headings',async()=>{

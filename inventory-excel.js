@@ -3,19 +3,23 @@
 function createInventoryWorkbook(ExcelJS, rows) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = '재고노트';
-  const fields = typeof STOCK_FIELDS !== 'undefined' ? STOCK_FIELDS : require('./inventory-model.js').STOCK_FIELDS;
+  const fields = typeof STOCK_EXPORT_FIELDS !== 'undefined' ? STOCK_EXPORT_FIELDS : require('./inventory-model.js').STOCK_EXPORT_FIELDS;
+  const columnLetter = index => String.fromCharCode(64 + index);
+  const letterOf = key => columnLetter(fields.findIndex(field=>field.key===key)+1);
   const sheet = workbook.addWorksheet('재고현황',{views:[{state:'frozen',xSplit:3,ySplit:1}]});
   sheet.columns = fields.map(field=>({header:field.label,width:field.numeric?17:field.key==='product_name'||field.key==='specification'?26:20}));
   rows.forEach(item => {
     // 문자열을 수식 객체로 변환하지 않아 =, + 등으로 시작하는 품목명도 그대로 보존합니다.
     const row=sheet.addRow(fields.map(field=>field.numeric?Number(item[field.key]||0):String(item[field.key]||'')));
     const r=row.number;
+    const oq=letterOf('opening_quantity'),rq=letterOf('receipt_quantity'),iq=letterOf('issue_quantity'),sq=letterOf('stock_quantity');
+    const oa=letterOf('opening_amount'),ra=letterOf('receipt_amount'),ia=letterOf('issue_amount'),sa=letterOf('stock_amount');
     for(const [column,formula,key] of [
-      ['G',`IF(F${r}=0,0,H${r}/F${r})`,'opening_unit_cost'],
-      ['J',`IF(I${r}=0,0,K${r}/I${r})`,'receipt_unit_cost'],
-      ['M',`IF(L${r}=0,0,N${r}/L${r})`,'issue_unit_cost'],
-      ['O',`F${r}+I${r}-L${r}`,'stock_quantity'],
-      ['P',`IF(O${r}=0,0,Q${r}/O${r})`,'stock_unit_cost']
+      [letterOf('opening_unit_cost'),`IF(${oq}${r}=0,0,${oa}${r}/${oq}${r})`,'opening_unit_cost'],
+      [letterOf('receipt_unit_cost'),`IF(${rq}${r}=0,0,${ra}${r}/${rq}${r})`,'receipt_unit_cost'],
+      [letterOf('issue_unit_cost'),`IF(${iq}${r}=0,0,${ia}${r}/${iq}${r})`,'issue_unit_cost'],
+      [sq,`${oq}${r}+${rq}${r}-${iq}${r}`,'stock_quantity'],
+      [letterOf('stock_unit_cost'),`IF(${sq}${r}=0,0,${sa}${r}/${sq}${r})`,'stock_unit_cost']
     ])row.getCell(column).value={formula,result:Number(item[key]||0)};
   });
   sheet.eachRow(row => { row.font = {name:'Arial',size:11}; row.height = 22; });
@@ -24,7 +28,7 @@ function createInventoryWorkbook(ExcelJS, rows) {
   header.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FF163E32'}};
   header.height = 28;
   fields.forEach((field,index)=>{if(field.numeric)sheet.getColumn(index+1).numFmt=field.key.endsWith('_quantity')?'#,##0':'#,##0.00';});
-  sheet.autoFilter = {from:'A1',to:'S' + sheet.rowCount};
+  sheet.autoFilter = {from:'A1',to:columnLetter(fields.length) + sheet.rowCount};
   return workbook;
 }
 

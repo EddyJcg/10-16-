@@ -7,6 +7,7 @@ const STOCK_FIELDS = [
   ['stock_quantity','재고수량'],['stock_unit_cost','재고단가'],['stock_amount','재고금액'],
   ['storage_location','저장위치'],['supplier','납품업체']
 ].map(([key,label]) => ({key,label,numeric:/_(quantity|unit_cost|amount)$/.test(key)}));
+const STOCK_EXPORT_FIELDS = STOCK_FIELDS.flatMap(field=>field.key==='material'?[field,{key:'size',label:'SIZE',numeric:false}]:[field]);
 const STOCK_DISPLAY_FIELDS = STOCK_FIELDS.flatMap(field=>field.key==='opening_quantity'?[{key:'size',label:'SIZE',numeric:false},{key:'unit',label:'단위',numeric:false},field]:[field]);
 const PRODUCT_UNITS = ['EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식'];
 const PRODUCT_FIELDS = ['product_category','product_code','product_name','specification','material','color','unit','storage_location','supplier'];
@@ -108,4 +109,4 @@ function planFifo(lots,quantity,date) {
   const amount = Number(amountCents)/100;
   return {allocations,shortage:Math.max(left,0),amount,unitCost:quantity>0 ? amount/quantity : 0};
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,isStockLedgerManaged,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,filterSalesOrders,salesOrderStatus,summarizeSalesOrders,todayDate,validDate,validOrderDueDate,nextPurchaseOrderNumber,planFifo};
+if (typeof module !== 'undefined' && module.exports) module.exports = {STOCK_FIELDS,STOCK_EXPORT_FIELDS,STOCK_DISPLAY_FIELDS,PRODUCT_FIELDS,PRODUCT_UNITS,CURRENT_STOCK_FIELDS,currentStockRows,isStockLedgerManaged,stockRiskItems,stockAgingRows,sixMonthsAgoDate,filterInventoryItems,filterSalesOrders,salesOrderStatus,summarizeSalesOrders,todayDate,validDate,validOrderDueDate,nextPurchaseOrderNumber,planFifo};

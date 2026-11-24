@@ -385,7 +385,7 @@ let appliedSalesBalanceFilters={startDate:'',endDate:'',orderType:''};
 const printMargins = {top:10,right:10,bottom:10,left:10};
 let printMarginDrag = null,activePrintTarget='product-list';
 const columnWidthDefaults={
-  'current-stock':[120,140,160,150,120,120,110,110,90,120,140,150,150],
+  'current-stock':[120,140,160,150,120,120,110,90,110,90,120,140,150,150],
   'movement-list':[100,115,90,140,160,150,120,130,150,90,100,110,120,140,140,140,140,140,86]
 };
 let mode = 'opening',requestId = null,selectedCode = '',productLots = [],lotsGeneration = 0,productLotsReady = false;
@@ -2007,7 +2007,7 @@ function populateProductInfo(source) {
   if(item.classification_id)$('info_product_category').value=item.classification_id;
   else $('info_product_category').options[0].textContent=item.product_category+' (기존 분류)';
   const fillBlankOnly=source==='info_specification';
-  ['product_code','product_name','specification','material','color','product_type','unit','standard_stock_quantity'].forEach(key=>{
+  ['product_code','product_name','specification','material','color','product_type','size','unit','standard_stock_quantity'].forEach(key=>{
     const field=$('info_'+key),value=item[key]??(key==='unit'?'EA(개)':'');
     if(fillBlankOnly&&String(field.value).trim())return;
     field.value=value;
@@ -2180,7 +2180,7 @@ function renderProductInfoItems() {
     const row=document.createElement('tr'),classification=assetClassifications.find(entry=>entry.id===draft.classification_id||entry.name===draft.product_category);
     bindStockRow(row,draft);
     row.append(makeCell(draft.product_category||''),makeCell(classification?.inventory_asset_type||'미지정'));
-    ['product_code','product_name','specification','material','color','product_type','unit'].forEach(key=>row.append(makeCell(draft[key]||'')));
+    ['product_code','product_name','specification','material','color','product_type','size','unit'].forEach(key=>row.append(makeCell(draft[key]||'')));
     row.append(makeCell(draft.standard_stock_quantity==null?'':number(draft.standard_stock_quantity)+' '+(draft.unit||'EA(개)')));
     const manage=document.createElement('td'),edit=document.createElement('button'),label=document.createElement('label'),box=document.createElement('input');
     edit.type='button';edit.className='secondary';edit.textContent='수정';edit.dataset.productInfoDraftEdit=draft.draftId;
@@ -2222,7 +2222,7 @@ function renderProductInfoStatus() {
   filtered.forEach(item=>{
     const row=document.createElement('tr');
     bindStockRow(row,item);
-    ['product_category','product_code','product_name','specification','material','color','product_type','unit'].forEach(key=>row.append(makeCell(item[key]||'')));
+    ['product_category','product_code','product_name','specification','material','color','product_type','size','unit'].forEach(key=>row.append(makeCell(item[key]||'')));
     row.append(makeCell(number(item.standard_stock_quantity)+' '+(item.unit||'EA(개)')));
     const action=document.createElement('td'),button=document.createElement('button');
     row.append(makeCell(item.created_by_name||'기존 등록자'));
@@ -2361,12 +2361,12 @@ async function editProductInfo(id){
   updateProductClassificationOptions();
   [['product_category','classification_id'],['product_code','product_code'],['product_name','product_name'],
     ['specification','specification'],['material','material'],['color','color'],['product_type','product_type'],['unit','unit'],
-    ['standard_stock_quantity','standard_stock_quantity']].forEach(([field,key])=>$('info_'+field).value=item[key]??'');
+    ['standard_stock_quantity','standard_stock_quantity'],['size','size']].forEach(([field,key])=>$('info_'+field).value=item[key]??'');
   lockProcessedProductInfoFields(processed);
-  if(processed)window.alert('입출고·발주·수주에서 처리된 품목정보입니다.\n품번, 품명, 규격, 색상, 품목자산분류, 단위는 변경할 수 없습니다.\n재질, 적정재고, 제품유형은 변경하거나 비어 있으면 입력할 수 있습니다.');
+  if(processed)window.alert('입출고·발주·수주에서 처리된 품목정보입니다.\n품번, 품명, 규격, 색상, 품목자산분류, 단위는 변경할 수 없습니다.\n재질, 적정재고, 제품유형, SIZE는 변경하거나 비어 있으면 입력할 수 있습니다.');
   $('cancel-product-info-edit').hidden=false;
   $('product-info-status').textContent=processed
-    ?'재질, 적정재고, 제품유형만 수정할 수 있습니다. 수정 후 품목정보 가등록을 누르세요.'
+    ?'재질, 적정재고, 제품유형, SIZE만 수정할 수 있습니다. 수정 후 품목정보 가등록을 누르세요.'
     :'품목정보를 수정한 뒤 품목정보 가등록을 누르세요.';
   renderProductInfoItems();
   $('product-info-dialog').showModal();
@@ -2517,7 +2517,7 @@ async function importReceiptFile(event){
   }
 }
 function readProductInfoForm(){
-  const fields=['product_category','product_code','product_name','specification','material','color','product_type','unit','standard_stock_quantity'];
+  const fields=['product_category','product_code','product_name','specification','material','color','product_type','size','unit','standard_stock_quantity'];
   const details=Object.fromEntries(fields.map(key=>[key,$('info_'+key).value.trim()]));
   const selectedClassification=assetClassifications.find(row=>row.id===$('info_product_category').value);
   details.classification_id=selectedClassification?.id||null;details.product_category=selectedClassification?.name||'';
@@ -2580,14 +2580,14 @@ async function editProductInfoDraft(draftId){
   editingProductInfoId=draft.productId||'';
   updateProductClassificationOptions();
   $('info_product_category').value=draft.classification_id||'';
-  ['product_code','product_name','specification','material','color','product_type','unit'].forEach(key=>$('info_'+key).value=draft[key]??'');
+  ['product_code','product_name','specification','material','color','product_type','size','unit'].forEach(key=>$('info_'+key).value=draft[key]??'');
   $('info_standard_stock_quantity').value=draft.standard_stock_quantity??'';
   lockProcessedProductInfoFields(processed);
   $('cancel-product-info-edit').hidden=!draft.productId;
   $('product-info-status').textContent=!draft.productId
     ?'가등록 품목을 입력 칸으로 불러왔습니다. 수정한 뒤 품목정보 가등록을 누르세요.'
     :processed
-      ?'재질, 적정재고, 제품유형만 수정할 수 있습니다. 수정 후 품목정보 가등록을 누르세요.'
+      ?'재질, 적정재고, 제품유형, SIZE만 수정할 수 있습니다. 수정 후 품목정보 가등록을 누르세요.'
       :'품목정보를 수정한 뒤 품목정보 가등록을 누르세요.';
   renderProductInfoItems();
   $('info_product_code').focus();

@@ -7,11 +7,11 @@ const STOCK_FIELDS = [
   ['stock_quantity','재고수량'],['stock_unit_cost','재고단가'],['stock_amount','재고금액'],
   ['storage_location','저장위치'],['supplier','납품업체']
 ].map(([key,label]) => ({key,label,numeric:/_(quantity|unit_cost|amount)$/.test(key)}));
-const STOCK_DISPLAY_FIELDS = STOCK_FIELDS.flatMap(field=>field.key==='opening_quantity'?[{key:'unit',label:'단위',numeric:false},field]:[field]);
+const STOCK_DISPLAY_FIELDS = STOCK_FIELDS.flatMap(field=>field.key==='opening_quantity'?[{key:'size',label:'SIZE',numeric:false},{key:'unit',label:'단위',numeric:false},field]:[field]);
 const PRODUCT_UNITS = ['EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식'];
 const PRODUCT_FIELDS = ['product_category','product_code','product_name','specification','material','color','unit','storage_location','supplier'];
 const CURRENT_STOCK_FIELDS = STOCK_FIELDS.filter(field=>! /^(opening|receipt|issue)_/.test(field.key))
-  .flatMap(field=>field.key==='material'?[field,{key:'color',label:'색상',numeric:false}]:field.key==='stock_quantity'?[{key:'unit',label:'단위',numeric:false},field]:[field]);
+  .flatMap(field=>field.key==='material'?[field,{key:'color',label:'색상',numeric:false}]:field.key==='stock_quantity'?[{key:'size',label:'SIZE',numeric:false},{key:'unit',label:'단위',numeric:false},field]:[field]);
 function currentStockRows(rows) { return rows.filter(row=>isStockLedgerManaged(row)&&Number(row.stock_quantity)>0); }
 function isStockLedgerManaged(row) {
   return row.quantity_management_disabled!==true&&row.value_management_disabled!==true;

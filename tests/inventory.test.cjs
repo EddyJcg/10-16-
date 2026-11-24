@@ -90,7 +90,7 @@ function makeDialogHarness(dialogOptions=[]){
 }
 
 test('current stock keeps all workbook fields except opening, receipt and issue totals',()=>{
-  assert.deepEqual(CURRENT_STOCK_FIELDS.map(field=>field.label),['품목분류','품번','품명','규격','재질','색상','단위','재고수량','재고단가','재고금액','저장위치','납품업체']);
+  assert.deepEqual(CURRENT_STOCK_FIELDS.map(field=>field.label),['품목분류','품번','품명','규격','재질','색상','SIZE','단위','재고수량','재고단가','재고금액','저장위치','납품업체']);
 });
 test('all inventory input forms use the selected master unit before quantity',()=>{
   const html=fs.readFileSync('inventory.html','utf8'),transaction=html.match(/<div class="transaction-grid">([\s\S]*?)<\/div><div id="fifo-section"/)[1];
@@ -104,7 +104,8 @@ test('all inventory input forms use the selected master unit before quantity',()
   assert.match(html,/<label for="info_unit">단위<\/label><select id="info_unit" required>/);
   assert.match(html,/<label for="info_standard_stock_quantity">적정재고 수량<\/label><input id="info_standard_stock_quantity" type="number" required min="0" max="1000" step="1"/);
   assert.ok(STOCK_DISPLAY_FIELDS.findIndex(field=>field.key==='unit')<STOCK_DISPLAY_FIELDS.findIndex(field=>field.key==='opening_quantity'));
-  assert.ok(CURRENT_STOCK_FIELDS.findIndex(field=>field.key==='unit')<CURRENT_STOCK_FIELDS.findIndex(field=>field.key==='stock_quantity'));
+  assert.ok(CURRENT_STOCK_FIELDS.findIndex(field=>field.key==='size')===CURRENT_STOCK_FIELDS.findIndex(field=>field.key==='unit')-1);
+  assert.ok(STOCK_DISPLAY_FIELDS.findIndex(field=>field.key==='size')===STOCK_DISPLAY_FIELDS.findIndex(field=>field.key==='unit')-1);
 });
 test('movement form locks a known product unit and resets unknown product input',()=>{
   const nodes=new Map(),context=vm.createContext({PRODUCT_FIELDS,document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',disabled:false,readOnly:false});return nodes.get(id);}}});

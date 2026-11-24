@@ -273,7 +273,7 @@ test('current stock dialog has a resizable column for every displayed field',()=
   const style=readFileSync('inventory.css','utf8');
   assert.match(html,/<table id="current-stock-table" aria-label="현재 재고현황">/);
   const columns=html.match(/<colgroup id="current-stock-columns">([\s\S]*?)<\/colgroup>/)?.[1]||'';
-  assert.equal((columns.match(/<col>/g)||[]).length,13);
+  assert.equal((columns.match(/<col>/g)||[]).length,14);
   assert.match(renderer,/\[\{label:'일련번호',numeric:true\},\.\.\.CURRENT_STOCK_FIELDS\]\.forEach\(\(field,index\)/);
   assert.match(script,/'current-stock-table','current-stock-columns','inventory-current-stock-column-widths'/);
   assert.match(style,/#current-stock-table \.column-resizer,#movement-list-table \.column-resizer\{display:none!important\}/);
@@ -418,7 +418,7 @@ test('product edits require confirmation, are blocked after ordering and stage t
   assert.equal(element('product-info-dialog').open,undefined);
   vm.runInContext('confirmResult=true;processedFlag=true',context);
   await vm.runInContext(`editProductInfo('p1')`,context);
-  assert.match(alerts[0],/품번, 품명, 규격, 색상, 품목자산분류, 단위는 변경할 수 없습니다.*재질, 적정재고, 제품유형은/s);
+  assert.match(alerts[0],/품번, 품명, 규격, 색상, 품목자산분류, 단위는 변경할 수 없습니다.*재질, 적정재고, 제품유형, SIZE는/s);
   assert.equal(element('product-info-status-dialog').open,false);
   assert.equal(element('product-info-dialog').open,true);
   assert.equal(element('info_product_code').readOnly,true);
@@ -429,7 +429,7 @@ test('product edits require confirmation, are blocked after ordering and stage t
   assert.equal(element('info_unit').disabled,true);
   assert.equal(element('info_material').readOnly,false);
   assert.equal(element('info_standard_stock_quantity').readOnly,false);
-  assert.match(element('product-info-status').textContent,/재질, 적정재고, 제품유형만 수정/);
+  assert.match(element('product-info-status').textContent,/재질, 적정재고, 제품유형, SIZE만 수정/);
   vm.runInContext('processedFlag=false',context);
   alerts.length=0;
   await vm.runInContext(`editProductInfo('p1')`,context);

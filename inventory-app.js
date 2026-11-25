@@ -1994,7 +1994,7 @@ function productForLookup(source,value=$(source).value) {
 }
 let productCodeEntries=[];
 const PRODUCT_CODE_PICKS={name_prefix:'info_name_prefix',name_part:'info_name_part',product_type:'info_product_type',size:'info_size',color:'info_color'};
-const PRODUCT_CODE_GROUPS=[['name_prefix','품명 1·2자리'],['name_part','품명 3·4자리'],['product_type','제품유형 (6·7자리)'],['size','SIZE (8·9자리)'],['color','색상 (10·11자리)']];
+const PRODUCT_CODE_GROUPS=[['name_prefix','품명 1·2자리'],['name_part','품명 3·4자리'],['product_type','제품유형 (6·7자리)'],['size','SIZE (8·9자리, 선택)'],['color','색상 (10·11자리)']];
 async function loadProductCodeEntries(){
   const {data,error}=await client.from('product_code_entries').select('group_key,code,label').order('code');
   if(error)throw error;

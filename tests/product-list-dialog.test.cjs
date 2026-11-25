@@ -374,7 +374,7 @@ test('product delete is blocked after ordering and removes unordered products af
     client={from:()=>({select:()=>({eq:async()=>({count:usedCount,error:null})})}),
       rpc:async(name,args)=>(calls.push([name,args]),{data:{id:args.p_product_id},error:null})};`,context);
   await vm.runInContext(`deleteProductInfo('p1')`,context);
-  assert.equal(alerts[0],'해당 품목은 삭제할 수 없으니 이후 단계에서 처리된 내용을 삭제 하여 주시기 바랍니다.');
+  assert.match(alerts[0],/해당 품목은 삭제할 수 없습니다\.[\s\S]*\[먼저 지울 단계\][\s\S]*입출고 내역 창/);
   assert.equal(confirmations.length,0);assert.equal(calls.length,0);
   vm.runInContext('usedCount=0',context);
   await vm.runInContext(`deleteProductInfo('p1')`,context);

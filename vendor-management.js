@@ -267,8 +267,9 @@ async function saveVendor(event,copy=false){
   }catch(error){if(generation===authGeneration)status.textContent=vendorErrorText(error);}
   finally{vendor$('vendor-form').querySelectorAll('button,input,select,textarea').forEach(field=>field.disabled=false);}
 }
-function vendorBlockedAlert(detail){
-  window.alert('처리할 수 없습니다.\n'+detail+'\n이후 프로세스에서 먼저 처리한 뒤 다시 시도하세요.');
+function vendorBlockedAlert(reason){
+  const {detail,steps=[]}=typeof reason==='string'?{detail:reason}:reason;
+  window.alert('처리할 수 없습니다.\n'+detail+(steps.length?'\n\n[먼저 지울 단계]\n'+steps.map((step,index)=>`${index+1}. ${step}`).join('\n'):''));
 }
 async function vendorUsedDownstream(record){
   const names=[...new Set([record.legal_name,record.vendor_name].map(name=>String(name||'').trim()).filter(Boolean))];
@@ -279,8 +280,8 @@ async function vendorUsedDownstream(record){
   ]);
   if(orders.error)throw orders.error;
   if(sales.error)throw sales.error;
-  if((orders.count||0)>0)return '이 거래처는 구매발주에 사용되었습니다.';
-  if((sales.count||0)>0)return '이 거래처는 수주에 사용되었습니다.';
+  if((orders.count||0)>0)return {detail:'이 거래처는 구매발주에 사용되었습니다.',steps:['구매발주 창에서 이 거래처가 지정된 발주 내역 확인']};
+  if((sales.count||0)>0)return {detail:'이 거래처는 수주에 사용되었습니다.',steps:['수주현황 창에서 이 거래처의 수주 삭제 (출고 또는 매출완료된 수주는 삭제 불가)']};
   return '';
 }
 async function deleteVendor(){

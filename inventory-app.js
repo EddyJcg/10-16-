@@ -2423,25 +2423,28 @@ function renderProductInfoStatus() {
     action.append(button,remove);row.append(action);body.append(row);
   });
 }
-const PRODUCT_DELETE_BLOCKED_MESSAGE='해당 품목은 삭제할 수 없으니 이후 단계에서 처리된 내용을 삭제 하여 주시기 바랍니다.';
 async function deleteProductInfo(id){
   const item=items.find(row=>row.id===id);if(!item||busy)return;
   if(productInfoDrafts.some(draft=>draft.productId===id)){
     window.alert('이미 가등록 목록에 있는 품목입니다. 품목정보 등록 창에서 일괄 저장 또는 일괄 삭제를 진행하세요.');
     return;
   }
+  let reason;
   try{
-    if(await productInfoUsedInPurchase(id)||await productInfoUsedInMovements(id)){window.alert(PRODUCT_DELETE_BLOCKED_MESSAGE);return;}
+    reason=await productDeleteBlockReason(id);
   }catch(error){
-    window.alert('발주 사용 여부를 확인하지 못했습니다. 삭제를 진행하지 않습니다. '+errorText(error));
+    window.alert('발주·입출고 사용 여부를 확인하지 못했습니다. 삭제를 진행하지 않습니다. '+errorText(error));
     return;
   }
+  if(reason){alertBlocked(reason);return;}
   if(!window.confirm(`품목 '${item.product_code} ${item.product_name||''}'을(를) 삭제하시겠습니까?`))return;
   try{
     const {error}=await client.rpc('delete_stock_product',{p_product_id:id});
     if(error)throw error;
   }catch(error){
-    window.alert(/PRODUCT_USED_IN_PURCHASE|PRODUCT_HAS_LEDGER_HISTORY/.test(error?.message||'')?PRODUCT_DELETE_BLOCKED_MESSAGE:'품목정보를 삭제하지 못했습니다. '+errorText(error));
+    if(/PRODUCT_USED_IN_PURCHASE|PRODUCT_HAS_LEDGER_HISTORY/.test(error?.message||'')){
+      alertBlocked(await productDeleteBlockReason(id).catch(()=>'')||{detail:'해당 품목은 삭제할 수 없습니다.',steps:[]});
+    }else window.alert('품목정보를 삭제하지 못했습니다. '+errorText(error));
     return;
   }
   items=items.filter(row=>row.id!==id);
@@ -2511,27 +2514,36 @@ async function productInfoUsedInMovements(productId){
   if(error)throw error;
   return (count||0)>0;
 }
-function alertBlocked(detail){
-  window.alert('처리할 수 없습니다.\n'+detail+'\n먼저 이후 프로세스의 data를 삭제한 뒤 다시 시도하세요.');
+function alertBlocked(reason){
+  const {detail,steps=[]}=typeof reason==='string'?{detail:reason}:reason;
+  window.alert('처리할 수 없습니다.\n'+detail+(steps.length?'\n\n[먼저 지울 단계]\n'+steps.map((step,index)=>`${index+1}. ${step}`).join('\n'):''));
 }
 async function movementUsedDownstream(movement){
   if(movement.kind==='issue'){
     if(!movement.sales_order_id)return '';
     const {data,error}=await client.from('sales_orders').select('*').eq('id',movement.sales_order_id).maybeSingle();
     if(error)throw error;
-    return data&&salesOrderStatus(data)==='완료'?'이 출고는 매출 등록이 완료된 수주에 연결되어 있습니다. 매출 조회에서 해당 수주의 매출완료를 취소한 뒤 다시 시도하세요.':'';
+    return data&&salesOrderStatus(data)==='완료'?{detail:'이 출고는 매출 등록이 완료된 수주에 연결되어 있습니다.',steps:['수주현황 창에서 해당 수주의 매출완료 취소','입출고 내역 창에서 이 출고 내역 되돌리기']}:'';
   }
   const {data,error}=await client.from('stock_lots').select('quantity,remaining_quantity').eq('movement_id',movement.id);
   if(error)throw error;
-  return (data||[]).some(lot=>Number(lot.remaining_quantity)<Number(lot.quantity))?'이 입고(기초) 수량이 이미 출고에 사용되었습니다.':'';
+  return (data||[]).some(lot=>Number(lot.remaining_quantity)<Number(lot.quantity))?{detail:'이 입고(기초) 수량이 이미 출고에 사용되었습니다.',steps:['입출고 내역 창에서 이 입고를 사용한 출고 내역을 먼저 되돌리기','그 다음 이 입고 내역 되돌리기']}:'';
 }
 function salesOrderDownstreamReason(id){
   const order=salesOrders.find(row=>row.id===id);if(!order)return '';
   const groupId=order.order_group_id||order.id;
   const group=salesOrders.filter(row=>(row.order_group_id||row.id)===groupId);
-  if(group.some(row=>Number(row.shipped_quantity)>0))return '이 수주는 출고 처리된 내역이 있습니다.';
-  if(group.some(row=>salesOrderStatus(row)==='완료'))return '이 수주는 매출 등록이 완료되었습니다.';
+  if(group.some(row=>Number(row.shipped_quantity)>0))return {detail:'이 수주는 출고 처리된 내역이 있습니다.',steps:['입출고 내역 창에서 이 수주에 연결된 출고 내역 되돌리기','이후 수주현황 창에서 수주 수정 또는 삭제']};
+  if(group.some(row=>salesOrderStatus(row)==='완료'))return {detail:'이 수주는 매출 등록이 완료되었습니다.',steps:['수주현황 창에서 해당 수주의 매출완료 취소']};
   return '';
+}
+async function productDeleteBlockReason(id){
+  const [purchase,movements]=await Promise.all([productInfoUsedInPurchase(id),productInfoUsedInMovements(id)]);
+  if(!purchase&&!movements)return '';
+  const steps=[];
+  if(movements)steps.push('입출고 내역 창에서 이 품목의 출고 내역을 먼저 되돌린 뒤 입고 내역 되돌리기');
+  if(purchase)steps.push('구매발주 창에서 이 품목이 포함된 발주 내역 확인');
+  return {detail:'해당 품목은 삭제할 수 없습니다.',steps};
 }
 async function editProductInfo(id){
   const item=items.find(row=>row.id===id);if(!item||busy)return;
@@ -2973,7 +2985,9 @@ async function revertReceipt(id){
   }catch(error){
     if(generation!==authGeneration)return false;
     const missing=/PGRST202|42883/.test(error?.code||'')||opening&&/NOT_A_RECEIPT/.test(error?.message||'');
-    window.alert(/INSUFFICIENT_STOCK|OPENING_USED_DOWNSTREAM/.test(error?.message||'')?'처리할 수 없습니다.\n이 입고(기초) 수량이 이미 출고에 사용되었습니다.\n먼저 이후 프로세스의 data를 삭제한 뒤 다시 시도하세요.':missing?`${label} 삭제 기능이 DB에 적용되지 않았습니다. Supabase SQL Editor에서 최신 supabase/revert-stock-receipt.sql을 실행한 뒤 다시 시도하세요.`:`${label} 내역을 삭제하지 못했습니다. `+errorText(error));
+    if(/INSUFFICIENT_STOCK|OPENING_USED_DOWNSTREAM/.test(error?.message||''))return alertBlocked({detail:`이 ${label} 수량이 이미 출고에 사용되었습니다.`,steps:['입출고 내역 창에서 이 입고(기초) 수량을 사용한 출고 내역 삭제','입출고 내역 창에서 해당 입고(기초) 내역 삭제']});
+    window.alert(missing?
+`${label} 삭제 기능이 DB에 적용되지 않았습니다. Supabase SQL Editor에서 최신 supabase/revert-stock-receipt.sql을 실행한 뒤 다시 시도하세요.`:`${label} 내역을 삭제하지 못했습니다. `+errorText(error));
   }finally{busy=false;}
 }
 async function revertIssue(id){

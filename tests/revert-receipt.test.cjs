@@ -59,7 +59,7 @@ test('opening deletion confirms, blocks downstream use and reports database erro
   vm.runInContext(app.slice(app.indexOf('async function revertReceipt'),app.indexOf('async function showMovementList')),context);
   used=true;
   assert.equal(await context.revertReceipt('o1'),false);
-  assert.match(alerts.at(-1),/먼저 이후 프로세스의 data를 삭제/);
+  assert.match(alerts.at(-1),/\[먼저 지울 단계\]/);
   assert.equal(confirmations.length,0);
   assert.equal(calls.length,0);
   used=false;lookupError=new Error('조회 실패');
@@ -71,7 +71,7 @@ test('opening deletion confirms, blocks downstream use and reports database erro
   assert.equal(calls.length,0);
   confirmed=true;rpcError={message:'OPENING_USED_DOWNSTREAM'};
   assert.equal(await context.revertReceipt('o1'),undefined);
-  assert.match(alerts.at(-1),/먼저 이후 프로세스의 data를 삭제/);
+  assert.match(alerts.at(-1),/\[먼저 지울 단계\]/);
   assert.equal(renders,0);
   rpcError={message:'NOT_A_RECEIPT'};
   await context.revertReceipt('o1');

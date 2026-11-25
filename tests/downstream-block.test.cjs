@@ -4,7 +4,7 @@ const {readFileSync}=require('node:fs');
 
 test('edit and delete buttons warn when a later process already uses the record',()=>{
   const app=readFileSync('inventory-app.js','utf8'),vendor=readFileSync('vendor-management.js','utf8');
-  assert.match(app,/function alertBlocked\(detail\)\{\s*window\.alert\(/);
+  assert.match(app,/function alertBlocked\(reason\)\{[\s\S]*?window\.alert\(/);
   assert.match(app,/async function editMovement\(id\)\{[\s\S]*?movementUsedDownstream\(movement\)[\s\S]*?alertBlocked\(reason\)/);
   assert.match(app,/async function revertReceipt\(id\)\{[\s\S]*?movementUsedDownstream\(movement\)[\s\S]*?alertBlocked\(reason\)/);
   assert.match(app,/function editSalesOrder\(id\)\{[\s\S]*?salesOrderDownstreamReason\(id\)[\s\S]*?alertBlocked\(blockedReason\)/);
@@ -24,9 +24,9 @@ test('sales order with shipments or completed sales is blocked from editing',()=
   ]});
   vm.runInContext(app.slice(start,end),context);
   assert.equal(context.salesOrderDownstreamReason('a'),'');
-  assert.match(context.salesOrderDownstreamReason('b'),/출고/);
-  assert.match(context.salesOrderDownstreamReason('c'),/매출 등록/);
-  assert.match(context.salesOrderDownstreamReason('g1'),/출고/,'one shipped line blocks the whole order group');
+  assert.match(context.salesOrderDownstreamReason('b').detail,/출고/);
+  assert.match(context.salesOrderDownstreamReason('c').detail,/매출 등록/);
+  assert.match(context.salesOrderDownstreamReason('g1').detail,/출고/,'one shipped line blocks the whole order group');
 });
 
 test('receipt edit window has a bulk delete button left of the save button',()=>{
@@ -59,6 +59,6 @@ test('revertReceipt runs end to end without undefined variables and reverts via 
   context.movementListRows=[{id:'m1',kind:'receipt',product_id:'p1',quantity:1}];
   context.client.from=()=>query([{quantity:1,remaining_quantity:0}]);
   assert.equal(await context.revertReceipt('m1'),false);
-  assert.match(alerts.at(-1),/먼저 이후 프로세스의 data를 삭제/);
+  assert.match(alerts.at(-1),/\[먼저 지울 단계\]/);
   assert.equal(calls.length,1,'used receipts are never reverted');
 });

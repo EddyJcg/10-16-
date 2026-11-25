@@ -2478,8 +2478,14 @@ function lockProcessedProductInfoFields(processed){
   const generation=authGeneration,workbook=new window.ExcelJS.Workbook();
   let parsed;
   try{
+    await loadProductCodeEntries();
+  }catch(error){
+    window.alert('품번 항목을 불러오지 못했습니다. Supabase에서 supabase/product-code-entries.sql을 실행하세요. '+errorText(error));
+    return;
+  }
+  try{
     await workbook.xlsx.load(await file.arrayBuffer());
-    parsed=window.parseProductImportWorkbook(workbook,assetClassifications,items,PRODUCT_UNITS);
+    parsed=window.parseProductImportWorkbook(workbook,assetClassifications,items,PRODUCT_UNITS,productCodeEntries);
   }catch(error){
     window.alert('Excel 파일을 읽지 못했습니다. .xlsx 파일인지 확인하세요. '+errorText(error));
     return;

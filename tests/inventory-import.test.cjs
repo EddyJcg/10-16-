@@ -9,6 +9,13 @@ const {
 
 const classifications=[{id:'raw-id',name:'원자재',inventory_asset_type:'원자재'}];
 const units=['EA(개)','벌','Set(세트)','M','Cm','mm','Box','Kg','g','L','mL','봉','식'];
+const codeEntries=[
+  {group_key:'name_prefix',code:'TS',label:'TS'},
+  {group_key:'name_part',code:'HL',label:'HL'},
+  {group_key:'product_type',code:'FS',label:'가방'},
+  {group_key:'size',code:'01',label:'100x200'},
+  {group_key:'color',code:'03',label:'Black'}
+];
 
 async function workbookWith(headers,rows){
   const workbook=new ExcelJS.Workbook();
@@ -46,42 +53,62 @@ test('sales order import reports missing columns and all invalid rows before add
   assert.match(invalid.errors[0],/납기일자는/);
 });
 
-test('product import accepts flexible header spacing and arbitrary column order',async()=>{
-  const headers=[' 품번 ',' 재고 자산 종류 ','품목 자산분류','품명','규격','재질','색상','단 위','적정재고'];
-  const workbook=await workbookWith(headers,[['sku-001','원자재','원자재','품목명','규격','재질','검정','EA(개)',100]]);
-  const result=parseProductImportWorkbook(workbook,classifications,[],units);
+test('product import generates 품번 and 규격 from entry labels and ignores a 품번 column',async()=>{
+  const workbook=await workbookWith(['품번','품목자산분류','재고자산종류','품명','제품유형','재질','색상','SIZE','단위','적정재고'],[
+    ['IGNORED','원자재','원자재','TS_HL','가방','철','Black','100x200','EA(개)',10],
+    ['IGNORED','원자재','원자재','','','','','','EA(개)',0]
+  ]);
+  const result=parseProductImportWorkbook(workbook,classifications,[],units,codeEntries);
 
   assert.deepEqual(result.errors,[]);
-  assert.deepEqual(result.rows,[{
-    product_category:'원자재',product_code:'SKU-001',product_name:'품목명',
-    specification:'규격',material:'재질',color:'검정',size:'',unit:'EA(개)',standard_stock_quantity:100
-  }]);
+  assert.deepEqual(result.rows.map(row=>[row.product_code,row.specification,row.product_name,row.size]),[
+    ['TSHL-FS0103','IS-TSHL-FS0103','TS_HL','100x200'],
+    ['OOOO-OOOOOO','IS-OOOO-OOOOOO','OO_OO','']
+  ]);
 });
 
-test('product import reads the optional SIZE column and rejects overlong SIZE values',async()=>{
-  const headers=['품목자산분류','재고자산종류','품번','품명','규격','재질','색상','SIZE','단위','적정재고'];
-  const workbook=await workbookWith(headers,[
-    ['원자재','원자재','SKU-001','품목명1','규격1','','','100x200','EA(개)',10],
-    ['원자재','원자재','SKU-002','품목명2','규격2','','','A'.repeat(121),'EA(개)',10]
+test('product import rejects 품명, 제품유형, SIZE and 색상 values that are not registered entries',async()=>{
+  const workbook=await workbookWith(['품목자산분류','재고자산종류','품명','제품유형','재질','색상','SIZE','단위','적정재고'],[
+    ['원자재','원자재','TS-HL','가방','','Black','100x200','EA(개)',1],
+    ['원자재','원자재','TS_HL','없는 가방','','Black','100x200','EA(개)',1],
+    ['원자재','원자재','TS_HL','가방','','Black','100x300','EA(개)',1],
+    ['원자재','원자재','TS_HL','가방','','Chromic','100x200','EA(개)',1]
   ]);
-  const result=parseProductImportWorkbook(workbook,classifications,[],units);
+  const result=parseProductImportWorkbook(workbook,classifications,[],units,codeEntries);
 
-  assert.equal(result.rows.length,1);
-  assert.equal(result.rows[0].size,'100x200');
-  assert.match(result.errors.join('\n'),/SIZE는 120자 이하여야 함/);
+  assert.equal(result.rows.length,0);
+  assert.equal(result.errors.length,4);
+  assert.match(result.errors[0],/등록된 품명이 아님/);
+  assert.match(result.errors[0],/등록된 품명이 아님/);
+  assert.match(result.errors[1],/등록된 제품유형이\(가\) 아님/);
+  assert.match(result.errors[2],/등록된 SIZE이\(가\) 아님/);
+  assert.match(result.errors[3],/등록된 색상이\(가\) 아님/);
+});
+
+test('product import rejects 품번 and 규격 already registered or repeated within the file',async()=>{
+  const workbook=await workbookWith(['품목자산분류','재고자산종류','품명','제품유형','재질','색상','SIZE','단위','적정재고'],[
+    ['원자재','원자재','TS_HL','가방','','Black','100x200','EA(개)',1],
+    ['원자재','원자재','TS_HL','가방','','Black','100x200','EA(개)',1]
+  ]);
+  const existing=[{product_code:'TSHL-FS0103',specification:'IS-TSHL-FS0103'}];
+  const result=parseProductImportWorkbook(workbook,classifications,existing,units,codeEntries);
+
+  assert.equal(result.rows.length,0);
+  assert.match(result.errors[0],/이미 등록된 품번/);
+  assert.match(result.errors[0],/이미 등록된 규격/);
+  assert.match(result.errors[1],/파일 안에 중복된 품번/);
 });
 
 test('product import reports missing required columns and duplicate headings',async()=>{
-  const missingWorkbook=await workbookWith(['품목자산분류','품번'],[]);
-  const missing=parseProductImportWorkbook(missingWorkbook,classifications,[],units);
+  const missing=parseProductImportWorkbook(await workbookWith(['품목자산분류'],[]),classifications,[],units,codeEntries);
   assert.ok(missing.errors.some(error=>error.includes('필수 열 제목 누락')));
-  for(const label of PRODUCT_IMPORT_FIELDS.filter(field=>!['품목자산분류','품번'].includes(field.label)).map(field=>field.label))
+  for(const label of PRODUCT_IMPORT_FIELDS.filter(field=>field.label!=='품목자산분류').map(field=>field.label))
     assert.ok(missing.errors.join(' ').includes(label));
 
-  const duplicateWorkbook=await workbookWith(
-    PRODUCT_IMPORT_FIELDS.map(field=>field.label).concat(' 품 번 '),[]
+  const duplicate=parseProductImportWorkbook(
+    await workbookWith(PRODUCT_IMPORT_FIELDS.map(field=>field.label).concat(' 품목 자산분류 '),[]),
+    classifications,[],units,codeEntries
   );
-  const duplicate=parseProductImportWorkbook(duplicateWorkbook,classifications,[],units);
   assert.ok(duplicate.errors.some(error=>error.includes('중복된 열 제목')));
 });
 
@@ -133,34 +160,17 @@ test('receipt import reports all unregistered products and rejects mismatched or
 
 test('product import rejects every invalid row before registration',async()=>{
   const workbook=await workbookWith(PRODUCT_IMPORT_FIELDS.map(field=>field.label),[
-    ['원자재','원자재','SKU-001','정상 품목','','','','EA(개)',30],
-    ['없는 분류','원자재','SKU-002','분류 오류','','','','EA(개)',20],
-    ['원자재','원자재','SKU-001','파일 중복','','','','EA(개)',10],
-    ['원자재','원자재','EXISTING','이미 등록됨','','','','EA(개)',10],
-    ['원자재','원자재','SKU-005','잘못된 단위','','','','없음',1001]
+    ['원자재','원자재','TS_HL','가방','','Black','EA(개)',30],
+    ['없는 분류','원자재','TS_HL','','','','EA(개)',20],
+    ['원자재','원자재','TS_HL','','','Black','없음',1001]
   ]);
-  const result=parseProductImportWorkbook(workbook,classifications,[{product_code:'existing'}],units);
+  const result=parseProductImportWorkbook(workbook,classifications,[],units,codeEntries);
 
   assert.equal(result.rows.length,1);
-  assert.equal(result.errors.length,4);
+  assert.equal(result.errors.length,2);
   assert.match(result.errors.join('\n'),/등록된 품목자산분류가 아님/);
-  assert.match(result.errors.join('\n'),/파일 안에 중복된 품번/);
-  assert.match(result.errors.join('\n'),/이미 등록된 품번/);
   assert.match(result.errors.join('\n'),/지원하지 않는 단위/);
   assert.match(result.errors.join('\n'),/적정재고는 0~1,000의 정수/);
-});
-
-test('product import rejects specifications already in use or repeated in the workbook',async()=>{
-  const workbook=await workbookWith(PRODUCT_IMPORT_FIELDS.map(field=>field.label),[
-    ['원자재','원자재','SKU-001','정상 품목','기존 규격','','','EA(개)',30],
-    ['원자재','원자재','SKU-002','파일 중복 1','새 규격','','','EA(개)',30],
-    ['원자재','원자재','SKU-003','파일 중복 2',' 새 규격 ','','','EA(개)',30],
-    ['원자재','원자재','SKU-004','빈 규격','','','','EA(개)',30]
-  ]);
-  const result=parseProductImportWorkbook(workbook,classifications,[{product_code:'OLD',specification:'기존 규격'}],units);
-  assert.equal(result.rows.length,2);
-  assert.match(result.errors[0],/이미 등록된 규격/);
-  assert.match(result.errors[1],/파일 안에 중복된 규격/);
 });
 
 test('product import opens the native XLSX picker directly without an intermediate dialog',()=>{
@@ -206,6 +216,7 @@ test('opening a selected product workbook adds checked draft rows and batch save
   vm.runInContext(`currentUser={id:'user'};authGeneration=3;assetClassifications=[{id:'cls-1',name:'원자재',inventory_asset_type:'원재료'}];items=[];
     client={rpc:async(name,args)=>(calls.push([name,args]),{data:{id:args.p_details.product_code,...args.p_details},error:null})};
     loadStock=async()=>calls.push(['loadStock']);
+    loadProductCodeEntries=async()=>{};
     renderProductInfoItems=()=>calls.push(['renderProductInfoItems']);`,context);
 
   await vm.runInContext('openProductInfoFilePicker()',context);
@@ -255,6 +266,7 @@ test('invalid product-import rows show a warning and make no registration calls'
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
   context.window.parseProductImportWorkbook=()=>({errors:['필수 열 제목 누락: 품명'],rows:[]});
   vm.runInContext(`currentUser={id:'user'};authGeneration=3;assetClassifications=[];items=[];
+    loadProductCodeEntries=async()=>{};
     client={rpc:async(...args)=>(calls.push(args),{error:null})};`,context);
 
   await vm.runInContext('importProductInfoFile({target:{files:[{name:"items.xlsx",arrayBuffer:async()=>new ArrayBuffer(0)}],value:"selected"}})',context);

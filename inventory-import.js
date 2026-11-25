@@ -3,9 +3,8 @@
 const PRODUCT_IMPORT_FIELDS=[
   {key:'product_category',label:'품목자산분류'},
   {key:'inventory_asset_type',label:'재고자산종류'},
-  {key:'product_code',label:'품번'},
   {key:'product_name',label:'품명'},
-  {key:'specification',label:'규격'},
+  {key:'product_type',label:'제품유형'},
   {key:'material',label:'재질'},
   {key:'color',label:'색상'},
   {key:'unit',label:'단위'},
@@ -103,7 +102,8 @@ function productImportCellText(cell){
   return String(cell.text??cell.value).trim();
 }
 
-function parseProductImportWorkbook(workbook,classifications,existingItems,units){
+function parseProductImportWorkbook(workbook,classifications,existingItems,units,codeEntries=[]){
+  const codeRules=(typeof module!=='undefined'&&module.exports)?require('./product-code.js'):window.productCode;
   const sheet=workbook.worksheets?.[0];
   if(!sheet)return {errors:['엑셀 파일에 시트가 없습니다.'],rows:[]};
 
@@ -146,26 +146,43 @@ function parseProductImportWorkbook(workbook,classifications,existingItems,units
     if(values.inventory_asset_type&&classification&&classification.inventory_asset_type!==values.inventory_asset_type){
       rowErrors.push('품목자산분류와 재고자산종류가 일치하지 않음');
     }
-    if(!values.product_code)rowErrors.push('품번 누락');
-    else{
-      values.product_code=values.product_code.toUpperCase();
-      if(values.product_code.length>80)rowErrors.push('품번은 80자 이하여야 함');
-      if(knownCodes.has(values.product_code))rowErrors.push('이미 등록된 품번');
-      if(seenCodes.has(values.product_code))rowErrors.push('파일 안에 중복된 품번');
-      seenCodes.add(values.product_code);
+
+    const codeErrors=[];
+    const codeFor=(groupKey,label,name)=>{
+      if(!label)return '';
+      const entry=codeEntries.find(entry=>entry.group_key===groupKey&&entry.label===label);
+      if(!entry)codeErrors.push(`등록된 ${name}이(가) 아님`);
+      return entry?entry.code:null;
+    };
+    const hasCode=(groupKey,code)=>codeEntries.some(entry=>entry.group_key===groupKey&&entry.code===code);
+    let namePrefix='',namePart='';
+    if(values.product_name){
+      const parsedName=codeRules.parseProductName(values.product_name);
+      if(!parsedName||!hasCode('name_prefix',parsedName.namePrefix)||!hasCode('name_part',parsedName.namePart))
+        codeErrors.push('등록된 품명이 아님(XX_XX 형식의 품명 코드 사용)');
+      else({namePrefix,namePart}=parsedName);
     }
-    if(!values.product_name)rowErrors.push('품명 누락');
-    if(values.product_name.length>120)rowErrors.push('품명은 120자 이하여야 함');
-    if(values.specification.length>200)rowErrors.push('규격은 200자 이하여야 함');
-    const normalizedSpecification=values.specification.trim().toLocaleLowerCase('ko-KR');
+    const productTypeCode=codeFor('product_type',values.product_type,'제품유형');
+    const sizeCode=codeFor('size',values.size,'SIZE');
+    const colorCode=codeFor('color',values.color,'색상');
+
+    let productCode='',productName='',specification='';
+    if(!codeErrors.length){
+      productCode=codeRules.buildProductCode({namePrefix,namePart,productType:productTypeCode,size:sizeCode,color:colorCode});
+      productName=codeRules.buildProductName(namePrefix,namePart);
+      specification=codeRules.buildSpecification(productCode);
+      if(knownCodes.has(productCode))rowErrors.push('이미 등록된 품번');
+      if(seenCodes.has(productCode))rowErrors.push('파일 안에 중복된 품번');
+      seenCodes.add(productCode);
+    }
+    rowErrors.push(...codeErrors);
+    const normalizedSpecification=specification.trim().toLocaleLowerCase('ko-KR');
     if(normalizedSpecification){
       if(knownSpecifications.has(normalizedSpecification))rowErrors.push('이미 등록된 규격');
       if(seenSpecifications.has(normalizedSpecification))rowErrors.push('파일 안에 중복된 규격');
       seenSpecifications.add(normalizedSpecification);
     }
     if(values.material.length>120)rowErrors.push('재질은 120자 이하여야 함');
-    if(values.color.length>120)rowErrors.push('색상은 120자 이하여야 함');
-    if(values.size.length>120)rowErrors.push('SIZE는 120자 이하여야 함');
     if(!values.unit)rowErrors.push('단위 누락');
     else if(!allowedUnits.has(values.unit))rowErrors.push('지원하지 않는 단위');
     const stockQuantityText=values.standard_stock_quantity.replace(/,/g,'');
@@ -180,11 +197,12 @@ function parseProductImportWorkbook(workbook,classifications,existingItems,units
     if(rowErrors.length)errors.push(`${row.number||rowNumber}행: ${rowErrors.join(', ')}`);
     else rows.push({
       product_category:classification.name,
-      product_code:values.product_code,
-      product_name:values.product_name,
-      specification:values.specification,
+      product_code:productCode,
+      product_name:productName,
+      specification,
       material:values.material,
       color:values.color,
+      product_type:values.product_type,
       size:values.size,
       unit:values.unit,
       standard_stock_quantity:values.standard_stock_quantity

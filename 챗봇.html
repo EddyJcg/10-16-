@@ -65,8 +65,8 @@
     .sidebar {
       width: 130.5px;
       min-width: 130.5px;
-      background: #3f0e40;
-      color: #d1c4d1;
+      background: #f5f6f8;
+      color: #4a4f57;
       display: flex;
       flex-direction: column;
     }
@@ -84,6 +84,7 @@
       color: #ffffff;
       letter-spacing: -0.2px;
       white-space: nowrap;
+      color: #1d1c1d;
     }
 
     .profile {
@@ -93,7 +94,7 @@
       align-items: flex-start;
       gap: 6px;
       font-size: 14.4px;
-      color: #d1c4d1;
+      color: #5f6670;
     }
 
     .profile-icon {
@@ -120,7 +121,7 @@
       padding: 0 10px 6px;
       font-size: 14.4px;
       font-weight: 700;
-      color: #b9a9b9;
+      color: #8a8f98;
     }
 
     .menu-list {
@@ -135,17 +136,17 @@
       gap: 8px;
       padding: 6px 8px;
       cursor: pointer;
-      color: #d1c4d1;
+      color: #3d424a;
       font-size: 18px;
       user-select: none;
     }
 
     .menu-item:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.05);
     }
 
     .menu-item.active {
-      background: #1164a3;
+      background: linear-gradient(90deg, #1a5cff, #7d2bf2);
       color: #ffffff;
       font-weight: 700;
     }
@@ -156,7 +157,7 @@
 
     .sidebar-footer {
       padding: 12px 10px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -325,9 +326,9 @@
     .sidebar-btn {
       width: 100%;
       padding: 8px 10px;
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      border: 0;
       border-radius: 6px;
-      background: transparent;
+      background: linear-gradient(90deg, #1a5cff, #7d2bf2);
       color: #ffffff;
       font: inherit;
       font-size: 16.8px;
@@ -336,7 +337,7 @@
     }
 
     .sidebar-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
+      filter: brightness(1.08);
     }
 
     .chat-header {

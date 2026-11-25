@@ -88,8 +88,10 @@ insert into public.product_code_entries (group_key, code, label) values
   ('color','41','Yellow'),('color','42','Blue')
 on conflict do nothing;
 
--- 이미 'Chermic'으로 저장된 색상 09번 표시명을 'Chromic'으로 정정합니다(여러 번 실행해도 안전).
+-- 이미 저장된 오타 표시명을 정정합니다(여러 번 실행해도 안전). seed는 on conflict do nothing이라 기존 행은 이 구문으로 고칩니다.
 update public.product_code_entries set label = 'Chromic'
-where group_key = 'color' and code = '09' and label = 'Chermic';
+where group_key = 'color' and code = '09' and label in ('Chermic','Chirmic');
+update public.product_code_entries set label = 'Flower Hug Fleece'
+where group_key = 'name_part' and code = 'FH' and label = 'Flower Hug Fleede';
 
 commit;

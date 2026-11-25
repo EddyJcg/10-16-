@@ -2002,8 +2002,19 @@ async function loadProductCodeEntries(){
   if(error)throw error;
   productCodeEntries=Array.isArray(data)?data:[];
 }
+function compareProductCodeLabel(a,b){
+  return a.label.localeCompare(b.label,'ko',{numeric:true,sensitivity:'base'});
+}
 function productCodeEntriesOf(groupKey){
-  return productCodeEntries.filter(entry=>entry.group_key===groupKey);
+  return productCodeEntries.filter(entry=>entry.group_key===groupKey).sort(compareProductCodeLabel);
+}
+function nextColorCode(){
+  const used=new Set(productCodeEntriesOf('color').map(entry=>entry.code));
+  for(let n=1;n<=99;n++){
+    const code=String(n).padStart(2,'0');
+    if(!used.has(code))return code;
+  }
+  return '';
 }
 function ensureSelectOption(select,value,code=''){
   const text=String(value??'').trim();
@@ -2222,9 +2233,9 @@ const PRODUCT_CODE_GROUP_LABELS=Object.fromEntries(PRODUCT_CODE_GROUPS);
 function renderProductCodeEntries(){
   const body=$('product-code-entry-items');body.replaceChildren();
   const emptyRow=message=>{const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=4;cell.className='empty';cell.textContent=message;row.append(cell);body.append(row);};
-  const entries=activeProductCodeGroup?productCodeEntriesOf(activeProductCodeGroup):productCodeEntries;
-  if(!entries.length){emptyRow(activeProductCodeGroup?'이 자리에 등록된 항목이 없습니다.':'등록된 품번 항목이 없습니다.');return;}
-  entries.forEach(entry=>{
+  const entries=activeProductCodeGroup?productCodeEntriesOf(activeProductCodeGroup):[...productCodeEntries].sort(compareProductCodeLabel);
+  if(!entries.length){emptyRow(activeProductCodeGroup?'이 자리에 등록된 항목이 없습니다.':'등록된 품번 항목이 없습니다.');}
+  else entries.forEach(entry=>{
     const row=document.createElement('tr');
     row.className='product-code-entry-row';
     if(entry.id===selectedProductCodeEntryId)row.classList.add('is-selected');
@@ -2232,6 +2243,12 @@ function renderProductCodeEntries(){
     row.addEventListener('click',()=>selectProductCodeEntry(entry));
     body.append(row);
   });
+  refreshColorCodeInput();
+}
+function refreshColorCodeInput(){
+  const input=$('pce-code-color');
+  input.readOnly=true;
+  if(!selectedProductCodeEntryId)input.value=nextColorCode();
 }
 function setActiveProductCodeGroup(groupKey){
   if(groupKey!==activeProductCodeGroup)clearProductCodeSelection();

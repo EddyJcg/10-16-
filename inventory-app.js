@@ -2222,14 +2222,13 @@ const PRODUCT_CODE_GROUP_LABELS=Object.fromEntries(PRODUCT_CODE_GROUPS);
 function renderProductCodeEntries(){
   const body=$('product-code-entry-items');body.replaceChildren();
   const emptyRow=message=>{const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=4;cell.className='empty';cell.textContent=message;row.append(cell);body.append(row);};
-  if(!activeProductCodeGroup){emptyRow('입력 칸을 클릭하면 해당 자리의 항목이 표시됩니다.');return;}
-  const entries=productCodeEntriesOf(activeProductCodeGroup);
-  if(!entries.length){emptyRow('이 자리에 등록된 항목이 없습니다.');return;}
+  const entries=activeProductCodeGroup?productCodeEntriesOf(activeProductCodeGroup):productCodeEntries;
+  if(!entries.length){emptyRow(activeProductCodeGroup?'이 자리에 등록된 항목이 없습니다.':'등록된 품번 항목이 없습니다.');return;}
   entries.forEach(entry=>{
     const row=document.createElement('tr');
     row.className='product-code-entry-row';
     if(entry.id===selectedProductCodeEntryId)row.classList.add('is-selected');
-    [PRODUCT_CODE_GROUP_LABELS[activeProductCodeGroup],entry.code,entry.label,entry.in_use?'적용됨':'미적용'].forEach(value=>row.append(makeCell(value)));
+    [PRODUCT_CODE_GROUP_LABELS[entry.group_key],entry.code,entry.label,entry.in_use?'적용됨':'미적용'].forEach(value=>row.append(makeCell(value)));
     row.addEventListener('click',()=>selectProductCodeEntry(entry));
     body.append(row);
   });

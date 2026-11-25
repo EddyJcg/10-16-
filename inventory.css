@@ -27,7 +27,7 @@
 .menu-folder summary::-webkit-details-marker{display:none}
 .menu-folder summary::before{content:'📁';font-size:17px}
 .menu-folder[open]>summary::before{content:'📂'}
-#basic-info-folder>summary::before{content:'';display:inline-block;flex:0 0 26.91px;width:26.91px;height:26.91px;background:currentColor;-webkit-mask:url('/basic-info-tools.svg') center/contain no-repeat;mask:url('/basic-info-tools.svg') center/contain no-repeat}
+#basic-info-folder>summary::before{content:'';display:inline-block;flex:0 0 26.91px;width:26.91px;height:26.91px;background:currentColor;-webkit-mask:url('/basic-info-tools.svg') center/76% no-repeat;mask:url('/basic-info-tools.svg') center/76% no-repeat}
 #product-info-button::before,#product-info-status-button::before{content:'';display:inline-block;width:26.4px;height:26.4px;margin-right:2px;vertical-align:middle;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
 #product-info-folder>summary::before{content:'';display:inline-block;flex:0 0 28.6px;width:28.6px;height:28.6px;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
 #asset-classification-dialog{width:min(1400px,calc(100% - 32px));max-height:92vh}

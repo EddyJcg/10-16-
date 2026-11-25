@@ -54,6 +54,10 @@
 .menu-folder summary::after{content:'›';margin-left:auto;font-size:19px;color:#80978a;transition:transform .15s}
 #basic-info-folder>summary::before{color:#1E88E5}
 #product-info-folder>summary::before{color:#8E24AA}
+.product-name-picker{display:flex;align-items:center;gap:4px;flex-wrap:nowrap}
+.product-name-picker select,.product-name-picker input{flex:1 1 0;min-width:0;width:auto;padding:10px 4px;font-size:12px}
+.product-name-picker input{flex-grow:1.4}
+.product-name-picker>span{flex:0 0 auto;font-weight:600}
 #vendor-info-entry-folder>summary::before{color:#00897B}
 #sales-folder>summary::before{color:#F9A825}
 #purchase-folder>summary::before{color:#5E35B1}

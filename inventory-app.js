@@ -2245,7 +2245,7 @@ function renderProductCodeEntries(){
     checkBox.type='checkbox';checkBox.checked=checked;checkBox.setAttribute('aria-label',`${entry.label} 선택`);
     checkBox.addEventListener('change',()=>toggleProductCodeEntry(entry.id,checkBox.checked));
     checkCell.append(checkBox);
-    row.append(checkCell,makeCell(entry.in_use?'적용됨':'미적용'));
+    row.append(makeCell(entry.in_use?'적용됨':'미적용'),checkCell);
     body.append(row);
   });
   refreshColorCodeInput();
@@ -2273,7 +2273,7 @@ function refreshProductCodeEntryButtons(){
   const selected=selectedProductCodeEntries();
   const blocked=selected.some(entry=>entry.in_use);
   $('edit-product-code-entry').disabled=selected.length!==1||blocked;
-  $('delete-product-code-entry').disabled=!selected.length||blocked;
+  $('delete-product-code-entry').disabled=!selected.some(entry=>!entry.in_use);
 }
 function toggleProductCodeEntry(id,checked){
   selectedProductCodeEntryIds=selectedProductCodeEntryIds.filter(entryId=>entryId!==id);
@@ -2288,7 +2288,7 @@ function toggleProductCodeEntry(id,checked){
   refreshProductCodeEntryButtons();
   const status=$('product-code-entry-status');
   if(!selected.length)status.textContent=`품번 항목 ${number(productCodeEntries.length)}개`;
-  else if(selected.some(entry=>entry.in_use))status.textContent='다음 프로세스에 적용된 품번 항목은 수정·삭제할 수 없습니다. 해당 품목을 먼저 삭제하세요.';
+  else if(selected.some(entry=>entry.in_use))status.textContent='다음 프로세스에 적용된 품번 항목은 수정·삭제할 수 없습니다. 삭제는 미적용 항목만 가능합니다.';
   else status.textContent=`${number(selected.length)}개 항목을 선택했습니다.`;
 }
 async function showProductCodeEntries() {
@@ -2357,10 +2357,11 @@ async function updateProductCodeEntry(){
   await runProductCodeEntryWrite(()=>callProductCodeRpc('update_product_code_entry',{p_id:selected.id,p_code:input.code,p_label:input.label}),'품번 항목을 수정하는 중…','품번 항목을 수정했습니다.');
 }
 async function deleteProductCodeEntry(){
-  const selected=selectedProductCodeEntries();
-  if(!selected.length||selected.some(entry=>entry.in_use))return;
-  const target=selected.length===1?`'${selected[0].label}' (${selected[0].code})`:`선택한 ${number(selected.length)}개 항목`;
-  if(!window.confirm(`${target}을(를) 삭제할까요?`))return;
+  const selected=selectedProductCodeEntries().filter(entry=>!entry.in_use);
+  if(!selected.length)return;
+  const skipped=selectedProductCodeEntries().length-selected.length;
+  const target=selected.length===1?`'${selected[0].label}' (${selected[0].code})`:`선택한 미적용 ${number(selected.length)}개 항목`;
+  if(!window.confirm(`${target}을(를) 삭제할까요?${skipped?`\n적용된 항목 ${number(skipped)}개는 삭제되지 않습니다.`:''}`))return;
   await runProductCodeEntryWrite(async()=>{
     for(const entry of selected)await callProductCodeRpc('delete_product_code_entry',{p_id:entry.id});
   },'품번 항목을 삭제하는 중…',`품번 항목 ${number(selected.length)}개를 삭제했습니다.`);

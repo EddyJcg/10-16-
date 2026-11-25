@@ -76,8 +76,10 @@ dialog.dialog-expanded[open]:not(.search-calendar) .dialog-body{max-height:calc(
 @media(prefers-reduced-motion:reduce){dialog.dialog-minimizing,.minimized-dialogs{transition:none;animation:none}}
 
 @media screen{
-  dialog .dialog-header,.search-calendar .calendar-title,#app-layout main>.intro{background-color:#212529;color:#fff}
-  dialog .dialog-header h2,dialog .dialog-header p,.search-calendar .calendar-title strong,#app-layout main>.intro h1,#app-layout main>.intro p,#app-layout main>.intro #today{color:#fff}
+  dialog .dialog-header,.search-calendar .calendar-title{background-color:#212529;color:#fff}
+  dialog .dialog-header h2,dialog .dialog-header p,.search-calendar .calendar-title strong{color:#fff}
+  #app-layout main>.intro{background:linear-gradient(90deg,#5ccdf0 0%,#a6ecfb 50%,#e4f9fd 100%);color:#1b3a4b}
+  #app-layout main>.intro h1,#app-layout main>.intro p,#app-layout main>.intro #today{color:#1b3a4b}
   .dialog-window-controls{gap:8px;margin-right:12px;padding-left:0}
   .dialog-window-button{
     width:25.2px!important;height:25.2px!important;min-width:25.2px!important;padding:0!important;

@@ -1994,10 +1994,11 @@ function productForLookup(source,value=$(source).value) {
 }
 let productCodeEntries=[];
 let activeProductCodeGroup='';
+let selectedProductCodeEntryId='';
 const PRODUCT_CODE_PICKS={name_prefix:'info_name_prefix',name_part:'info_name_part',product_type:'info_product_type',size:'info_size',color:'info_color'};
 const PRODUCT_CODE_GROUPS=[['name_prefix','품명 1·2자리'],['name_part','품명 3·4자리'],['product_type','제품유형 (6·7자리)'],['size','SIZE (8·9자리, 선택)'],['color','색상 (10·11자리)']];
 async function loadProductCodeEntries(){
-  const {data,error}=await client.from('product_code_entries').select('group_key,code,label').order('code');
+  const {data,error}=await client.rpc('list_product_code_entries');
   if(error)throw error;
   productCodeEntries=Array.isArray(data)?data:[];
 }
@@ -2220,53 +2221,113 @@ async function showAssetClassifications() {
 const PRODUCT_CODE_GROUP_LABELS=Object.fromEntries(PRODUCT_CODE_GROUPS);
 function renderProductCodeEntries(){
   const body=$('product-code-entry-items');body.replaceChildren();
-  const emptyRow=message=>{const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=3;cell.className='empty';cell.textContent=message;row.append(cell);body.append(row);};
+  const emptyRow=message=>{const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=4;cell.className='empty';cell.textContent=message;row.append(cell);body.append(row);};
   if(!activeProductCodeGroup){emptyRow('입력 칸을 클릭하면 해당 자리의 항목이 표시됩니다.');return;}
   const entries=productCodeEntriesOf(activeProductCodeGroup);
   if(!entries.length){emptyRow('이 자리에 등록된 항목이 없습니다.');return;}
   entries.forEach(entry=>{
     const row=document.createElement('tr');
-    [PRODUCT_CODE_GROUP_LABELS[activeProductCodeGroup],entry.code,entry.label].forEach(value=>row.append(makeCell(value)));
+    row.className='product-code-entry-row';
+    if(entry.id===selectedProductCodeEntryId)row.classList.add('is-selected');
+    [PRODUCT_CODE_GROUP_LABELS[activeProductCodeGroup],entry.code,entry.label,entry.in_use?'적용됨':'미적용'].forEach(value=>row.append(makeCell(value)));
+    row.addEventListener('click',()=>selectProductCodeEntry(entry));
     body.append(row);
   });
 }
 function setActiveProductCodeGroup(groupKey){
+  if(groupKey!==activeProductCodeGroup)clearProductCodeSelection();
   activeProductCodeGroup=groupKey;
   $('product-code-entry-grid').querySelectorAll('[data-group]').forEach(el=>el.classList.toggle('is-active',el.dataset.group===groupKey));
   renderProductCodeEntries();
 }
+function clearProductCodeSelection(){
+  selectedProductCodeEntryId='';
+  refreshProductCodeEntryButtons();
+}
+function selectedProductCodeEntry(){
+  return productCodeEntries.find(entry=>entry.id===selectedProductCodeEntryId)||null;
+}
+function refreshProductCodeEntryButtons(){
+  const selected=selectedProductCodeEntry();
+  const locked=!selected||selected.in_use;
+  $('edit-product-code-entry').disabled=locked;
+  $('delete-product-code-entry').disabled=locked;
+}
+function selectProductCodeEntry(entry){
+  setActiveProductCodeGroup(entry.group_key);
+  selectedProductCodeEntryId=entry.id;
+  $(`pce-code-${entry.group_key}`).value=entry.code;
+  $(`pce-label-${entry.group_key}`).value=entry.label;
+  renderProductCodeEntries();
+  refreshProductCodeEntryButtons();
+  $('product-code-entry-status').textContent=entry.in_use?'다음 프로세스에 적용된 품번 항목은 수정·삭제할 수 없습니다. 해당 품목을 먼저 삭제하세요.':'수정 또는 삭제할 항목입니다.';
+}
 async function showProductCodeEntries() {
   if(!currentUser||!currentIsAdmin||busy)return;
-  $('product-code-entry-form').reset();setActiveProductCodeGroup('');$('product-code-entry-status').textContent='품번 항목을 불러오는 중…';$('product-code-entry-dialog').showModal();
+  $('product-code-entry-form').reset();clearProductCodeSelection();setActiveProductCodeGroup('');$('product-code-entry-status').textContent='품번 항목을 불러오는 중…';$('product-code-entry-dialog').showModal();
   try{await loadProductCodeEntries();renderProductCodeEntries();$('product-code-entry-status').textContent=`품번 항목 ${number(productCodeEntries.length)}개`;}
   catch(error){$('product-code-entry-status').textContent='품번 항목을 불러오지 못했습니다. Supabase에서 supabase/product-code-entries.sql을 실행하세요. '+errorText(error);}
 }
-async function saveProductCodeEntry(event) {
-  event.preventDefault();if(!currentUser||!currentIsAdmin||busy)return;
-  const status=$('product-code-entry-status');
-  const groupKey=activeProductCodeGroup;
-  if(!groupKey){status.textContent='입력할 자리의 박스를 먼저 클릭하세요.';return;}
+function readProductCodeEntryInput(){
+  const status=$('product-code-entry-status'),groupKey=activeProductCodeGroup;
+  if(!groupKey){status.textContent='입력할 자리의 박스를 먼저 클릭하세요.';return null;}
   const code=$(`pce-code-${groupKey}`).value.trim().toUpperCase(),label=$(`pce-label-${groupKey}`).value.trim();
-  if(!/^[A-Z0-9]{2}$/.test(code)){status.textContent='코드는 영문 또는 숫자 2자리로 입력하세요.';return;}
-  if(!label){status.textContent='항목명을 입력하세요.';return;}
-  const duplicate=productCodeEntries.find(entry=>entry.group_key===groupKey&&(entry.code===code||entry.label===label));
-  if(duplicate){
-    const message=duplicate.code===code?'이미 등록된 코드입니다. 다른 코드를 입력하세요.':'이미 등록된 항목명입니다. 다른 항목명을 입력하세요.';
-    window.alert(message);status.textContent=message;return;
-  }
-  const generation=authGeneration;busy=true;$('product-code-entry-form').querySelectorAll('input,select,button').forEach(el=>el.disabled=true);
-  status.textContent='품번 항목을 저장하는 중…';
+  if(!/^[A-Z0-9]{2}$/.test(code)){status.textContent='코드는 영문 또는 숫자 2자리로 입력하세요.';return null;}
+  if(!label){status.textContent='항목명을 입력하세요.';return null;}
+  return {groupKey,code,label};
+}
+function duplicateProductCodeMessage({groupKey,code,label},exceptId=''){
+  const duplicate=productCodeEntries.find(entry=>entry.group_key===groupKey&&entry.id!==exceptId&&(entry.code===code||entry.label===label));
+  if(!duplicate)return '';
+  return duplicate.code===code?'이미 등록된 코드입니다. 다른 코드를 입력하세요.':'이미 등록된 항목명입니다. 다른 항목명을 입력하세요.';
+}
+function productCodeEntryErrorMessage(error){
+  const text=error?.message||'';
+  if(/PRODUCT_CODE_ENTRY_IN_USE/.test(text))return '다음 프로세스에 적용된 품번 항목은 수정·삭제할 수 없습니다. 해당 품목을 먼저 삭제한 후 다시 시도하세요.';
+  if(/PRODUCT_CODE_ENTRY_DUPLICATE/.test(text))return '이미 등록된 코드 또는 항목명입니다.';
+  return errorText(error);
+}
+function setProductCodeFormDisabled(disabled){
+  $('product-code-entry-form').querySelectorAll('input,select,button').forEach(el=>el.disabled=disabled);
+  if(!disabled)refreshProductCodeEntryButtons();
+}
+async function runProductCodeEntryWrite(rpcName,params,pendingText,doneText){
+  if(!currentUser||!currentIsAdmin||busy)return;
+  const status=$('product-code-entry-status');
+  const generation=authGeneration;busy=true;setProductCodeFormDisabled(true);
+  status.textContent=pendingText;
   try{
-    const {error}=await client.rpc('register_product_code_entry',{p_group_key:groupKey,p_code:code,p_label:label});if(error)throw error;
+    const {error}=await client.rpc(rpcName,params);if(error)throw error;
     if(generation!==authGeneration)return;
-    $('product-code-entry-form').reset();
+    $('product-code-entry-form').reset();clearProductCodeSelection();
     await loadProductCodeEntries();renderProductCodeEntries();renderProductCodeSelects();
-    status.textContent='품번 항목을 추가했습니다.';
+    status.textContent=doneText;
   }catch(error){if(generation===authGeneration){
-    const message=/PRODUCT_CODE_ENTRY_DUPLICATE/.test(error?.message||'')?'이미 등록된 코드 또는 항목명입니다.':errorText(error);
+    const message=productCodeEntryErrorMessage(error);
     window.alert(message);status.textContent=message;
   }}
-  finally{busy=false;$('product-code-entry-form').querySelectorAll('input,select,button').forEach(el=>el.disabled=false);}
+  finally{busy=false;setProductCodeFormDisabled(false);}
+}
+async function saveProductCodeEntry(event) {
+  event.preventDefault();
+  const input=readProductCodeEntryInput();if(!input)return;
+  const message=duplicateProductCodeMessage(input);
+  if(message){window.alert(message);$('product-code-entry-status').textContent=message;return;}
+  await runProductCodeEntryWrite('register_product_code_entry',{p_group_key:input.groupKey,p_code:input.code,p_label:input.label},'품번 항목을 저장하는 중…','품번 항목을 추가했습니다.');
+}
+async function updateProductCodeEntry(){
+  const selected=selectedProductCodeEntry();
+  if(!selected||selected.in_use)return;
+  const input=readProductCodeEntryInput();if(!input)return;
+  const message=duplicateProductCodeMessage(input,selected.id);
+  if(message){window.alert(message);$('product-code-entry-status').textContent=message;return;}
+  await runProductCodeEntryWrite('update_product_code_entry',{p_id:selected.id,p_code:input.code,p_label:input.label},'품번 항목을 수정하는 중…','품번 항목을 수정했습니다.');
+}
+async function deleteProductCodeEntry(){
+  const selected=selectedProductCodeEntry();
+  if(!selected||selected.in_use)return;
+  if(!window.confirm(`'${selected.label}' (${selected.code}) 항목을 삭제할까요?`))return;
+  await runProductCodeEntryWrite('delete_product_code_entry',{p_id:selected.id},'품번 항목을 삭제하는 중…','품번 항목을 삭제했습니다.');
 }
 function renderProductInfoItems() {
   const body=$('product-info-items');body.replaceChildren();
@@ -3635,6 +3696,8 @@ async function startApp(){
   $('product-code-entry-button').addEventListener('click',()=>showProductCodeEntries());
   $('close-product-code-entry').addEventListener('click',()=>$('product-code-entry-dialog').close());
   $('product-code-entry-form').addEventListener('submit',saveProductCodeEntry);
+  $('edit-product-code-entry').addEventListener('click',updateProductCodeEntry);
+  $('delete-product-code-entry').addEventListener('click',deleteProductCodeEntry);
   $('product-code-entry-form').addEventListener('focusin',event=>{if(event.target.dataset?.group)setActiveProductCodeGroup(event.target.dataset.group);});
   document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>openMovement(button.dataset.mode)));
   installMovementHistoryButton();

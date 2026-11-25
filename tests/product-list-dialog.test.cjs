@@ -410,7 +410,7 @@ test('product edits require confirmation, are blocked after ordering and stage t
     assetClassifications=[{id:'c1',name:'원자재',inventory_asset_type:'원자재'}];    confirmResult=false;processedFlag=false;usedCount=0;currentUser={id:'u'};
     renderProductInfoItems=()=>{};
     client={from:()=>({select:()=>({eq:async()=>({count:usedCount,error:null}),order:async()=>({data:[],error:null})})}),
-          rpc:async(name,args)=>name==='stock_product_is_processed'?{data:processedFlag,error:null}:(calls.push([name,args]),{data:{id:args.p_product_id,...args.p_details},error:null})};`,context);
+          rpc:async(name,args)=>name==='stock_product_is_processed'?{data:processedFlag,error:null}:name==='list_product_code_entries'?{data:[],error:null}:(calls.push([name,args]),{data:{id:args.p_product_id,...args.p_details},error:null})};`,context);
   element('product-info-status-dialog').open=true;
   await vm.runInContext(`editProductInfo('p1')`,context);
   assert.equal(element('product-info-status-dialog').open,true,'declining confirmation leaves the status dialog open');

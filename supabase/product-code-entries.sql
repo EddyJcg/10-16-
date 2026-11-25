@@ -94,4 +94,82 @@ where group_key = 'color' and code = '09' and label in ('Chermic','Chirmic','Chr
 update public.product_code_entries set label = 'Flower Hug Fleece'
 where group_key = 'name_part' and code = 'FH' and label = 'Flower Hug Fleede';
 
+-- 품번 항목 코드가 품목정보(stock_products)의 품번 해당 자리에 쓰였는지 확인합니다. 품번: 1-2 품명, 3-4 품명, 5 '-', 6-7 제품유형, 8-9 SIZE, 10-11 색상
+create or replace function public.product_code_entry_in_use(p_group_key text, p_code text)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.stock_products p
+    where (case p_group_key
+      when 'name_prefix' then substr(p.product_code, 1, 2)
+      when 'name_part' then substr(p.product_code, 3, 2)
+      when 'product_type' then substr(p.product_code, 6, 2)
+      when 'size' then substr(p.product_code, 8, 2)
+      when 'color' then substr(p.product_code, 10, 2)
+    end) = p_code
+  );
+$$;
+revoke all on function public.product_code_entry_in_use(text, text) from public, anon, authenticated;
+
+create or replace function public.list_product_code_entries()
+returns table(id uuid, group_key text, code text, label text, in_use boolean)
+language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is not null and not public.inventory_access_allowed() then
+    raise exception 'ACCOUNT_DISABLED' using errcode = '42501';
+  end if;
+  return query
+    select e.id, e.group_key, e.code, e.label, public.product_code_entry_in_use(e.group_key, e.code)
+    from public.product_code_entries e
+    order by e.group_key, e.code;
+end;
+$$;
+revoke all on function public.list_product_code_entries() from public, anon;
+grant execute on function public.list_product_code_entries() to authenticated;
+
+create or replace function public.update_product_code_entry(p_id uuid, p_code text, p_label text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  v_entry public.product_code_entries%rowtype;
+  v_code text := upper(btrim(coalesce(p_code, '')));
+  v_label text := btrim(coalesce(p_label, ''));
+begin
+  if auth.uid() is not null and not public.inventory_admin_allowed() then
+    raise exception 'CLASSIFICATION_ADMIN_REQUIRED' using errcode = '42501';
+  end if;
+  select * into v_entry from public.product_code_entries where id = p_id for update;
+  if not found then raise exception 'PRODUCT_CODE_ENTRY_NOT_FOUND' using errcode = 'P0002'; end if;
+  if public.product_code_entry_in_use(v_entry.group_key, v_entry.code) then
+    raise exception 'PRODUCT_CODE_ENTRY_IN_USE' using errcode = '42501';
+  end if;
+  if exists (select 1 from public.product_code_entries
+             where group_key = v_entry.group_key and id <> p_id and (code = v_code or label = v_label)) then
+    raise exception 'PRODUCT_CODE_ENTRY_DUPLICATE' using errcode = '23505';
+  end if;
+  update public.product_code_entries set code = v_code, label = v_label where id = p_id;
+  return jsonb_build_object('id', p_id, 'group_key', v_entry.group_key, 'code', v_code, 'label', v_label);
+end;
+$$;
+revoke all on function public.update_product_code_entry(uuid, text, text) from public, anon;
+grant execute on function public.update_product_code_entry(uuid, text, text) to authenticated;
+
+create or replace function public.delete_product_code_entry(p_id uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  v_entry public.product_code_entries%rowtype;
+begin
+  if auth.uid() is not null and not public.inventory_admin_allowed() then
+    raise exception 'CLASSIFICATION_ADMIN_REQUIRED' using errcode = '42501';
+  end if;
+  select * into v_entry from public.product_code_entries where id = p_id for update;
+  if not found then raise exception 'PRODUCT_CODE_ENTRY_NOT_FOUND' using errcode = 'P0002'; end if;
+  if public.product_code_entry_in_use(v_entry.group_key, v_entry.code) then
+    raise exception 'PRODUCT_CODE_ENTRY_IN_USE' using errcode = '42501';
+  end if;
+  delete from public.product_code_entries where id = p_id;
+  return jsonb_build_object('id', p_id, 'group_key', v_entry.group_key, 'code', v_entry.code, 'label', v_entry.label);
+end;
+$$;
+revoke all on function public.delete_product_code_entry(uuid) from public, anon;
+grant execute on function public.delete_product_code_entry(uuid) to authenticated;
+
 commit;

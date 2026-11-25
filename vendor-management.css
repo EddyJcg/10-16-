@@ -41,8 +41,8 @@
 .vendor-query-toolbar button span{font-size:24.3px}
 .vendor-query-toolbar .close{margin-left:auto;background:#566168}
 .vendor-query-toolbar .dialog-window-button,.vendor-query-toolbar .close{min-height:25.2px;font-size:0}
-.vendor-query-toolbar .close{position:relative}
-.vendor-query-toolbar .close::before,.vendor-query-toolbar .close::after{content:"";position:absolute;top:50%;left:50%;width:11px;height:2.2px;margin:-1.1px 0 0 -5.5px;background:#fff;border-radius:1px}
+.vendor-query-toolbar .close{position:relative;box-sizing:border-box;height:25.2px!important;width:25.2px!important}
+.vendor-query-toolbar .close::before,.vendor-query-toolbar .close::after{content:"";position:absolute;inset:0;margin:auto;width:11px;height:2.2px;background:#fff;border-radius:1px}
 .vendor-query-toolbar .close::before{transform:rotate(45deg)}
 .vendor-query-toolbar .close::after{transform:rotate(-45deg)}
 .vendor-query-toolbar .dialog-reset-icon{font-size:20.4px}

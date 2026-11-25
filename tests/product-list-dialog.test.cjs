@@ -191,7 +191,6 @@ test('stock risk card opens a printable list and its threshold uses standard sto
   assert.match(script,/stock-risk':'#stock-risk-dialog table'/);
   assert.match(script,/function showStockRisk\(\)/);
   assert.match(script,/PRODUCT_INFO_ALREADY_ASSIGNED/);
-  assert.match(script,/info_standard_stock_quantity'\)\.readOnly/);
   assert.match(renderer,/stockRiskItems\(items\)/);
   assert.match(model,/stock<=standard/);
   assert.match(style,/body\[data-print-target="stock-risk"\] #stock-risk-dialog/);
@@ -394,7 +393,7 @@ test('product edits require confirmation, are blocked after ordering and stage t
   const elements=new Map(),confirmations=[],alerts=[],calls=[];
   const element=id=>{
     if(!elements.has(id)){
-      const current={value:'',textContent:'',disabled:false,readOnly:false,hidden:false,options:[{value:'',textContent:''}],
+      const current={value:'',textContent:'',disabled:false,readOnly:false,hidden:false,selectedOptions:[],options:[{value:'',textContent:''}],
         close(){this.open=false;},showModal(){this.open=true;},focus(){},reset(){},
         replaceChildren(){this.options=[];},append(option){this.options.push(option);}};
       elements.set(id,current);
@@ -402,15 +401,15 @@ test('product edits require confirmation, are blocked after ordering and stage t
     return elements.get(id);
   };
   const context=vm.createContext({
-    document:{getElementById:element,createElement:()=>({value:'',textContent:''})},
-    window:{confirm:message=>{confirmations.push(message);return context.confirmResult;},alert:message=>alerts.push(message)},calls
+    document:{getElementById:element,createElement:()=>({value:'',textContent:'',dataset:{}})},
+    window:{confirm:message=>{confirmations.push(message);return context.confirmResult;},alert:message=>alerts.push(message),productCode:require('../product-code.js')},calls
   });
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`items=[{id:'p1',classification_id:'c1',product_category:'원자재',product_code:'SKU-1',
-    product_name:'부품',specification:'규격',material:'철',color:'',unit:'EA(개)',standard_stock_quantity:5}];
+    product_name:'TS_HL',specification:'IS-SKU-1',material:'철',color:'Black',product_type:'AB',size:'FS',unit:'EA(개)',standard_stock_quantity:5}];
     assetClassifications=[{id:'c1',name:'원자재',inventory_asset_type:'원자재'}];    confirmResult=false;processedFlag=false;usedCount=0;currentUser={id:'u'};
     renderProductInfoItems=()=>{};
-    client={from:()=>({select:()=>({eq:async()=>({count:usedCount,error:null})})}),
+    client={from:()=>({select:()=>({eq:async()=>({count:usedCount,error:null}),order:async()=>({data:[],error:null})})}),
           rpc:async(name,args)=>name==='stock_product_is_processed'?{data:processedFlag,error:null}:(calls.push([name,args]),{data:{id:args.p_product_id,...args.p_details},error:null})};`,context);
   element('product-info-status-dialog').open=true;
   await vm.runInContext(`editProductInfo('p1')`,context);
@@ -418,33 +417,27 @@ test('product edits require confirmation, are blocked after ordering and stage t
   assert.equal(element('product-info-dialog').open,undefined);
   vm.runInContext('confirmResult=true;processedFlag=true',context);
   await vm.runInContext(`editProductInfo('p1')`,context);
-  assert.match(alerts[0],/품번, 품명, 규격, 색상, 품목자산분류, 단위는 변경할 수 없습니다.*재질, 적정재고, 제품유형, SIZE는/s);
+  assert.match(alerts[0],/품번, 품명, 규격, 제품유형, SIZE, 색상, 품목자산분류, 단위는 변경할 수 없습니다.*재질, 적정재고만/s);
   assert.equal(element('product-info-status-dialog').open,false);
   assert.equal(element('product-info-dialog').open,true);
-  assert.equal(element('info_product_code').readOnly,true);
-  assert.equal(element('info_product_name').readOnly,true);
-  assert.equal(element('info_specification').readOnly,true);
-  assert.equal(element('info_color').readOnly,true);
-  assert.equal(element('info_product_category').disabled,true);
-  assert.equal(element('info_unit').disabled,true);
+  ['info_name_prefix','info_name_part','info_product_type','info_size','info_color','info_product_category','info_unit'].forEach(id=>
+    assert.equal(element(id).disabled,true,id+' is locked after processing'));
   assert.equal(element('info_material').readOnly,false);
   assert.equal(element('info_standard_stock_quantity').readOnly,false);
-  assert.match(element('product-info-status').textContent,/재질, 적정재고, 제품유형, SIZE만 수정/);
+  assert.match(element('product-info-status').textContent,/재질, 적정재고만 수정할 수 있습니다/);
   vm.runInContext('processedFlag=false',context);
   alerts.length=0;
   await vm.runInContext(`editProductInfo('p1')`,context);
   assert.equal(alerts.length,0,'unprocessed products open without the processed notice');
   assert.equal(element('info_product_code').value,'SKU-1');
-  assert.equal(element('info_product_code').readOnly,false);
-  assert.equal(element('info_product_name').readOnly,false);
-  assert.equal(element('info_specification').readOnly,false);
+  assert.equal(element('info_product_name').value,'TS_HL');
+  assert.equal(element('info_name_part').disabled,false);
   assert.equal(element('info_material').readOnly,false);
   assert.equal(element('info_standard_stock_quantity').readOnly,false);
-  assert.equal(element('info_color').readOnly,false);
   assert.equal(element('info_product_category').disabled,false);
   assert.equal(element('info_unit').disabled,false);
   assert.equal(element('cancel-product-info-edit').hidden,false);
-  element('info_product_name').value='부품 수정';element('info_standard_stock_quantity').value='7';
+  element('info_material').value='철2';element('info_standard_stock_quantity').value='7';
   element('info_product_category').value='c1';
   vm.runInContext('addProductInfoDraft()',context);
   assert.equal(vm.runInContext('productInfoDrafts[0].productId',context),'p1');
@@ -453,30 +446,27 @@ test('product edits require confirmation, are blocked after ordering and stage t
   assert.equal(calls[0][0],'update_stock_product');
   assert.equal(calls[0][1].p_product_id,'p1');
   assert.equal('productId'in calls[0][1].p_details,false);
-  assert.equal(vm.runInContext('items[0].product_name',context),'부품 수정');
+  assert.equal(vm.runInContext('items[0].material',context),'철2');
   assert.equal(vm.runInContext('productInfoDrafts.length',context),0);
-});test('new product info warns as soon as a registered code or specification is typed',()=>{
+});test('picking a registered code combination warns before saving a duplicate product code',()=>{
   const alerts=[];const elements=new Map();
   const element=id=>{
-    if(!elements.has(id))elements.set(id,{id,value:'',readOnly:false,disabled:false,textContent:'',addEventListener(){}});
+    if(!elements.has(id))elements.set(id,{id,value:'',textContent:'',selectedOptions:[]});
     return elements.get(id);
   };
-  const context=vm.createContext({document:{getElementById:element},window:{alert:message=>alerts.push(message)}});
+  const context=vm.createContext({document:{getElementById:element},window:{alert:message=>alerts.push(message),productCode:require('../product-code.js')}});
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
-  vm.runInContext(`items=[{id:'p1',product_code:'SKU-1',specification:'Spec-A',product_name:'부품'}];productInfoDrafts=[];productInfoNewMode=true;`,context);
-  const type=(id,value)=>{element(id).value=value;context.target=element(id);vm.runInContext('warnDuplicateProductInfoInput({target})',context);};
-  type('info_product_code','sku-1');
+  vm.runInContext(`items=[{id:'p1',product_code:'TSHL-ABFS01',specification:'IS-TSHL-ABFS01',product_name:'TS_HL'}];productInfoDrafts=[];editingProductInfoId='';`,context);
+  const pick=(id,value,code)=>{element(id).value=value;element(id).selectedOptions=[{dataset:{code}}];};
+  const choose=()=>{pick('info_name_prefix','TS','TS');pick('info_name_part','HL','HL');pick('info_product_type','Tote','AB');pick('info_size','Free','FS');pick('info_color','Black','01');vm.runInContext('refreshProductCode({warn:true})',context);};
+  choose();
   assert.equal(alerts.length,1);
   assert.match(alerts[0],/이미 등록된 품번/);
-  type('info_specification',' spec-a ');
-  assert.equal(alerts.length,2);
-  assert.match(alerts[1],/이미 등록된 규격/);
-  type('info_product_code','SKU-2');
-  type('info_specification','');
-  assert.equal(alerts.length,2,'unique and blank values do not warn');
-  vm.runInContext('productInfoNewMode=false',context);
-  type('info_product_code','SKU-1');
-  assert.equal(alerts.length,2,'edit mode does not use the new-entry warning');
+  pick('info_color','Red','02');vm.runInContext('refreshProductCode({warn:true})',context);
+  assert.equal(alerts.length,1,'a unique combination does not warn');
+  vm.runInContext('editingProductInfoId="p1"',context);pick('info_color','Black','01');
+  vm.runInContext('refreshProductCode({warn:true})',context);
+  assert.equal(alerts.length,1,'editing the same item does not warn about its own code');
 });test('product code input has no suggestion list that exposes registered product names',()=>{
   const html=readFileSync('inventory.html','utf8');
   assert.match(html,/<input id="info_product_code"[^>]*>/);
@@ -553,20 +543,20 @@ test('staged product drafts return to the input form for editing without confirm
   const elements=new Map(),alerts=[],confirmations=[];
   const element=id=>{
     if(!elements.has(id)){
-      elements.set(id,{value:'',textContent:'',disabled:false,readOnly:false,hidden:false,options:[{value:'',textContent:''}],
+      elements.set(id,{value:'',textContent:'',disabled:false,readOnly:false,hidden:false,selectedOptions:[],options:[{value:'',textContent:''}],
         close(){this.open=false;},showModal(){this.open=true;},focus(){},reset(){},
         replaceChildren(){this.options=[];},append(option){this.options.push(option);}});
     }
     return elements.get(id);
   };
   const context=vm.createContext({
-    document:{getElementById:element,createElement:()=>({value:'',textContent:''})},
-    window:{confirm:message=>{confirmations.push(message);return true;},alert:message=>alerts.push(message)}
+    document:{getElementById:element,createElement:()=>({value:'',textContent:'',dataset:{}})},
+    window:{confirm:message=>{confirmations.push(message);return true;},alert:message=>alerts.push(message),productCode:require('../product-code.js')}
   });
   vm.runInContext(readFileSync('inventory-app.js','utf8'),context);
   vm.runInContext(`renderProductInfoItems=()=>{};busy=false;processedFlag=true;
     assetClassifications=[{id:'c1',name:'원자재',inventory_asset_type:'원자재'}];
-    client={rpc:async()=>({data:processedFlag,error:null})};
+    client={from:()=>({select:()=>({order:async()=>({data:[],error:null})})}),rpc:async()=>({data:processedFlag,error:null})};
     productInfoDrafts=[
       {draftId:'d1',classification_id:'c1',product_category:'원자재',product_code:'SKU-2',product_name:'신규부품',specification:'규격2',
         material:'철',color:'',product_type:'',unit:'EA(개)',standard_stock_quantity:3,checked:true},
@@ -584,7 +574,6 @@ test('staged product drafts return to the input form for editing without confirm
   await vm.runInContext(`editProductInfoDraft('d2')`,context);
   assert.equal(vm.runInContext('editingProductInfoId',context),'p1');
   assert.equal(element('cancel-product-info-edit').hidden,false);
-  assert.equal(element('info_product_code').readOnly,true);
-  assert.equal(element('info_material').readOnly,false);
-  assert.deepEqual([...alerts,...confirmations],[]);
+  assert.equal(element('info_name_part').disabled,true);
+
 });

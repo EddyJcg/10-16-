@@ -57,10 +57,12 @@ test('unknown receipt item displays the required product information alert',asyn
   assert.deepEqual(app.alerts,['품목정보를 입력해 주세요!']);
 });
 
-test('all stock and product-info forms bind SKU and specification autofill',async()=>{
+test('stock forms bind SKU and specification autofill, product-info picklists regenerate the code',async()=>{
   const app=await boot('inventory-app.js');
-  for(const id of ['product_code','specification','info_product_code','info_specification'])
+  for(const id of ['product_code','specification'])
     assert.equal(typeof app.element(id).handlers.input,'function',id+' should trigger product lookup');
+  for(const id of ['info_name_prefix','info_name_part','info_product_type','info_size','info_color'])
+    assert.equal(typeof app.element(id).handlers.change,'function',id+' should regenerate 품번');
 });
 
 test('issue quantity and date changes validate stock availability',async()=>{

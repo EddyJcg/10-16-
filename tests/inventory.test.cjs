@@ -442,18 +442,21 @@ test('header flag uses the provided image with a transparent surround',()=>{
   assert.ok(alpha.includes(0));
   assert.ok(alpha.includes(255));
 });
-test('product information form autofills existing item by SKU or unique specification',()=>{
-  const nodes=new Map(),context=vm.createContext({document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{value:'',options:[{textContent:''}]});return nodes.get(id);}}});
+test('product info code and specification are generated from the code-table picklists',()=>{
+  const nodes=new Map();
+  const element=id=>{if(!nodes.has(id))nodes.set(id,{value:'',textContent:'',selectedOptions:[]});return nodes.get(id);};
+  const pick=(id,value,code)=>{element(id).value=value;element(id).selectedOptions=[{dataset:{code}}];};
+  const context=vm.createContext({document:{getElementById:element},window:{productCode:require('../product-code.js')}});
   vm.runInContext(fs.readFileSync('inventory-app.js','utf8'),context);
-  vm.runInContext('items=[{product_code:"SKU",product_category:"RAW",product_name:"Material",specification:"10 x 20",material:"Steel",color:"Silver",unit:"Kg",standard_stock_quantity:50}]',context);
-  vm.runInContext('$("info_product_code").value="SKU";populateProductInfo("info_product_code")',context);
-  assert.equal(nodes.get('info_product_name').value,'Material');
-  assert.equal(nodes.get('info_specification').value,'10 x 20');
-  assert.equal(nodes.get('info_unit').value,'Kg');
-  assert.equal(nodes.get('info_standard_stock_quantity').value,50);
-  vm.runInContext('$("info_specification").value="10 X 20";populateProductInfo("info_specification")',context);
-  assert.equal(nodes.get('info_product_code').value,'SKU');
-  assert.equal(nodes.get('info_material').value,'Steel');
+  pick('info_name_prefix','TS','TS');pick('info_name_part','HL','HL');pick('info_product_type','Tote','AB');pick('info_size','Free','FS');pick('info_color','Black','01');
+  vm.runInContext('refreshProductCode()',context);
+  assert.equal(nodes.get('info_product_name').value,'TS_HL');
+  assert.equal(nodes.get('info_product_code').value,'TSHL-ABFS01');
+  assert.equal(nodes.get('info_specification').value,'IS-TSHL-ABFS01');
+  pick('info_size','',''); vm.runInContext('refreshProductCode()',context);
+  assert.equal(nodes.get('info_product_code').value,'TSHL-ABOO01','blank segments become O');
+  pick('info_size','Legacy',''); vm.runInContext('refreshProductCode()',context);
+  assert.equal(nodes.get('info_product_code').value,'','unknown legacy values block generation');
 });
 test('stock quantity totals stay separated by unit',()=>{
   const ctx=vm.createContext({number:value=>String(value)});

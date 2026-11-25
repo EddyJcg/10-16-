@@ -66,6 +66,10 @@
 .product-code-entry-grid input:focus{outline:2px solid #2563eb;outline-offset:-1px}
 #product-code-entry-items tr.product-code-entry-row{cursor:pointer}
 #product-code-entry-items tr.product-code-entry-row.is-selected td{background:#dbeafe}
+#product-code-entry-items input[type=checkbox]{width:auto;margin:0;cursor:pointer}
+#product-code-entry-form .dialog-footer>button{min-width:112px;height:42px;padding:0 21px;border:0;border-radius:8px;font-weight:600;color:white}
+#edit-product-code-entry{background:#6b7280}
+#delete-product-code-entry{background:#dc2626}
 #vendor-info-entry-folder>summary::before{color:#00897B}
 #sales-folder>summary::before{color:#F9A825}
 #purchase-folder>summary::before{color:#5E35B1}

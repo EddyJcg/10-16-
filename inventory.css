@@ -383,6 +383,8 @@ dialog .dialog-header h2{font-size:36px}
 /* 팝업 제목 아래의 안내 문구 숨김 */
 dialog .dialog-header p{display:none}
 #asset-classification-button::before{content:'';display:inline-block;width:26.4px;height:26.4px;margin-right:2px;vertical-align:middle;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
+/* 분류 설정 버튼의 아이콘 자리만큼 비워 글자 시작 위치를 맞춤 */
+#product-code-entry-button::before{content:'';display:inline-block;width:26.4px;height:26.4px;margin-right:2px;vertical-align:middle}
 #asset-classification-folder>summary::before{content:'';display:inline-block;flex:0 0 28.6px;width:28.6px;height:28.6px;background:currentColor;-webkit-mask:url('/product-bag.svg') center/contain no-repeat;mask:url('/product-bag.svg') center/contain no-repeat}
 /* 모든 팝업의 입력 항목 제목은 20% 확대하고 입력 글자는 같은 크기로 맞춤 */
 dialog .dialog-body .field>label,
@@ -557,5 +559,5 @@ body .popup-table-export-actions button.primary{
   .sidebar #sales-folder>summary::before{flex-basis:23.023px;width:23.023px;height:23.023px}
   .sidebar #inventory-folder>summary::before,.sidebar #admin-folder>summary::before,.sidebar #purchase-folder>summary::before{flex-basis:20.93px;width:20.93px;height:20.93px}
   .sidebar #receipt-folder>summary::before,.sidebar #issue-folder>summary::before,.sidebar #opening-folder>summary::before,.sidebar #stock-folder>summary::before{flex-basis:18.2px;width:18.2px;height:18.2px}
-  .sidebar #product-info-button::before,.sidebar #product-info-status-button::before,.sidebar #sales-order-button::before,.sidebar #sales-status-button::before,.sidebar #asset-classification-button::before{width:18.48px;height:18.48px}
+  .sidebar #product-info-button::before,.sidebar #product-info-status-button::before,.sidebar #sales-order-button::before,.sidebar #sales-status-button::before,.sidebar #asset-classification-button::before,.sidebar #product-code-entry-button::before{width:18.48px;height:18.48px}
 }

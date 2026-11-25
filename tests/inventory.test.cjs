@@ -366,7 +366,7 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
   assert.doesNotMatch(resizeCss,/dialog \.dialog-header\{[^}]*background-color:#41494e/);
   assert.match(resizeCss,/dialog \.close\{[\s\S]*?display:inline-flex;align-items:center;justify-content:center;text-align:center;[\s\S]*?letter-spacing:10px;text-indent:10px;[\s\S]*?width:62\.4px!important;min-width:62\.4px/);
   assert.match(resizeCss,/dialog \.dialog-header \.close\{[\s\S]*?width:calc\(3\.9em \+ 69\.81px\)!important;min-width:calc\(3\.9em \+ 69\.81px\);[\s\S]*?padding-left:0;padding-right:0/);
-  assert.match(resizeCss,/dialog \.vendor-query-toolbar \.close\{width:131\.04px!important;min-width:131\.04px\}/);
+  assert.doesNotMatch(resizeCss,/dialog \.vendor-query-toolbar \.close\{width:131\.04px/);
   assert.match(resizeCss,/\.dialog-minimize-icon\{[^}]*height:1\.377px;background:currentColor;transform:scale\(1\.5\);color:#fff/);
   assert.match(resizeCss,/\.dialog-expand-icon\{[^}]*width:14px;height:14px;border:2\.754px solid currentColor;color:#fff/);
   assert.match(resizeCss,/\.dialog-expanded \.dialog-expand-icon\{[\s\S]*?width:19\.8px;height:28\.05px;border:0;background-color:transparent;[\s\S]*?background-image:url\('\/popup-expand-icon\.png'\);background-position:center;background-repeat:no-repeat;background-size:19\.8px 28\.05px/);
@@ -394,7 +394,7 @@ test('popup layout keeps desktop size and mobile initial sizing while showing re
     }
   }
   assert.ok(hasVisibleWhitePixel);
-  assert.match(html,/dialog-resize\.css\?v=[^"]*popup-controls-120/);
+  assert.match(html,/dialog-resize\.css\?v=[^"]*vendor-window-controls/);
 });
 test('all popup header control icons and buttons are scaled to 120 percent',()=>{
   const css=fs.readFileSync('dialog-resize.css','utf8');

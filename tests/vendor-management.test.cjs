@@ -24,7 +24,7 @@ test('vendor registration screen wires toolbar, type checkboxes and settings',()
   assert.match(style,/\.vendor-dialog>form\{display:flex;flex-direction:column;max-height:78vh\}/);
   assert.match(baseStyle,/dialog \.dialog-header h2\{font-size:36px\}/);
   assert.match(style,/\.vendor-dialog \.dialog-header h2\{font-size:32px\}/);
-  assert.match(html,/vendor-management\.css\?v=[^"]*vendor-list-title-white/);
+  assert.match(html,/vendor-management\.css\?v=[^"]*vendor-window-controls/);
 });
 
 test('vendor lookup matches the query toolbar, conditions and wide result grid',()=>{
@@ -48,7 +48,7 @@ test('vendor lookup matches the query toolbar, conditions and wide result grid',
   assert.match(style,/\.vendor-query-grid\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(style,/\.vendor-query-toolbar\{[^}]*min-height:61\.2px/);
   assert.match(style,/\.vendor-query-toolbar button\{[^}]*font-size:18\.27px/);
-  assert.match(style,/\.vendor-query-toolbar .close\{width:67\.2px;min-width:67\.2px;height:44px;min-height:44px/);
+  assert.match(style,/\.vendor-query-toolbar \.dialog-window-button,\.vendor-query-toolbar \.close\{min-height:25\.2px/);
   assert.match(style,/\.vendor-query-conditions>summary,.vendor-query-additional>summary\{[^}]*font-size:16\.9px/);
   assert.match(style,/\.vendor-query-grid>label\{[^}]*font-size:15\.6px/);
   assert.match(style,/\.vendor-query-grid input,\.vendor-query-grid select\{height:36px;[^}]*font-size:15\.6px/);

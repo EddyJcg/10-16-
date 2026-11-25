@@ -3620,7 +3620,7 @@ async function startApp(){
     editProductInfo(button.dataset.productInfoId);
   });
   ['info_name_prefix','info_name_part','info_product_type','info_size','info_color'].forEach(id=>$(id).addEventListener('change',()=>refreshProductCode({warn:true})));
-  $('product-code-entry-button').addEventListener('click',showProductCodeEntries);
+  $('product-code-entry-summary').addEventListener('click',event=>{event.preventDefault();showProductCodeEntries();});
   $('close-product-code-entry').addEventListener('click',()=>$('product-code-entry-dialog').close());
   $('product-code-entry-form').addEventListener('submit',saveProductCodeEntry);
   document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>openMovement(button.dataset.mode)));

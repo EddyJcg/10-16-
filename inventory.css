@@ -58,6 +58,12 @@
 .product-name-picker select,.product-name-picker input{flex:1 1 0;min-width:0;width:auto;padding:10px 2px;font-size:11px}
 .product-name-picker input{flex-grow:1.4}
 .product-name-picker>span{flex:0 0 auto;font-weight:600}
+.product-code-entry-grid{display:grid;grid-template-columns:96px repeat(5,minmax(0,1fr));gap:6px;align-items:center}
+.product-code-entry-grid .pce-head{text-align:center;font-weight:600;font-size:12px;padding:6px 2px;border-radius:6px;background:#f3f4f6;cursor:default}
+.product-code-entry-grid .pce-head.is-active{background:#dbeafe;color:#1e3a8a}
+.product-code-entry-grid .pce-row-label{font-weight:600;font-size:12px;text-align:left}
+.product-code-entry-grid input{width:100%;min-width:0;cursor:pointer}
+.product-code-entry-grid input:focus{outline:2px solid #2563eb;outline-offset:-1px}
 #vendor-info-entry-folder>summary::before{color:#00897B}
 #sales-folder>summary::before{color:#F9A825}
 #purchase-folder>summary::before{color:#5E35B1}

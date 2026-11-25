@@ -1993,6 +1993,7 @@ function productForLookup(source,value=$(source).value) {
   return null;
 }
 let productCodeEntries=[];
+let activeProductCodeGroup='';
 const PRODUCT_CODE_PICKS={name_prefix:'info_name_prefix',name_part:'info_name_part',product_type:'info_product_type',size:'info_size',color:'info_color'};
 const PRODUCT_CODE_GROUPS=[['name_prefix','품명 1·2자리'],['name_part','품명 3·4자리'],['product_type','제품유형 (6·7자리)'],['size','SIZE (8·9자리, 선택)'],['color','색상 (10·11자리)']];
 async function loadProductCodeEntries(){
@@ -2219,24 +2220,35 @@ async function showAssetClassifications() {
 const PRODUCT_CODE_GROUP_LABELS=Object.fromEntries(PRODUCT_CODE_GROUPS);
 function renderProductCodeEntries(){
   const body=$('product-code-entry-items');body.replaceChildren();
-  if(!productCodeEntries.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=3;cell.className='empty';cell.textContent='등록된 품번 항목이 없습니다.';row.append(cell);body.append(row);return;}
-  PRODUCT_CODE_GROUPS.forEach(([groupKey])=>productCodeEntriesOf(groupKey).forEach(entry=>{
+  const emptyRow=message=>{const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=3;cell.className='empty';cell.textContent=message;row.append(cell);body.append(row);};
+  if(!activeProductCodeGroup){emptyRow('입력 칸을 클릭하면 해당 자리의 항목이 표시됩니다.');return;}
+  const entries=productCodeEntriesOf(activeProductCodeGroup);
+  if(!entries.length){emptyRow('이 자리에 등록된 항목이 없습니다.');return;}
+  entries.forEach(entry=>{
     const row=document.createElement('tr');
-    [PRODUCT_CODE_GROUP_LABELS[groupKey],entry.code,entry.label].forEach(value=>row.append(makeCell(value)));
+    [PRODUCT_CODE_GROUP_LABELS[activeProductCodeGroup],entry.code,entry.label].forEach(value=>row.append(makeCell(value)));
     body.append(row);
-  }));
+  });
+}
+function setActiveProductCodeGroup(groupKey){
+  activeProductCodeGroup=groupKey;
+  $('product-code-entry-grid').querySelectorAll('[data-group]').forEach(el=>el.classList.toggle('is-active',el.dataset.group===groupKey));
+  renderProductCodeEntries();
 }
 async function showProductCodeEntries() {
   if(!currentUser||!currentIsAdmin||busy)return;
-  $('product-code-entry-form').reset();$('product-code-entry-status').textContent='품번 항목을 불러오는 중…';$('product-code-entry-dialog').showModal();
+  $('product-code-entry-form').reset();setActiveProductCodeGroup('');$('product-code-entry-status').textContent='품번 항목을 불러오는 중…';$('product-code-entry-dialog').showModal();
   try{await loadProductCodeEntries();renderProductCodeEntries();$('product-code-entry-status').textContent=`품번 항목 ${number(productCodeEntries.length)}개`;}
   catch(error){$('product-code-entry-status').textContent='품번 항목을 불러오지 못했습니다. Supabase에서 supabase/product-code-entries.sql을 실행하세요. '+errorText(error);}
 }
 async function saveProductCodeEntry(event) {
   event.preventDefault();if(!currentUser||!currentIsAdmin||busy)return;
-  const groupKey=$('product-code-entry-group').value,code=$('product-code-entry-code').value.trim().toUpperCase(),label=$('product-code-entry-label').value.trim();
   const status=$('product-code-entry-status');
+  const groupKey=activeProductCodeGroup;
+  if(!groupKey){status.textContent='입력할 자리의 박스를 먼저 클릭하세요.';return;}
+  const code=$(`pce-code-${groupKey}`).value.trim().toUpperCase(),label=$(`pce-label-${groupKey}`).value.trim();
   if(!/^[A-Z0-9]{2}$/.test(code)){status.textContent='코드는 영문 또는 숫자 2자리로 입력하세요.';return;}
+  if(!label){status.textContent='항목명을 입력하세요.';return;}
   const duplicate=productCodeEntries.find(entry=>entry.group_key===groupKey&&(entry.code===code||entry.label===label));
   if(duplicate){
     const message=duplicate.code===code?'이미 등록된 코드입니다. 다른 코드를 입력하세요.':'이미 등록된 항목명입니다. 다른 항목명을 입력하세요.';
@@ -3623,6 +3635,7 @@ async function startApp(){
   $('product-code-entry-button').addEventListener('click',()=>showProductCodeEntries());
   $('close-product-code-entry').addEventListener('click',()=>$('product-code-entry-dialog').close());
   $('product-code-entry-form').addEventListener('submit',saveProductCodeEntry);
+  $('product-code-entry-form').addEventListener('focusin',event=>{if(event.target.dataset?.group)setActiveProductCodeGroup(event.target.dataset.group);});
   document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>openMovement(button.dataset.mode)));
   installMovementHistoryButton();
   $('close-dialog').addEventListener('click',closeMovement);$('movement-dialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();});

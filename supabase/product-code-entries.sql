@@ -77,7 +77,7 @@ on conflict do nothing;
 insert into public.product_code_entries (group_key, code, label) values
   ('color','01','Ash'),('color','02','Baltic'),('color','03','Beige'),('color','04','Black'),
   ('color','05','Deep Blue'),('color','06','Brown'),('color','07','Caramel'),('color','08','Charcoal'),
-  ('color','09','Chromic'),('color','10','Chocolate'),('color','11','Citrone'),('color','12','Coronie Blue'),
+  ('color','09','Chromic Green'),('color','10','Chocolate'),('color','11','Citrone'),('color','12','Coronie Blue'),
   ('color','13','Cream'),('color','14','Dark Blue'),('color','15','Dark Gray'),('color','16','Eggplant'),
   ('color','17','Forest'),('color','18','Gray'),('color','19','Green'),('color','20','Ice'),
   ('color','21','Ice Green'),('color','22','Ivory'),('color','23','Mocha'),('color','24','Navy'),
@@ -89,8 +89,8 @@ insert into public.product_code_entries (group_key, code, label) values
 on conflict do nothing;
 
 -- 이미 저장된 오타 표시명을 정정합니다(여러 번 실행해도 안전). seed는 on conflict do nothing이라 기존 행은 이 구문으로 고칩니다.
-update public.product_code_entries set label = 'Chromic'
-where group_key = 'color' and code = '09' and label in ('Chermic','Chirmic');
+update public.product_code_entries set label = 'Chromic Green'
+where group_key = 'color' and code = '09' and label in ('Chermic','Chirmic','Chromic');
 update public.product_code_entries set label = 'Flower Hug Fleece'
 where group_key = 'name_part' and code = 'FH' and label = 'Flower Hug Fleede';
 

@@ -41,6 +41,7 @@
 .vendor-query-toolbar button span{font-size:24.3px}
 .vendor-query-toolbar .close{margin-left:auto;background:#566168}
 .vendor-query-toolbar .dialog-window-button,.vendor-query-toolbar .close{min-height:25.2px;font-size:0}
+.vendor-query-toolbar .close::before{content:"×";display:block;width:25.2px;height:25.2px;font-size:19.2px;line-height:25.2px;text-align:center}
 .vendor-query-toolbar .dialog-reset-icon{font-size:20.4px}
 .vendor-query-content{display:flex;flex:1;flex-direction:column;gap:6px;min-height:0;max-height:none;padding:5px;overflow:hidden;background:#fff}
 .vendor-query-conditions,.vendor-query-additional{flex:none;border:0;border-bottom:1px solid #c9cdd0}
